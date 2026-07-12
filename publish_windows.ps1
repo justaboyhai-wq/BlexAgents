@@ -1,4 +1,4 @@
-﻿# MyAgents Windows 发布脚本
+﻿# BlexAgent Windows 发布脚本
 # 将构建产物上传到 Cloudflare R2，并生成更新清单
 #
 # 前置条件：
@@ -52,12 +52,12 @@ $BundleDir = Join-Path $ProjectDir "src-tauri\target"
 $EnvFile = Join-Path $ProjectDir ".env"
 
 # 配置
-$R2Bucket = "myagents-releases"
-$DownloadBaseUrl = "https://download.myagents.io"
+$R2Bucket = "blexagent-releases"
+$DownloadBaseUrl = "https://download.blexagent.com"
 
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "  MyAgents Windows 发布到 R2" -ForegroundColor Green
+Write-Host "  BlexAgent Windows 发布到 R2" -ForegroundColor Green
 Write-Host "  Version: $Version" -ForegroundColor Blue
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host ""
@@ -219,7 +219,7 @@ Write-Host ""
 # ========================================
 Write-Host "[4/7] 生成更新清单..." -ForegroundColor Blue
 
-$ManifestDir = [System.IO.Path]::GetTempPath() + "myagents-manifest-" + [System.Guid]::NewGuid().ToString("N")
+$ManifestDir = [System.IO.Path]::GetTempPath() + "blexagent-manifest-" + [System.Guid]::NewGuid().ToString("N")
 $script:ManifestDir = $ManifestDir
 New-Item -ItemType Directory -Path $ManifestDir -Force | Out-Null
 
@@ -236,11 +236,11 @@ if ($SigFile) {
 if ($UpdateZip) {
     $UpdateFileName = $UpdateZip.Name
     # 重命名上传文件名，添加版本和架构标识
-    $UpdateUploadName = "MyAgents_${Version}_x86_64.nsis.zip"
+    $UpdateUploadName = "BlexAgent_${Version}_x86_64.nsis.zip"
 
     $manifest = @{
         version   = $Version
-        notes     = "MyAgents v$Version"
+        notes     = "BlexAgent v$Version"
         pub_date  = $PubDate
         signature = $Signature
         url       = "$DownloadBaseUrl/releases/v$Version/$UpdateUploadName"
@@ -285,7 +285,7 @@ if ($NsisExe) {
     $latestWinManifest = @{
         version       = $Version
         pub_date      = $PubDate
-        release_notes = "MyAgents v$Version"
+        release_notes = "BlexAgent v$Version"
         downloads     = $latestWinDownloads
     }
 
@@ -322,7 +322,7 @@ if ($UpdateZip) {
     $uploadFiles += $UpdateZip
 }
 if ($SigFile) {
-    Write-Host "    - MyAgents_${Version}_x86_64.nsis.zip.sig"
+    Write-Host "    - BlexAgent_${Version}_x86_64.nsis.zip.sig"
     $uploadFiles += $SigFile
 }
 
@@ -403,7 +403,7 @@ if ($UpdateZip) {
 # 上传签名文件
 if ($SigFile) {
     Write-Host "  上传签名文件..." -ForegroundColor Cyan
-    $sigUploadName = "MyAgents_${Version}_x86_64.nsis.zip.sig"
+    $sigUploadName = "BlexAgent_${Version}_x86_64.nsis.zip.sig"
     & $rclonePath --config=$rcloneConfig copyto $SigFile.FullName "r2:$R2Bucket/releases/v$Version/$sigUploadName" --s3-no-check-bucket --progress
     if ($LASTEXITCODE -eq 0) {
         Write-Host "    [OK] $sigUploadName" -ForegroundColor Green

@@ -112,9 +112,9 @@ interface FileActionProviderProps {
   /** Menu surface. Default keeps the full Chat menu; floatingBall uses the
    *  companion-specific four-action menu requested for the mini window. */
   menuProfile?: 'default' | 'floatingBall';
-  /** Floating-ball only: raise MyAgents, focus the session tab, and open the
+  /** Floating-ball only: raise BlexAgent, focus the session tab, and open the
    *  given workspace-relative file in the main preview surface. */
-  onOpenMyAgentsPreview?: (
+  onOpenBlexAgentPreview?: (
     path: string,
     options?: { displayPath?: string; initialLineNumber?: number },
   ) => void;
@@ -145,7 +145,7 @@ function targetFileName(path: string): string {
   return path.split(/[/\\]/).pop() ?? path;
 }
 
-export function FileActionProvider({ children, workspacePath, onInsertReference, refreshTrigger, onFilePreviewExternal, onQuoteFile, onQuoteSelection, onRevealInTree, menuProfile = 'default', onOpenMyAgentsPreview }: FileActionProviderProps) {
+export function FileActionProvider({ children, workspacePath, onInsertReference, refreshTrigger, onFilePreviewExternal, onQuoteFile, onQuoteSelection, onRevealInTree, menuProfile = 'default', onOpenBlexAgentPreview }: FileActionProviderProps) {
   const { t } = useTranslation('app');
   const fileService = useWorkspaceFileService(workspacePath);
   const { openPreview: openImagePreview } = useImagePreview();
@@ -167,8 +167,8 @@ export function FileActionProvider({ children, workspacePath, onInsertReference,
   const onRevealInTreeRef = useRef(onRevealInTree);
   onRevealInTreeRef.current = onRevealInTree;
 
-  const onOpenMyAgentsPreviewRef = useRef(onOpenMyAgentsPreview);
-  onOpenMyAgentsPreviewRef.current = onOpenMyAgentsPreview;
+  const onOpenBlexAgentPreviewRef = useRef(onOpenBlexAgentPreview);
+  onOpenBlexAgentPreviewRef.current = onOpenBlexAgentPreview;
 
   // Stabilise fileService so async closures see the latest service without
   // re-binding callbacks. Mirrors the React-stability rules pattern used
@@ -502,10 +502,10 @@ export function FileActionProvider({ children, workspacePath, onInsertReference,
       const pathInfo = await getTargetPathInfo(target);
       if (!pathInfo?.exists) return;
 
-      if (menuProfile === 'floatingBall' && target.scope === 'workspace' && onOpenMyAgentsPreviewRef.current) {
+      if (menuProfile === 'floatingBall' && target.scope === 'workspace' && onOpenBlexAgentPreviewRef.current) {
         const fileName = targetFileName(target.path);
         if (pathInfo.type === 'file' && (isPreviewable(fileName) || !!getRichDocKind(fileName))) {
-          onOpenMyAgentsPreviewRef.current(target.path, {
+          onOpenBlexAgentPreviewRef.current(target.path, {
             displayPath: href,
             initialLineNumber: target.initialLineNumber,
           });
@@ -579,8 +579,8 @@ export function FileActionProvider({ children, workspacePath, onInsertReference,
     onRevealInTreeRef.current?.(path);
   }, []);
 
-  const handleOpenMyAgentsPreview = useCallback((path: string, displayPath?: string, initialLineNumber?: number): void => {
-    onOpenMyAgentsPreviewRef.current?.(path, initialLineNumber
+  const handleOpenBlexAgentPreview = useCallback((path: string, displayPath?: string, initialLineNumber?: number): void => {
+    onOpenBlexAgentPreviewRef.current?.(path, initialLineNumber
       ? { displayPath, initialLineNumber }
       : { displayPath });
   }, []);
@@ -593,10 +593,10 @@ export function FileActionProvider({ children, workspacePath, onInsertReference,
     const items: ContextMenuItem[] = [];
 
     if (menuProfile === 'floatingBall') {
-      const canOpenMyAgentsPreview =
+      const canOpenBlexAgentPreview =
         scope === 'workspace' &&
         pathType === 'file' &&
-        !!onOpenMyAgentsPreviewRef.current &&
+        !!onOpenBlexAgentPreviewRef.current &&
         (isPreviewable(fileName) || !!getRichDocKind(fileName));
 
       return [
@@ -616,10 +616,10 @@ export function FileActionProvider({ children, workspacePath, onInsertReference,
           onClick: () => handleOpenInFinder(path, scope),
         },
         {
-          label: t('fileActions.openMyAgentsPreview'),
+          label: t('fileActions.openBlexAgentPreview'),
           icon: <PanelRightOpen className="h-4 w-4" />,
-          disabled: !canOpenMyAgentsPreview,
-          onClick: () => handleOpenMyAgentsPreview(path, displayPath, initialLineNumber),
+          disabled: !canOpenBlexAgentPreview,
+          onClick: () => handleOpenBlexAgentPreview(path, displayPath, initialLineNumber),
         },
       ];
     }
@@ -669,7 +669,7 @@ export function FileActionProvider({ children, workspacePath, onInsertReference,
     }
 
     return items;
-  }, [menuState, menuProfile, t, handlePreview, handleCopyPath, handleReference, handleOpenWithDefault, handleOpenInFinder, handleRevealInTree, handleOpenMyAgentsPreview]);
+  }, [menuState, menuProfile, t, handlePreview, handleCopyPath, handleReference, handleOpenWithDefault, handleOpenInFinder, handleRevealInTree, handleOpenBlexAgentPreview]);
 
   // ---------- Context value ----------
   const contextValue = useMemo<FileActionContextValue>(() => ({

@@ -152,7 +152,7 @@ fn shutdown_for_update_inner(
     loop {
         // Update path MUST verify our own sidecars (SIDECAR_MARKER) too —
         // NSIS can't overwrite `bun.exe` while it's in use, so we need
-        // confirmation that every MyAgents-related process is gone. Uses
+        // confirmation that every BlexAgent-related process is gone. Uses
         // STARTUP patterns (superset that includes the sidecar marker).
         let matches = crate::process_cleanup::find_matching_processes_with_roots(
             STARTUP_CLEANUP_PATTERNS,
@@ -247,7 +247,7 @@ fn shutdown_for_update_inner(
 /// Uses [`CHILD_CLEANUP_PATTERNS`] (no `SIDECAR_MARKER`) because our own
 /// sidecars are already killed through their `Child` handles in
 /// [`stop_all_sidecars`]. Sweeping by marker here would risk killing a
-/// concurrent MyAgents instance's sidecars during any overlap window.
+/// concurrent BlexAgent instance's sidecars during any overlap window.
 fn cleanup_child_processes() {
     let report = crate::process_cleanup::kill_stale_processes(CHILD_CLEANUP_PATTERNS);
     if report.total_targets() == 0 {

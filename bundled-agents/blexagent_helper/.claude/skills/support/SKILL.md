@@ -1,20 +1,20 @@
----
+﻿---
 name: support
 description: >-
-  MyAgents 用户问题诊断与支持工作流。用户只要描述报错、异常、功能不动、界面崩溃、任务没跑、
+  BlexAgent 用户问题诊断与支持工作流。用户只要描述报错、异常、功能不动、界面崩溃、任务没跑、
   IM/Agent 不回复、MCP/Provider/Runtime/插件/工具/媒体产物不可用，或者前端"召唤小助理"注入诊断请求，
   就使用这个 skill。先取证、再分类、再修复或产出 bug report；不要基于猜测直接改配置。
 ---
 
-# MyAgents Support
+# BlexAgent Support
 
-你正在处理用户本地 MyAgents 实例的问题。支持工作的价值不在于背错误表，而在于把本地证据、CLI 诊断、日志时间线和 MyAgents 架构边界串起来。
+你正在处理用户本地 BlexAgent 实例的问题。支持工作的价值不在于背错误表，而在于把本地证据、CLI 诊断、日志时间线和 BlexAgent 架构边界串起来。
 
 ## 总原则
 
 1. 先理解主诉，再取证。用户描述不清时，先问发生时间、复现步骤、影响范围。
 2. 先用低风险证据：`status`、`version`、列表、日志。把 active probe 和写操作留到需要时。
-3. 任何配置修复优先走 `/myagents-cli`，不要直接改 `config.json`。
+3. 任何配置修复优先走 `/blexagent-cli`，不要直接改 `config.json`。
 4. 报告和日志必须脱敏。API Key、Token、Secret、Webhook query secret 都不能原样输出。
 5. 给用户的解释可以通俗；给开发者的 bug report 要保留精确术语和证据。
 
@@ -23,8 +23,8 @@ description: >-
 先收集环境和最近启动信息。不要因为某条命令失败就停住，记录失败原因后继续。
 
 ```bash
-myagents status --json
-myagents version
+blexagent status --json
+blexagent version
 rg '\[boot\]' ./logs/unified-*.log | tail -5
 ```
 
@@ -42,14 +42,14 @@ grep '\[boot\]' ./logs/unified-*.log | tail -5
 
 | 主诉 | 读取 |
 |---|---|
-| Codex/Gemini/Claude Code 不工作、终端能用但 MyAgents 不行、runtime/model/permissionMode 异常 | `references/runtime.md` |
+| Codex/Gemini/Claude Code 不工作、终端能用但 BlexAgent 不行、runtime/model/permissionMode 异常 | `references/runtime.md` |
 | Provider 验证失败、API Key/模型不可用、MCP 工具启动/登录/握手失败 | `references/provider-mcp.md` |
 | Telegram/钉钉/飞书/微信/QQ Agent 不在线、社区插件装不上或登录后不生效 | `references/agent-channel-plugin.md` |
 | 定时任务没执行、任务中心卡住、想法/任务状态异常、需要跨 session 反馈 | `references/automation.md` |
 | 图片/音频/PDF 等工具产物生成了但不显示、Codex image_generation 没图、IM 媒体没发出 | `references/attachments.md` |
 | 工作区文件树/搜索/预览、@ 文件或图片、拖拽/粘贴附件、新建/重命名/删除/移动文件不正常 | `references/workspace-files.md` |
 | AI 不回复、sidecar 重启、pre-warm、历史恢复、回溯/分叉异常 | `references/session-sidecar.md` |
-| 网络/代理、Provider 可达性、npm 拉包、终端和 MyAgents env 差异 | `references/proxy-env.md` |
+| 网络/代理、Provider 可达性、npm 拉包、终端和 BlexAgent env 差异 | `references/proxy-env.md` |
 | 白屏、整页“界面渲染出错”、点击某处 UI 崩溃 | `references/frontend-render.md` |
 | 功能入口不存在、设置项看不到、Runtime/CLI 工具注册表/实验功能没出现 | `references/feature-gates.md` |
 | 桌面宠物/悬浮窗打不开、一直“正在连接 Mino”、提示 `Global sidecar startup timeout`、悬浮窗能打开但不能对话 | 先按本文件“桌面宠物 / 悬浮窗”小节查日志，再视结果转 `references/session-sidecar.md` 或 `references/frontend-render.md` |
@@ -57,21 +57,21 @@ grep '\[boot\]' ./logs/unified-*.log | tail -5
 ## Step 3 - 被动证据 vs active probe
 
 被动证据通常安全：
-- `myagents status --json`
-- `myagents version`
-- `myagents <group> list --json`
-- `myagents <group> show/get ... --json`
-- `myagents runtime list --json`
-- `myagents runtime describe <runtime> --json`
+- `blexagent status --json`
+- `blexagent version`
+- `blexagent <group> list --json`
+- `blexagent <group> show/get ... --json`
+- `blexagent runtime list --json`
+- `blexagent runtime describe <runtime> --json`
 - 日志 grep/rg
 - 脱敏读取相关配置
 
 active probe 会实际连接外部服务、启动进程、消耗请求或弹浏览器，应先说明目的：
-- `myagents model verify <provider>`（API Key Provider 的现场验证；订阅 Provider 先看 provider 状态和日志，不能把“无 API Key”误判成失败）
-- `myagents mcp test <id>`
-- `myagents mcp oauth start <id>`
-- `myagents runtime diagnose codex --workspacePath <path> --json`
-- `myagents cron run-now <id>`
+- `blexagent model verify <provider>`（API Key Provider 的现场验证；订阅 Provider 先看 provider 状态和日志，不能把“无 API Key”误判成失败）
+- `blexagent mcp test <id>`
+- `blexagent mcp oauth start <id>`
+- `blexagent runtime diagnose codex --workspacePath <path> --json`
+- `blexagent cron run-now <id>`
 - 插件安装、Channel 登录、任何写操作
 
 ## Step 4 - 建时间线
@@ -120,7 +120,7 @@ rg -n "fb-ball|fb-companion|fb-session|Global sidecar|正在连接 Mino|startup 
 
 | 类型 | 判断依据 | 行动 |
 |---|---|---|
-| 配置错误 | Key/URL/模型/开关/Channel 凭证/MCP env 明显错误 | 用 `/myagents-cli` 修，修完验证 |
+| 配置错误 | Key/URL/模型/开关/Channel 凭证/MCP env 明显错误 | 用 `/blexagent-cli` 修，修完验证 |
 | 环境问题 | 网络、代理、PATH、runtime 安装、npm registry、OAuth 状态问题 | 给出具体修复路径，必要时 active probe |
 | 使用困惑 | 日志正常，用户误解功能边界或生效时机 | 解释边界，并用 CLI 直接帮用户完成可完成部分 |
 | 实验门控 | 功能默认关闭或只能人工打开 | 解释开关位置，不绕过人类可见门控 |
@@ -145,8 +145,8 @@ rg -n "fb-ball|fb-companion|fb-session|Global sidecar|正在连接 Mino|startup 
 ```markdown
 ## 环境信息
 - boot: ...
-- myagents version: ...
-- myagents status: ...
+- blexagent version: ...
+- blexagent status: ...
 
 ## 用户主诉
 ...
@@ -174,4 +174,4 @@ rg -n "fb-ball|fb-companion|fb-session|Global sidecar|正在连接 Mino|startup 
 - `pre-warm failed`：首消息会慢；反复失败或影响工具列表再查 MCP/Provider。
 - `terminal_reason=completed`：本轮正常结束。
 - 回溯无文件 checkpoint：该回复没改文件，回溯消息仍可正常工作。
-- CLI 工具注册表关闭时 `myagents tool --help` 只显示开启指引：实验门控正常行为。
+- CLI 工具注册表关闭时 `blexagent tool --help` 只显示开启指引：实验门控正常行为。

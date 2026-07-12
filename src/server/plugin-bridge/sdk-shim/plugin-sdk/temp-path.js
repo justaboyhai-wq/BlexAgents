@@ -1,4 +1,4 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./temp-path.auto.js";
@@ -33,7 +33,7 @@ function sanitizeFileName(fileName) {
 }
 
 function resolveTempRoot(tmpDir) {
-  const root = tmpDir ?? path.join(tmpdir(), 'myagents-bridge-media');
+  const root = tmpDir ?? path.join(tmpdir(), 'blexagent-bridge-media');
   mkdirSync(root, { recursive: true });
   return root;
 }

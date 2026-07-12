@@ -60,8 +60,8 @@ function which(command: string, opts?: { PATH?: string }): string | null {
  * so external CLI subprocesses spawned here are also protected.
  *
  * Issue #194 — `policy.proxy` selects how proxy env reaches the runtime:
- *  - `myagents` (default): inherit Sidecar's process.env proxy vars (Rust
- *    injects MyAgents-configured proxy into the Sidecar's env at spawn).
+ *  - `blexagent` (default): inherit Sidecar's process.env proxy vars (Rust
+ *    injects BlexAgent-configured proxy into the Sidecar's env at spawn).
  *  - `terminal`: replace the inherited proxy vars with whatever the user's
  *    interactive shell exports (detected during shell.ts warmup). If warmup
  *    found nothing, all proxy vars are stripped — that's terminal parity for
@@ -72,7 +72,7 @@ function which(command: string, opts?: { PATH?: string }): string | null {
  * 0.2.16 dev briefly shipped a third `'direct'` literal that unconditionally
  * stripped all proxy vars. Removed before release — `terminal` covers the
  * same TUN/VPN case for users whose shell has no proxy set. Existing disk
- * `'direct'` values fall through validation and default to `'myagents'`.
+ * `'direct'` values fall through validation and default to `'blexagent'`.
  */
 export function augmentedProcessEnv(
   policy?: RuntimeEnvPolicy,
@@ -82,24 +82,24 @@ export function augmentedProcessEnv(
   // Defense-in-depth: only act on the explicit allowlist. An unknown value
   // (forward-compat: a future policy literal not yet implemented here, a
   // deprecated literal like the removed `'direct'`, or a malformed config
-  // that slipped past upstream validation) MUST behave as `'myagents'` —
+  // that slipped past upstream validation) MUST behave as `'blexagent'` —
   // i.e. don't strip the user's proxy env on a guess.
   const rawPolicy = policy?.proxy;
-  const proxyPolicy: 'myagents' | 'terminal' =
-    rawPolicy === 'terminal' ? 'terminal' : 'myagents';
+  const proxyPolicy: 'blexagent' | 'terminal' =
+    rawPolicy === 'terminal' ? 'terminal' : 'blexagent';
 
-  if (proxyPolicy === 'myagents') {
+  if (proxyPolicy === 'blexagent') {
     // Legacy / default — leave inherited proxy vars in place. Rust's
     // `apply_to_subprocess` already populated them in the Sidecar's env.
     return env;
   }
 
   // 'terminal' — strip every inherited proxy var, then restore whatever the
-  // user's interactive shell would set. Drop the MyAgents-injected marker
-  // too so downstream code doesn't mistake a stripped env for a MyAgents-
+  // user's interactive shell would set. Drop the BlexAgent-injected marker
+  // too so downstream code doesn't mistake a stripped env for a BlexAgent-
   // controlled one.
   for (const k of PROXY_KEYS_ALL) delete env[k];
-  delete env.MYAGENTS_PROXY_INJECTED;
+  delete env.BLEXAGENT_PROXY_INJECTED;
 
   const detected = getDetectedTerminalProxyEnv();
   if (detected) {
@@ -130,7 +130,7 @@ export function augmentedProcessEnv(
  * via this disk source — without it, a malformed `proxy: 'inherit'` typo would
  * propagate to the diagnostic surface as if it were valid, and the user has no
  * way to discover the misconfiguration. `augmentedProcessEnv` itself does
- * defense-in-depth (unknown → `myagents`), so behaviour stays safe, but the
+ * defense-in-depth (unknown → `blexagent`), so behaviour stays safe, but the
  * visible mismatch is confusing.
  *
  * Best-effort: any error reading config is swallowed and returns `undefined`,
@@ -150,18 +150,18 @@ export async function resolveAgentEnvPolicy(
     if (!raw || typeof raw !== 'object') return undefined;
     const policyObj = raw as Record<string, unknown>;
     const proxyRaw = policyObj.proxy;
-    const proxy: 'myagents' | 'terminal' | undefined =
-      proxyRaw === 'myagents' || proxyRaw === 'terminal'
+    const proxy: 'blexagent' | 'terminal' | undefined =
+      proxyRaw === 'blexagent' || proxyRaw === 'terminal'
         ? proxyRaw
         : undefined;
     if (proxyRaw !== undefined && proxy === undefined) {
       // Covers legacy `'direct'` from 0.2.16 dev (removed before release) and
       // any other malformed value (`'inherit'` typo, `true` from wrong UI
       // wire). Silent fallback to the safe default — UI will re-render
-      // showing `'MyAgents 代理'` selected and user can pick `'terminal'` if
+      // showing `'BlexAgent 代理'` selected and user can pick `'terminal'` if
       // they previously relied on stripping proxy.
       console.warn(
-        `[env-utils] Ignoring unsupported envPolicy.proxy=${JSON.stringify(proxyRaw)} for ${workspacePath} — defaulting to 'myagents'`,
+        `[env-utils] Ignoring unsupported envPolicy.proxy=${JSON.stringify(proxyRaw)} for ${workspacePath} — defaulting to 'blexagent'`,
       );
     }
     return { proxy };

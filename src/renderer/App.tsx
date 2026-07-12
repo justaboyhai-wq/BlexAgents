@@ -429,7 +429,7 @@ export default function App() {
   // initial picker selection + persist on pick. The LAUNCH_BUG_REPORT handler
   // intentionally does NOT read this: when no explicit hint is supplied, the
   // helper Tab autoSend resolves provider/model via currentAgent (= helper
-  // Agent) — same path as opening ~/.myagents from the Launcher.
+  // Agent) — same path as opening ~/.blexagent from the Launcher.
   const helperAgentDefaults = useHelperAgentModelDefaults();
 
   // Apply theme (light/dark/system) to <html> element
@@ -853,7 +853,7 @@ export default function App() {
     // Rust (Issue #232). flushOpenTabsNow() writes localStorage (the fast path),
     // but WebKit/WebView2 persist localStorage to disk ASYNCHRONOUSLY, so the
     // abrupt NSIS exit(0) (Windows) / relaunch() (macOS) can drop that last
-    // write. persistOpenTabsDurable() additionally fsyncs a ~/.myagents/
+    // write. persistOpenTabsDurable() additionally fsyncs a ~/.blexagent/
     // open-tabs.json backstop and is AWAITED here, so the tabs the user had
     // open at the click are committed to disk before the process dies; boot
     // consumes the backstop and adopts it only if localStorage came up empty.
@@ -3262,7 +3262,7 @@ export default function App() {
 
   // PRD §8.3 — "AI 讨论" flow. Open a new Chat tab, auto-dispatch the
   // `/task-alignment` skill with the thought content + instructions to call
-  // `myagents task create-from-alignment` at the end.
+  // `blexagent task create-from-alignment` at the end.
   useEffect(() => {
     const handler = async (raw: Event) => {
       const event = raw as CustomEvent<{
@@ -3325,10 +3325,10 @@ export default function App() {
 
         // Pre-mint the alignment session id (CC review W8) so the AI doesn't
         // have to infer a placeholder. This becomes the subdir under
-        // `~/.myagents/tasks/<id>/` where alignment.md/task.md/verify.md/
+        // `~/.blexagent/tasks/<id>/` where alignment.md/task.md/verify.md/
         // progress.md land, and the exact value the
         // `task create-from-alignment` CLI takes (it renames that directory
-        // to `~/.myagents/tasks/<newTaskId>/` on promotion).
+        // to `~/.blexagent/tasks/<newTaskId>/` on promotion).
         //
         // v0.1.69 relocation: the task-alignment skill writes via the `Write`
         // tool using the absolute home-dir path (task docs moved out of the
@@ -3336,8 +3336,8 @@ export default function App() {
         const alignmentSessionId = `align-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
         // Persist the workspace/thought context to
-        // `~/.myagents/tasks/<alignmentSessionId>/metadata.json` so that
-        // when the AI later calls `myagents task create-from-alignment`
+        // `~/.blexagent/tasks/<alignmentSessionId>/metadata.json` so that
+        // when the AI later calls `blexagent task create-from-alignment`
         // it only needs to pass `--name`; the backend inherits the rest
         // from this file. Without this, the AI had to re-type 3 long
         // UUIDs that it already had in its prompt context — fragile
@@ -3632,7 +3632,7 @@ export default function App() {
           return;
         }
 
-        // Ensure ~/.myagents registered as internal project
+        // Ensure ~/.blexagent registered as internal project
         // (CLAUDE.md + skills are synced at startup via cmd_sync_admin_agent)
         const project = await ensureSelfAwarenessWorkspace(
           configProjectsRef.current,

@@ -14,7 +14,7 @@
 
 ### Device Identity
 
-`device_id` is the stable desktop endpoint id stored at `~/.myagents/device_id`.
+`device_id` is the stable desktop endpoint id stored at `~/.blexagent/device_id`.
 The value predates Cloud Space and must remain stable across the Space device
 identity work. The implementation owner is the shared device identity layer
 (`src-tauri/src/device_identity.rs` + `src/renderer/identity/deviceIdentity.ts`);

@@ -4,12 +4,12 @@ import { shortenPathForDisplay } from '@/utils/pathDetection';
 
 describe('shortenPathForDisplay', () => {
   it('shortens macOS and Windows user profile paths', () => {
-    expect(shortenPathForDisplay('/Users/zhihu/Documents/project/MyAgents')).toBe('~/Documents/project/MyAgents');
-    expect(shortenPathForDisplay('C:\\Users\\zhihu\\Documents\\project\\MyAgents')).toBe('~/Documents/project/MyAgents');
-    expect(shortenPathForDisplay('D:/Users/zhihu/work/MyAgents')).toBe('~/work/MyAgents');
+    expect(shortenPathForDisplay('/Users/zhihu/Documents/project/BlexAgent')).toBe('~/Documents/project/BlexAgent');
+    expect(shortenPathForDisplay('C:\\Users\\zhihu\\Documents\\project\\BlexAgent')).toBe('~/Documents/project/BlexAgent');
+    expect(shortenPathForDisplay('D:/Users/zhihu/work/BlexAgent')).toBe('~/work/BlexAgent');
   });
 
   it('keeps non-user paths unchanged', () => {
-    expect(shortenPathForDisplay('/opt/MyAgents')).toBe('/opt/MyAgents');
+    expect(shortenPathForDisplay('/opt/BlexAgent')).toBe('/opt/BlexAgent');
   });
 });

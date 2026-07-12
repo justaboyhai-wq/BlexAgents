@@ -63,7 +63,7 @@ export class PluginStoreError extends Error {
 const installingNames = new Set<string>();
 
 /**
- * Reserved plugin names — they would collide with `~/.myagents/plugins/`'s
+ * Reserved plugin names — they would collide with `~/.blexagent/plugins/`'s
  * own structural children (e.g. `data/` is `getPluginsDataRoot()`; anything
  * starting with `.tmp-` is the install-staging convention below). Reject at
  * manifest-validation time so the install never lays a finger on disk.
@@ -78,14 +78,14 @@ function assertNameNotReserved(name: string): void {
   }
 }
 
-/** Resolved plugins root: ~/.myagents/plugins/ */
+/** Resolved plugins root: ~/.blexagent/plugins/ */
 export function getPluginsRoot(): string {
   const home = getHomeDirOrNull();
   if (!home) throw new PluginStoreError('Cannot determine home directory', 'NO_HOME', 500);
-  return join(home, '.myagents', 'plugins');
+  return join(home, '.blexagent', 'plugins');
 }
 
-/** ~/.myagents/plugins/data/ (parent for ${CLAUDE_PLUGIN_DATA}) */
+/** ~/.blexagent/plugins/data/ (parent for ${CLAUDE_PLUGIN_DATA}) */
 export function getPluginsDataRoot(): string {
   return join(getPluginsRoot(), 'data');
 }
@@ -266,7 +266,7 @@ export async function installPlugin(
 
   // #239: a local `file://` source can already BE the install target —
   // the user dropped a valid plugin straight into
-  // ~/.myagents/plugins/<name> and ran `cc-plugin install file://…/<name>`.
+  // ~/.blexagent/plugins/<name> and ran `cc-plugin install file://…/<name>`.
   // In that case source === dest, so the staging→rename dance below would
   // (a) waste a copy and (b) 409 on `existsSync(installPath)` ("目录已存在")
   // without ever registering the plugin — leaving a dir on disk that
@@ -670,7 +670,7 @@ export function getEnabledPluginSdkConfigs(
     // Post-install symlink-swap defense: lstat (not stat) rejects a path
     // where someone replaced the install dir with a symlink. realpath the
     // canonical install path and refuse mismatches — if an attacker swapped
-    // ~/.myagents/plugins/foo → /tmp/evil, we won't hand /tmp/evil to SDK.
+    // ~/.blexagent/plugins/foo → /tmp/evil, we won't hand /tmp/evil to SDK.
     try {
       const lst = lstatSync(p.installPath);
       if (lst.isSymbolicLink()) {
@@ -708,7 +708,7 @@ export function getDefaultEnabledPluginIdsForWorkspace(workspacePath: string): s
     // upgraded to Agents still get plugin support via the workspace path).
     const home = getHomeDirOrNull();
     if (!home) return [];
-    const projectsPath = resolve(home, '.myagents', 'projects.json');
+    const projectsPath = resolve(home, '.blexagent', 'projects.json');
     if (!existsSync(projectsPath)) return [];
     const projects = JSON.parse(stripBom(readFileSync(projectsPath, 'utf-8'))) as Array<{
       path?: string;

@@ -2,13 +2,13 @@
 
 ## 概述
 
-MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API、CDN 等）。代理配置存储在 `~/.myagents/config.json` 中，由应用的「设置 - 通用 - 网络代理」管理。
+BlexAgent 支持统一的代理配置，用于访问外部服务（Anthropic API、CDN 等）。代理配置存储在 `~/.blexagent/config.json` 中，由应用的「设置 - 通用 - 网络代理」管理。
 
 ---
 
 ## 🔧 配置文件格式
 
-**路径**: `~/.myagents/config.json`
+**路径**: `~/.blexagent/config.json`
 
 ```json
 {
@@ -35,7 +35,7 @@ MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API�
 | `port` | number | ❌ | 7890 | 代理服务器端口 _// 默认值: proxy_config.rs:7_ |
 | `scope` | object | ❌ | `{ "mode": "all" }` | Provider 适用范围：`all` 或 `custom + providerIds` |
 
-`scope.mode = "custom"` 只控制 **MyAgents 是否主动给该 provider 注入应用代理**。未选中的 provider 不是“强制直连”：Rust 会把注入前的 proxy env 作为 `MYAGENTS_PROXY_INHERITED_ENV_JSON` 传给 Node，Node 端 excluded provider 会恢复这个 baseline，因此系统代理 / TUN / 终端继承环境仍可自然生效。
+`scope.mode = "custom"` 只控制 **BlexAgent 是否主动给该 provider 注入应用代理**。未选中的 provider 不是“强制直连”：Rust 会把注入前的 proxy env 作为 `BLEXAGENT_PROXY_INHERITED_ENV_JSON` 传给 Node，Node 端 excluded provider 会恢复这个 baseline，因此系统代理 / TUN / 终端继承环境仍可自然生效。
 
 ---
 
@@ -46,18 +46,18 @@ MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API�
 1. **Claude Agent SDK (Node.js Sidecar)**
    - 访问 Anthropic API (`api.anthropic.com`)
    - 通过环境变量 `HTTP_PROXY` / `HTTPS_PROXY` 注入
-   - **实现**: `src-tauri/src/proxy_config.rs::apply_to_subprocess`，由 `src-tauri/src/sidecar/instances.rs` / `session_lifecycle.rs`、`src-tauri/src/im/bridge.rs` 等 spawn owner 调用。Rust 注入应用代理前会写入 `MYAGENTS_PROXY_INHERITED_ENV_JSON`，供 Sidecar provider scope 恢复继承 baseline。
+   - **实现**: `src-tauri/src/proxy_config.rs::apply_to_subprocess`，由 `src-tauri/src/sidecar/instances.rs` / `session_lifecycle.rs`、`src-tauri/src/im/bridge.rs` 等 spawn owner 调用。Rust 注入应用代理前会写入 `BLEXAGENT_PROXY_INHERITED_ENV_JSON`，供 Sidecar provider scope 恢复继承 baseline。
 
 2. **Provider-owned 请求 / 子进程**
    - Builtin SDK / OpenAI Bridge / provider probe / Managed Codex 等具备 provider owner 的路径按 `proxySettings.scope` 决策。
-   - Builtin Anthropic subscription 的 provider owner 是 `anthropic-sub`：MyAgents 只按 scope 注入/恢复代理 env，不接管 Claude Code native 的 OAuth credential 读取/刷新。
+   - Builtin Anthropic subscription 的 provider owner 是 `anthropic-sub`：BlexAgent 只按 scope 注入/恢复代理 env，不接管 Claude Code native 的 OAuth credential 读取/刷新。
    - **Rust 实现**: `build_client_with_proxy_for_provider` / `build_blocking_client_with_proxy_for_provider` / `apply_to_subprocess_for_provider`
    - **Node 实现**: `src/server/proxy-state.ts::applyProviderProxyPolicyToEnv` / `getProxyForProviderUrl`
-   - 未选 provider：不注入 MyAgents proxy，恢复 Rust 注入前的 proxy env baseline，并保留 localhost `NO_PROXY` 保护。
+   - 未选 provider：不注入 BlexAgent proxy，恢复 Rust 注入前的 proxy env baseline，并保留 localhost `NO_PROXY` 保护。
 
 3. **Rust Updater**
-   - 检查更新 (`download.myagents.io/update/*.json`)
-   - 下载更新包 (`download.myagents.io/releases/`)
+   - 检查更新 (`download.blexagent.com/update/*.json`)
+   - 下载更新包 (`download.blexagent.com/releases/`)
    - **实现**: `src-tauri/src/updater.rs` + `proxy_config.rs`
 
 4. **LiteLLM 模型数据缓存**
@@ -85,7 +85,7 @@ MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API�
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                  MyAgents Application                     │
+│                  BlexAgent Application                     │
 ├──────────────────────────────────────────────────────────┤
 │                                                            │
 │  ┌─────────────────┐          ┌──────────────────┐       │
@@ -96,7 +96,7 @@ MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API�
 │           │ 读取配置                     │ 环境变量注入     │
 │           ▼                             ▼                  │
 │  ┌──────────────────────────────────────────────┐         │
-│  │        ~/.myagents/config.json               │         │
+│  │        ~/.blexagent/config.json               │         │
 │  │  { proxySettings: { enabled, host, port } }  │         │
 │  └──────────────────────────────────────────────┘         │
 │           │                             │                  │
@@ -110,7 +110,7 @@ MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API�
 └───────────┼─────────────────────────────┼──────────────────┘
             │                             │
             ▼                             ▼
-    download.myagents.io          api.anthropic.com
+    download.blexagent.com          api.anthropic.com
 ```
 
 ### 代码实现
@@ -119,7 +119,7 @@ MyAgents 支持统一的代理配置，用于访问外部服务（Anthropic API�
 
 ```rust
 pub fn read_proxy_settings() -> Option<ProxySettings> {
-    // 从 ~/.myagents/config.json 读取
+    // 从 ~/.blexagent/config.json 读取
     // 仅当 enabled=true 时返回
 }
 
@@ -137,7 +137,7 @@ pub fn build_client_with_proxy_for_provider(
     builder: ClientBuilder,
     provider_id: &str,
 ) -> Client {
-    // 仅当 provider_id 命中 proxySettings.scope 时注入 MyAgents proxy；
+    // 仅当 provider_id 命中 proxySettings.scope 时注入 BlexAgent proxy；
     // 否则继承系统网络行为。
 }
 ```
@@ -160,11 +160,11 @@ if let Some(proxy_settings) = read_proxy_settings() {
     cmd.env_remove("ALL_PROXY");
     cmd.env_remove("all_proxy");
 
-    cmd.env("MYAGENTS_PROXY_INJECTED", "1"); // TypeScript 端区分显式注入 vs 系统继承
-    cmd.env("MYAGENTS_PROXY_INHERITED_ENV_JSON", "..."); // 注入前 proxy env baseline
+    cmd.env("BLEXAGENT_PROXY_INJECTED", "1"); // TypeScript 端区分显式注入 vs 系统继承
+    cmd.env("BLEXAGENT_PROXY_INHERITED_ENV_JSON", "..."); // 注入前 proxy env baseline
 } else {
     // 继承系统网络行为，但始终注入 NO_PROXY 保护 Node.js 的 localhost fetch 调用。
-    // 注意：未配 MyAgents proxy 时 **不** 剥离继承的 `ALL_PROXY`——
+    // 注意：未配 BlexAgent proxy 时 **不** 剥离继承的 `ALL_PROXY`——
     // "未配置 = 继承系统" 的设计语义包含 system 层的 `ALL_PROXY` 设置。
     // 用户视角的对应入口是 Settings → 网络代理 关闭开关。
     cmd.env("NO_PROXY", "localhost,...");
@@ -172,7 +172,7 @@ if let Some(proxy_settings) = read_proxy_settings() {
 }
 ```
 
-Provider-owned 子进程必须使用 `apply_to_subprocess_for_provider(&mut cmd, provider_id)`。它只在 provider 命中 scope 时注入 MyAgents proxy；未命中时继承系统网络行为并只补 localhost `NO_PROXY`。
+Provider-owned 子进程必须使用 `apply_to_subprocess_for_provider(&mut cmd, provider_id)`。它只在 provider 命中 scope 时注入 BlexAgent proxy；未命中时继承系统网络行为并只补 localhost `NO_PROXY`。
 
 Node Sidecar 内的 provider-owned 请求不得直接读 `process.env.HTTP_PROXY`：
 
@@ -187,12 +187,12 @@ getProxyForProviderUrl(providerId, upstreamUrl);   // fetch / undici ProxyAgent
 
 | 字面量 | 行为 | 适用场景 |
 |--------|------|---------|
-| `'myagents'`（默认） | 保留 Rust 注入的 proxy var——上游 Sidecar 的 `process.env.HTTP_PROXY` 已是 MyAgents 配置的代理 | 绝大多数用户 |
-| `'terminal'` | 剥掉继承的 proxy var，恢复用户 interactive shell 在 `~/.zshrc` / `~/.bashrc` 里 export 的（Sidecar 启动时 `shell.ts::warmupShellPath` 抓的 8 个 var）；语义 = "等同于在你电脑的终端里手动启动这个 CLI" | 用户终端能访问的 endpoint 在 MyAgents 里访问不到；Clash TUN / VPN 用户（shell 通常无 proxy export，结果是无 proxy 注入） |
+| `'blexagent'`（默认） | 保留 Rust 注入的 proxy var——上游 Sidecar 的 `process.env.HTTP_PROXY` 已是 BlexAgent 配置的代理 | 绝大多数用户 |
+| `'terminal'` | 剥掉继承的 proxy var，恢复用户 interactive shell 在 `~/.zshrc` / `~/.bashrc` 里 export 的（Sidecar 启动时 `shell.ts::warmupShellPath` 抓的 8 个 var）；语义 = "等同于在你电脑的终端里手动启动这个 CLI" | 用户终端能访问的 endpoint 在 BlexAgent 里访问不到；Clash TUN / VPN 用户（shell 通常无 proxy export，结果是无 proxy 注入） |
 
-实现在 `src/server/runtimes/env-utils.ts::augmentedProcessEnv(policy)`，未知字面量 fallback 到 `'myagents'`（防御纵深）。disk 上的 envPolicy 必须通过 `env-utils.resolveAgentEnvPolicy(workspacePath)` 读取——它做 proxy 字面量校验并对未知值 warn-log，**禁止**裸 cast。
+实现在 `src/server/runtimes/env-utils.ts::augmentedProcessEnv(policy)`，未知字面量 fallback 到 `'blexagent'`（防御纵深）。disk 上的 envPolicy 必须通过 `env-utils.resolveAgentEnvPolicy(workspacePath)` 读取——它做 proxy 字面量校验并对未知值 warn-log，**禁止**裸 cast。
 
-> 0.2.16 dev 阶段曾有第三档 `'direct'`（无条件剥 proxy），dogfooding 反馈选项太多后于 release 前移除。Terminal 档已覆盖原 `'direct'` 的核心 use case（TUN/VPN 用户 shell 没 proxy → terminal 模式结果就是无 proxy 注入）。存量 `'direct'` 在校验白名单里 fallback 到 `'myagents'`。
+> 0.2.16 dev 阶段曾有第三档 `'direct'`（无条件剥 proxy），dogfooding 反馈选项太多后于 release 前移除。Terminal 档已覆盖原 `'direct'` 的核心 use case（TUN/VPN 用户 shell 没 proxy → terminal 模式结果就是无 proxy 注入）。存量 `'direct'` 在校验白名单里 fallback 到 `'blexagent'`。
 
 诊断面板（`RuntimeDiagnosticsBanner`）展示实际生效的 `RuntimeEffectiveEnv`，让用户直接看到 envPolicy 决定的 proxy var 落在 Runtime 子进程的具体值。详见 `tech_docs/multi_agent_runtime.md` 「Runtime 诊断 + envPolicy」节。
 
@@ -200,7 +200,7 @@ getProxyForProviderUrl(providerId, upstreamUrl);   // fetch / undici ProxyAgent
 
 ```rust
 let builder = reqwest::Client::builder()
-    .user_agent("MyAgents-Updater/0.1.7")
+    .user_agent("BlexAgent-Updater/0.1.7")
     .timeout(Duration::from_secs(30));
 
 let client = proxy_config::build_client_with_proxy(builder)?;
@@ -221,14 +221,14 @@ let client = reqwest::Client::builder()
 
 ### Q1: 为什么配置了代理后，localhost 还是连不上？
 
-**A**: 不应该发生！MyAgents 已自动排除 localhost。如果遇到此问题：
+**A**: 不应该发生！BlexAgent 已自动排除 localhost。如果遇到此问题：
 1. 检查 `NO_PROXY` 环境变量是否被覆盖
 2. 查看日志是否有代理相关错误
 
 ### Q2: 代理配置不生效怎么办？
 
 **A**: 检查步骤：
-1. 确认 `~/.myagents/config.json` 中 `enabled: true`
+1. 确认 `~/.blexagent/config.json` 中 `enabled: true`
 2. 重启应用（代理配置在启动时读取）
 3. 查看日志：
    ```
@@ -256,7 +256,7 @@ let client = reqwest::Client::builder()
 
 ### 查看代理日志
 
-**Rust 日志** (`~/.myagents/logs/unified-*.log`):
+**Rust 日志** (`~/.blexagent/logs/unified-*.log`):
 ```
 [proxy_config] Using proxy for external requests: http://127.0.0.1:7890
 [proxy_config] No proxy configured, inheriting system network behavior
@@ -275,7 +275,7 @@ HTTP_PROXY=http://127.0.0.1:7890 bun src/server/index.ts
 curl -x http://127.0.0.1:7890 https://api.anthropic.com/v1/messages
 
 # 测试 CDN 访问
-curl -x http://127.0.0.1:7890 https://download.myagents.io/update/darwin-aarch64.json
+curl -x http://127.0.0.1:7890 https://download.blexagent.com/update/darwin-aarch64.json
 ```
 
 ---

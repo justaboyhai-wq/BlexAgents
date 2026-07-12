@@ -1,4 +1,4 @@
-// MyAgents architectural-boundary lint via dependency-cruiser.
+﻿// BlexAgent architectural-boundary lint via dependency-cruiser.
 //
 // This file holds the "module-graph" rules that ESLint can't express:
 // "module A is not allowed to import from module B." Each rule below
@@ -64,7 +64,7 @@ module.exports = {
           '(^|/)(babel|nodemon|jest|vitest|webpack|esbuild|vite|tailwind|postcss|stylelint)\\.config\\.(js|cjs|mjs|ts)$',
           '^src/server/index\\.ts$', // sidecar entry
           '^src/server/plugin-bridge/main\\.ts$', // bridge entry
-          '^src/cli/myagents\\.ts$', // CLI entry
+          '^src/cli/blexagent\\.ts$', // CLI entry
           '^src/renderer/main\\.tsx$', // renderer entry
           '^src-tauri/', // Rust files: depcruise sees them only via fs walk; not part of TS graph
           // Type-only files. Since we set tsPreCompilationDeps:false, dep-cruiser

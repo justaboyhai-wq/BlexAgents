@@ -8,8 +8,8 @@ let prevHome: string | undefined;
 let prevUserProfile: string | undefined;
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'myagents-provider-enable-'));
-  const configDir = join(scratch, '.myagents');
+  scratch = mkdtempSync(join(tmpdir(), 'blexagent-provider-enable-'));
+  const configDir = join(scratch, '.blexagent');
   const providersDir = join(configDir, 'providers');
   mkdirSync(providersDir, { recursive: true });
 
@@ -27,7 +27,7 @@ afterEach(() => {
 
 function writeCustomProvider(id: string): void {
   writeFileSync(
-    join(scratch, '.myagents', 'providers', `${id}.json`),
+    join(scratch, '.blexagent', 'providers', `${id}.json`),
     JSON.stringify({
       id,
       name: 'Custom Provider',
@@ -56,7 +56,7 @@ describe('server-side provider enablement', () => {
     writeCustomProvider(providerId);
 
     writeFileSync(
-      join(scratch, '.myagents', 'config.json'),
+      join(scratch, '.blexagent', 'config.json'),
       JSON.stringify({
         providerApiKeys: {
           [providerId]: 'provider-secret',
@@ -74,7 +74,7 @@ describe('server-side provider enablement', () => {
       }, null, 2),
       'utf-8',
     );
-    writeFileSync(join(scratch, '.myagents', 'projects.json'), '[]', 'utf-8');
+    writeFileSync(join(scratch, '.blexagent', 'projects.json'), '[]', 'utf-8');
 
     expect(resolveProviderEnv(providerId)).toBeUndefined();
     const resolved = resolveWorkspaceConfig(workspacePath);

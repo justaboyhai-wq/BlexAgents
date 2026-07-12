@@ -23,19 +23,19 @@ import {
 } from '../utils/large-value-store';
 
 let scratch: string;
-const ORIGINAL_REFS_DIR = process.env.MYAGENTS_REFS_DIR;
+const ORIGINAL_REFS_DIR = process.env.BLEXAGENT_REFS_DIR;
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'myagents-refs-'));
-  process.env.MYAGENTS_REFS_DIR = scratch;
+  scratch = mkdtempSync(join(tmpdir(), 'blexagent-refs-'));
+  process.env.BLEXAGENT_REFS_DIR = scratch;
 });
 
 afterEach(() => {
   rmSync(scratch, { recursive: true, force: true });
   if (ORIGINAL_REFS_DIR === undefined) {
-    delete process.env.MYAGENTS_REFS_DIR;
+    delete process.env.BLEXAGENT_REFS_DIR;
   } else {
-    process.env.MYAGENTS_REFS_DIR = ORIGINAL_REFS_DIR;
+    process.env.BLEXAGENT_REFS_DIR = ORIGINAL_REFS_DIR;
   }
 });
 

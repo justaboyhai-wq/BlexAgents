@@ -116,7 +116,7 @@ fn read_ui_language_from(config_path: &std::path::Path) -> UiLanguage {
 }
 
 pub fn current_ui_language() -> UiLanguage {
-    if let Some(dir) = crate::app_dirs::myagents_data_dir() {
+    if let Some(dir) = crate::app_dirs::blexagent_data_dir() {
         let value = read_ui_language_from(&dir.join("config.json"));
         ulog_debug!("[i18n] disk: uiLanguage={}", value.as_str());
         return value;
@@ -129,7 +129,7 @@ pub fn current_locale() -> SupportedLocale {
 }
 
 fn persist_to_disk(value: UiLanguage) -> Result<(), String> {
-    let dir = crate::app_dirs::myagents_data_dir()
+    let dir = crate::app_dirs::blexagent_data_dir()
         .ok_or_else(|| "[i18n] cannot resolve data dir".to_string())?;
     let config_path = dir.join("config.json");
     crate::config_io::with_config_lock(&config_path, false, |cfg| {
@@ -150,11 +150,11 @@ fn persist_to_disk(value: UiLanguage) -> Result<(), String> {
 
 pub fn t<'a>(key: &'a str, locale: SupportedLocale) -> &'a str {
     match (locale, key) {
-        (SupportedLocale::ZhCn, "tray.open") => "打开 MyAgents",
+        (SupportedLocale::ZhCn, "tray.open") => "打开 BlexAgent",
         (SupportedLocale::ZhCn, "tray.settings") => "设置",
         (SupportedLocale::ZhCn, "tray.forceWakeLock") => "阻止电脑睡眠",
         (SupportedLocale::ZhCn, "tray.exit") => "退出",
-        (SupportedLocale::EnUs, "tray.open") => "Open MyAgents",
+        (SupportedLocale::EnUs, "tray.open") => "Open BlexAgent",
         (SupportedLocale::EnUs, "tray.settings") => "Settings",
         (SupportedLocale::EnUs, "tray.forceWakeLock") => "Prevent computer sleep",
         (SupportedLocale::EnUs, "tray.exit") => "Quit",

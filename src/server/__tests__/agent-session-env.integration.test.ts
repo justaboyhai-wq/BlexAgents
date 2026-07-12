@@ -11,13 +11,13 @@ describe('buildClaudeSessionEnv npm prefix isolation', () => {
     vi.unstubAllEnvs();
   });
 
-  it('does not leak MyAgents npm prefix variables into the SDK shell env', () => {
+  it('does not leak BlexAgent npm prefix variables into the SDK shell env', () => {
     const home = process.platform === 'win32'
-      ? 'C:\\Users\\myagents-test'
-      : '/tmp/myagents-env-home';
+      ? 'C:\\Users\\blexagent-test'
+      : '/tmp/blexagent-env-home';
     const prefix = process.platform === 'win32'
-      ? resolve(home, '.myagents', 'npm-global')
-      : `${home}/.myagents/npm-global`;
+      ? resolve(home, '.blexagent', 'npm-global')
+      : `${home}/.blexagent/npm-global`;
     const binDir = process.platform === 'win32' ? prefix : `${prefix}/bin`;
 
     vi.stubEnv(process.platform === 'win32' ? 'USERPROFILE' : 'HOME', home);
@@ -31,7 +31,7 @@ describe('buildClaudeSessionEnv npm prefix isolation', () => {
     expect(env.npm_config_prefix).toBeUndefined();
     expect(env.NPM_CONFIG_PREFIX).toBeUndefined();
     expect(env.PREFIX).toBeUndefined();
-    expect(env.MYAGENTS_NPM_GLOBAL_PREFIX).toBe(prefix);
+    expect(env.BLEXAGENT_NPM_GLOBAL_PREFIX).toBe(prefix);
     expect(pathValue.split(delimiter)).toContain(binDir);
   });
 });
@@ -70,7 +70,7 @@ describe('Windows SDK subprocess UTF-8 env', () => {
   });
 
   it('installs a Git Bash UTF-8 BASH_ENV prelude without touching an existing shell prefix', () => {
-    const home = mkdtempSync(resolve(tmpdir(), 'myagents-env-home-'));
+    const home = mkdtempSync(resolve(tmpdir(), 'blexagent-env-home-'));
     tempHomes.push(home);
     const env: NodeJS.ProcessEnv = {
       BASH_ENV: 'C:\\custom\\bash-env.sh',
@@ -80,16 +80,16 @@ describe('Windows SDK subprocess UTF-8 env', () => {
     applyWindowsUtf8SubprocessEnv(env, { platform: 'win32', useBashEnvPrelude: true, home });
 
     expect(env.BASH_ENV).toContain('windows-utf8-bash-env.sh');
-    expect(env.MYAGENTS_ORIGINAL_BASH_ENV).toBe('C:/custom/bash-env.sh');
+    expect(env.BLEXAGENT_ORIGINAL_BASH_ENV).toBe('C:/custom/bash-env.sh');
     expect(env.CLAUDE_CODE_SHELL_PREFIX).toBe('echo existing;');
     const prelude = readFileSync(env.BASH_ENV!, 'utf-8');
-    expect(prelude).toContain('MYAGENTS_WINDOWS_UTF8');
-    expect(prelude).toContain('MYAGENTS_ORIGINAL_BASH_ENV');
+    expect(prelude).toContain('BLEXAGENT_WINDOWS_UTF8');
+    expect(prelude).toContain('BLEXAGENT_ORIGINAL_BASH_ENV');
     expect(prelude).toContain('chcp.com 65001');
   });
 
   it('does not replace the BASH_ENV prelude when applied repeatedly', () => {
-    const home = mkdtempSync(resolve(tmpdir(), 'myagents-env-home-'));
+    const home = mkdtempSync(resolve(tmpdir(), 'blexagent-env-home-'));
     tempHomes.push(home);
     const env: NodeJS.ProcessEnv = {};
 
@@ -101,7 +101,7 @@ describe('Windows SDK subprocess UTF-8 env', () => {
   });
 
   it('applies the UTF-8 env contract from buildClaudeSessionEnv when Windows Git Bash is resolved', () => {
-    const home = mkdtempSync(resolve(tmpdir(), 'myagents-env-home-'));
+    const home = mkdtempSync(resolve(tmpdir(), 'blexagent-env-home-'));
     tempHomes.push(home);
     const inheritedGitBashPath = resolve(process.cwd(), 'package.json');
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
@@ -123,7 +123,7 @@ describe('Windows SDK subprocess UTF-8 env', () => {
   });
 
   it('keeps the BASH_ENV prelude when Git Bash falls back to SDK PATH lookup', () => {
-    const home = mkdtempSync(resolve(tmpdir(), 'myagents-env-home-'));
+    const home = mkdtempSync(resolve(tmpdir(), 'blexagent-env-home-'));
     tempHomes.push(home);
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
     vi.stubEnv('USERPROFILE', home);

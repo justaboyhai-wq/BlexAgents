@@ -616,7 +616,7 @@ fn create_new_session_sidecar<R: Runtime>(
     // Inject management API port for Bun→Rust IPC (v0.1.21)
     let mgmt_port = crate::management_api::get_management_port();
     if mgmt_port > 0 {
-        cmd.env("MYAGENTS_MANAGEMENT_PORT", mgmt_port.to_string());
+        cmd.env("BLEXAGENT_MANAGEMENT_PORT", mgmt_port.to_string());
     }
 
     // Inject runtime type for Agent Runtime selection (v0.1.59, v0.1.62, v0.1.66).
@@ -696,10 +696,10 @@ fn create_new_session_sidecar<R: Runtime>(
     let resolved_identity =
         RuntimeIdentity::new(Some(&resolved_runtime_name), resolved_runtime_source);
     if let Some(runtime) = resolved_identity.runtime_for_env() {
-        cmd.env("MYAGENTS_RUNTIME", runtime);
+        cmd.env("BLEXAGENT_RUNTIME", runtime);
     }
     if let Some(runtime_source) = resolved_identity.runtime_source_for_env() {
-        cmd.env("MYAGENTS_RUNTIME_SOURCE", runtime_source);
+        cmd.env("BLEXAGENT_RUNTIME_SOURCE", runtime_source);
     }
     let runtime_for_trace = resolved_identity.runtime.clone();
     let runtime_source_for_trace = resolved_identity.runtime_source_label().to_string();

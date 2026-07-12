@@ -2,7 +2,7 @@
 //
 // Communication: NDJSON bidirectional via stdin/stdout
 // Flags: --output-format stream-json --input-format stream-json --verbose
-// Permission: --permission-prompt-tool stdio (delegates to MyAgents UI)
+// Permission: --permission-prompt-tool stdio (delegates to BlexAgent UI)
 // System prompt: --append-system-prompt-file (file-based; inline would be silently truncated by cmd.exe on Windows)
 // Session: --session-id / --resume
 
@@ -47,14 +47,14 @@ function buildMessageContent(text: string, images?: ResolvedImagePayload[]): str
 
 const HOOK_DIR = join(
   process.env.HOME || process.env.USERPROFILE || '/tmp',
-  '.myagents', 'tmp', 'cc-hooks',
+  '.blexagent', 'tmp', 'cc-hooks',
 );
 
 // System prompt tmp dir — separate from cc-hooks so the two concerns can be
 // cleaned independently.
 const SYSTEM_PROMPT_DIR = join(
   process.env.HOME || process.env.USERPROFILE || '/tmp',
-  '.myagents', 'tmp', 'cc-system-prompt',
+  '.blexagent', 'tmp', 'cc-system-prompt',
 );
 
 /**
@@ -72,13 +72,13 @@ function systemPromptPath(sessionId: string): string {
 }
 
 /**
- * Write the MyAgents system prompt to a tmp file and return its absolute path.
+ * Write the BlexAgent system prompt to a tmp file and return its absolute path.
  *
  * Why file instead of `--append-system-prompt <inline>`: on Windows the CC
  * binary is invoked through a `.cmd` shim, which Node spawns via
  * `cmd.exe /d /s /c "<cmdline>"`. cmd.exe treats `\n` as a command boundary
  * inside the wrapped command string, silently truncating every arg that follows
- * the first newline. MyAgents' system prompt is multi-line (4–5KB, ~80 LFs), so
+ * the first newline. BlexAgent' system prompt is multi-line (4–5KB, ~80 LFs), so
  * `--resume` / `--session-id` / `--model` / `--settings` all get dropped → CC
  * spawns a brand-new session every turn → multi-turn context completely lost.
  * `--append-system-prompt-file <path>` sidesteps the entire issue: the path
@@ -144,7 +144,7 @@ process.stdin.resume();
 
 /**
  * Generate temporary hook settings + forwarder script for CC SessionStart hook.
- * Both files are written to ~/.myagents/tmp/cc-hooks/ (outside the project).
+ * Both files are written to ~/.blexagent/tmp/cc-hooks/ (outside the project).
  */
 function generateHookSettings(sidecarPort: number): string | null {
   try {
@@ -228,8 +228,8 @@ const MODEL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // ─── ClaudeCodeRuntime ───
 
 /**
- * Map MyAgents permission mode values to CC CLI's --permission-mode values.
- * MyAgents uses internal names (auto/plan/fullAgency), CC uses different names.
+ * Map BlexAgent permission mode values to CC CLI's --permission-mode values.
+ * BlexAgent uses internal names (auto/plan/fullAgency), CC uses different names.
  */
 function mapPermissionModeToCc(mode: string): string {
   switch (mode) {
@@ -341,7 +341,7 @@ export class ClaudeCodeRuntime implements AgentRuntime {
     //    "result":"Not logged in · Please run /login",...}
     //
     // We drop --bare entirely. CC loads its default preset prompt + our
-    // --append-system-prompt-file adds the MyAgents 3-layer context on top.
+    // --append-system-prompt-file adds the BlexAgent 3-layer context on top.
     // Keychain/OAuth auth is preserved for all IM users. The tradeoff:
     // the AI has CC's default preset loaded in an IM context, which may
     // leak occasional self-descriptions ("I'm Claude Code, a CLI tool…").
@@ -371,7 +371,7 @@ export class ClaudeCodeRuntime implements AgentRuntime {
         args.push('--allow-dangerously-skip-permissions');
         args.push('--dangerously-skip-permissions');
       } else {
-        // Non-bypass modes: delegate permission prompts to MyAgents via stdio
+        // Non-bypass modes: delegate permission prompts to BlexAgent via stdio
         args.push('--permission-prompt-tool', 'stdio');
       }
       args.push('--permission-mode', ccMode);
@@ -455,7 +455,7 @@ export class ClaudeCodeRuntime implements AgentRuntime {
     // parity (same fix applied to Codex runtime).
     const ccEnv = augmentedProcessEnv(options.envPolicy);
     ccEnv.PWD = options.workspacePath;
-    ccEnv.MYAGENTS_SESSION_ID = options.sessionId;
+    ccEnv.BLEXAGENT_SESSION_ID = options.sessionId;
     const proc = spawn([resolveCommand('claude'), ...args], {
       cwd: options.workspacePath,
       env: ccEnv,

@@ -235,7 +235,7 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
 
   // Ref for current provider availability — used in handleKeyDown without adding deps
   const isCurrentProviderAvailable = providerAvailable ?? (provider ? isProviderAvailable(provider, apiKeys, providerVerifyStatus) : false);
-  // External runtimes (Claude Code / Codex) authenticate via their own CLI — no MyAgents provider required.
+  // External runtimes (Claude Code / Codex) authenticate via their own CLI — no BlexAgent provider required.
   const canSendMessage = isExternalRuntime || isCurrentProviderAvailable;
   const canSendMessageRef = useRef(canSendMessage);
   canSendMessageRef.current = canSendMessage;
@@ -689,13 +689,13 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
     focus: () => textareaRef.current?.focus(),
     getCurrentValue: () => inputValueRef.current,
     clearWorkspaceBoundDraft: () => {
-      // Match `@<path>` tokens that target the workspace-managed `myagents_files/`
+      // Match `@<path>` tokens that target the workspace-managed `blexagent_files/`
       // upload directory. Plain typed `@something` (not workspace-tied) survives.
       // Trailing whitespace after the token is also consumed (`\s*`) so a
-      // sequence like "@myagents_files/foo.pdf  " collapses fully — the
+      // sequence like "@blexagent_files/foo.pdf  " collapses fully — the
       // earlier `\s?` left a stray space behind in the multi-space case.
       const current = inputValueRef.current;
-      const pattern = /@myagents_files\/[^\s]+\s*/g;
+      const pattern = /@blexagent_files\/[^\s]+\s*/g;
       const stripped = current.replace(pattern, '');
       const strippedCount = (current.match(pattern) ?? []).length;
       if (strippedCount > 0) {

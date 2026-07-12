@@ -11,7 +11,7 @@
  * Edit capability comes from two sources (either is sufficient):
  * 1. `workspacePath` prop — Rust workspace_files via `useWorkspaceFileService`
  * 2. Explicit `onSave`/`onRevealFile` props — when caller provides save logic directly
- *    (e.g. Settings panels editing `~/.myagents/agents/...`)
+ *    (e.g. Settings panels editing `~/.blexagent/agents/...`)
  */
 import { AtSign, Check, Copy, Edit2, Expand, Eye, FileText, FolderOpen, Loader2, LocateFixed, MoreHorizontal, X } from 'lucide-react';
 import Tip from './Tip';
@@ -410,7 +410,7 @@ export default function FilePreviewModal({
     // is removed — workspace edits go through Rust workspace_files
     // exclusively. Edit is enabled when `workspacePath` is provided
     // (fileService.saveFile path) OR an explicit `onSave` prop overrides
-    // (Settings panels editing `~/.myagents/agents/...`).
+    // (Settings panels editing `~/.blexagent/agents/...`).
     // Rich documents are read-only — never engage the edit machinery (autosave,
     // Monaco, the 预览/编辑 segment) even when a workspacePath is present.
     const canEdit = !richDocKind && !!(workspacePath || onSave);
@@ -519,7 +519,7 @@ export default function FilePreviewModal({
      *  workspace-relative paths go through `fileService.saveFile` (Rust
      *  `cmd_workspace_save_file`); explicit `onSave` prop still takes
      *  precedence for non-workspace surfaces (Settings panels editing
-     *  `~/.myagents/...` files via direct fs writes). */
+     *  `~/.blexagent/...` files via direct fs writes). */
     const executeSave = useCallback(async (contentToSave: string, expectedContent?: string) => {
         if (onSaveRef.current) {
             await onSaveRef.current(contentToSave);
@@ -823,7 +823,7 @@ export default function FilePreviewModal({
     // Rename uses fileService.rename → Rust `cmd_workspace_rename` (validates
     // Windows reserved names, path traversal, collision; rejects with error
     // string). Available only when `workspacePath` is set — Settings panels
-    // editing `~/.myagents/agents/...` (which use the `onSave` prop) keep
+    // editing `~/.blexagent/agents/...` (which use the `onSave` prop) keep
     // the filename as a static span.
     useEffect(() => {
         handleRenameCommitRef.current = async (next: string) => {

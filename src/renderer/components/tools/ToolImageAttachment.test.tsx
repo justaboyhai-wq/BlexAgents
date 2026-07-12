@@ -21,7 +21,7 @@ const attachment: ToolAttachment = {
   kind: 'image',
   mimeType: 'image/png',
   refPath: '/api/attachment/tool/session-a/turn-a/image.png',
-  savedPath: '/Users/test/.myagents/generated/tool-attachments/session-a/turn-a/image.png',
+  savedPath: '/Users/test/.blexagent/generated/tool-attachments/session-a/turn-a/image.png',
   caption: 'Generated reference image',
 };
 

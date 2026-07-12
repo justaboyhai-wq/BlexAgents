@@ -12,7 +12,7 @@ let home: string;
 let originalHome: string | undefined;
 let store: SessionStoreModule;
 
-const sessionsDir = () => join(home, '.myagents', 'sessions');
+const sessionsDir = () => join(home, '.blexagent', 'sessions');
 const jsonlPath = (id: string) => join(sessionsDir(), `${id}.jsonl`);
 const legacyJsonPath = (id: string) => join(sessionsDir(), `${id}.json`);
 
@@ -46,7 +46,7 @@ function managedCodexMeta(id: string, patch: Partial<SessionMetadata> = {}): Ses
 }
 
 beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), 'myagents-prequery-'));
+    home = mkdtempSync(join(tmpdir(), 'blexagent-prequery-'));
     originalHome = process.env.HOME;
     process.env.HOME = home;
     vi.resetModules();

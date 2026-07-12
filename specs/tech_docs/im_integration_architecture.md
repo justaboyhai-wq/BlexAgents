@@ -1,4 +1,4 @@
-# MyAgents IM 集成技术架构
+# BlexAgent IM 集成技术架构
 
 ## 一、核心架构决策
 
@@ -327,7 +327,7 @@ Agent 工作区可以同时绑定多个 Channel（例如微信 + 飞书，或多
 ```rust
 pub struct HealthManager {
  state: Arc<Mutex<ImHealthState>>,
- persist_path: PathBuf, // ~/.myagents/im_bots/{bot_id}/state.json
+ persist_path: PathBuf, // ~/.blexagent/im_bots/{bot_id}/state.json
 }
 
 pub struct ImHealthState {
@@ -346,9 +346,9 @@ pub struct ImHealthState {
 **持久化**：每 5 秒写入磁盘，供前端轮询展示。
 
 **Per-Bot 文件路径**（v3 子目录结构）：
-- 健康状态：`~/.myagents/im_bots/{bot_id}/state.json`
-- 消息缓冲：`~/.myagents/im_bots/{bot_id}/buffer.json`
-- 去重缓存：`~/.myagents/im_bots/{bot_id}/dedup.json`（仅飞书）
+- 健康状态：`~/.blexagent/im_bots/{bot_id}/state.json`
+- 消息缓冲：`~/.blexagent/im_bots/{bot_id}/buffer.json`
+- 去重缓存：`~/.blexagent/im_bots/{bot_id}/dedup.json`（仅飞书）
 - 遗留文件迁移：启动时自动迁移 v1（`im_state.json`）和 v2（`im_{botId}_*.json`）到 v3 子目录，孤儿文件自动清理
 
 ### 2.9 消息缓冲
@@ -736,7 +736,7 @@ interface ImBotConfig {
  enabled: boolean;
  setupCompleted?: boolean; // 向导完成标记
  // OpenClaw 社区插件专属
- openclawPluginId?: string; // 安装 ID / pluginId，用于定位 ~/.myagents/openclaw-plugins/<pluginId>
+ openclawPluginId?: string; // 安装 ID / pluginId，用于定位 ~/.blexagent/openclaw-plugins/<pluginId>
  openclawNpmSpec?: string; // npm 包名
  openclawPluginConfig?: Record<string, unknown>; // 插件运行时配置
  openclawManifest?: object; // 插件 manifest 缓存
@@ -745,7 +745,7 @@ interface ImBotConfig {
 
 **OpenClaw 身份边界**：历史配置里的 `platform: "openclaw:<...>"` 可能保存安装 ID（如 `openclaw-lark`、`wecom-openclaw-plugin`），也可能保存协议 Channel ID（如 `qqbot`）。Rust/Renderer 用 `openclawPluginId` 作为安装目录身份保持兼容；Node Plugin Bridge 则必须从 OpenClaw manifest / `package.json.openclaw.channel.id` / `registerChannel()` 得到协议 Channel ID，并用它构造 `cfg.channels.<channelId>`。不要在 Bridge 内用安装 ID 作为 canonical OpenClaw config key。
 
-**存储位置**：`~/.myagents/config.json` → `imBotConfigs: ImBotConfig[]`
+**存储位置**：`~/.blexagent/config.json` → `imBotConfigs: ImBotConfig[]`
 
 ### 4.2 Config Service（磁盘优先）
 
@@ -952,7 +952,7 @@ src/shared/types/im.ts # ImBotConfig, ImBotStatus, ImPlatform, InstalledPlugin, 
 ### 数据文件
 
 ```
-~/.myagents/
+~/.blexagent/
 ├── config.json # imBotConfigs[] 数组
 └── im_bots/ # Per-bot 运行时数据
  └── {botId}/
@@ -1011,7 +1011,7 @@ src/shared/types/im.ts # ImBotConfig, ImBotStatus, ImPlatform, InstalledPlugin, 
 
 | 文档 | 说明 |
 |------|------|
-| [架构总览](../ARCHITECTURE.md) | MyAgents 整体架构 |
+| [架构总览](../ARCHITECTURE.md) | BlexAgent 整体架构 |
 | [Session 架构](./session_architecture.md) | Session 管理机制 |
 | [Sidecar 管理](./bundled_node.md) | Node.js Sidecar 生命周期 |
 
@@ -1086,7 +1086,7 @@ Agent Channel 是无人值守入口。没有 `ChannelOverrides.permissionMode` �
 
 ### Mino 模板与 Agent 默认能力
 
-Mino 默认工作区的"文件内容模板"和 MyAgents 的"产品级 Agent 默认策略"是两层：
+Mino 默认工作区的"文件内容模板"和 BlexAgent 的"产品级 Agent 默认策略"是两层：
 
 | 层 | 权威来源 | 职责 |
 |----|----------|------|

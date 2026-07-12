@@ -51,7 +51,7 @@ export function sanitizeFileName(name: string, maxLen = 60): string {
 
 /** Provenance header prepended to every exported document. */
 export function exportHeader(dateStr: string): string {
-    return `<!-- Exported from MyAgents · ${dateStr} -->`;
+    return `<!-- Exported from BlexAgent · ${dateStr} -->`;
 }
 
 /** Build a Markdown document for a single AI thinking block. Pure. */
@@ -89,7 +89,7 @@ export async function downloadMarkdown(fileName: string, content: string): Promi
     a.click();
     // Defer the revoke: `a.click()` initiates the download asynchronously, and
     // revoking in the same tick can race the engine's blob fetch → intermittent
-    // 0-byte downloads (notably in WKWebView, which is MyAgents' runtime).
+    // 0-byte downloads (notably in WKWebView, which is BlexAgent' runtime).
     setTimeout(() => URL.revokeObjectURL(url), 0);
 
     try {

@@ -188,17 +188,17 @@ async function createHarness(
   options: { realtimeSteering?: boolean; rejectSteer?: boolean; config?: Record<string, unknown> } = {},
 ): Promise<Harness> {
   vi.resetModules();
-  const home = mkdtempSync(join(tmpdir(), 'myagents-external-mock-'));
-  mkdirSync(join(home, '.myagents'), { recursive: true });
+  const home = mkdtempSync(join(tmpdir(), 'blexagent-external-mock-'));
+  mkdirSync(join(home, '.blexagent'), { recursive: true });
   if (options.config) {
-    writeFileSync(join(home, '.myagents', 'config.json'), JSON.stringify(options.config));
+    writeFileSync(join(home, '.blexagent', 'config.json'), JSON.stringify(options.config));
   }
   previousHome = process.env.HOME;
   previousUserProfile = process.env.USERPROFILE;
-  previousRuntime = process.env.MYAGENTS_RUNTIME;
+  previousRuntime = process.env.BLEXAGENT_RUNTIME;
   process.env.HOME = home;
   process.env.USERPROFILE = home;
-  process.env.MYAGENTS_RUNTIME = 'codex';
+  process.env.BLEXAGENT_RUNTIME = 'codex';
 
   const runtime = new FakeRuntime(scripts, {
     realtimeSteering: options.realtimeSteering,
@@ -245,8 +245,8 @@ function restoreEnv(): void {
   else process.env.HOME = previousHome;
   if (previousUserProfile === undefined) delete process.env.USERPROFILE;
   else process.env.USERPROFILE = previousUserProfile;
-  if (previousRuntime === undefined) delete process.env.MYAGENTS_RUNTIME;
-  else process.env.MYAGENTS_RUNTIME = previousRuntime;
+  if (previousRuntime === undefined) delete process.env.BLEXAGENT_RUNTIME;
+  else process.env.BLEXAGENT_RUNTIME = previousRuntime;
   broadcastEvents.length = 0;
 }
 

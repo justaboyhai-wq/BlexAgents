@@ -1,4 +1,4 @@
-# Contributing to MyAgents
+# Contributing to BlexAgent
 
 [English](#english) | [中文](#中文)
 
@@ -8,7 +8,7 @@
 
 ## English
 
-Thank you for your interest in contributing to MyAgents! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to BlexAgent! This document provides guidelines and instructions for contributing.
 
 ### Code of Conduct
 
@@ -18,7 +18,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 #### Reporting Bugs
 
-1. Check if the bug has already been reported in [Issues](https://github.com/hAcKlyc/MyAgents/issues)
+1. Check if the bug has already been reported in [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues)
 2. If not, create a new issue with:
    - Clear, descriptive title
    - Steps to reproduce
@@ -28,7 +28,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 #### Suggesting Features
 
-1. Check existing [Issues](https://github.com/hAcKlyc/MyAgents/issues) for similar suggestions
+1. Check existing [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues) for similar suggestions
 2. Create a new issue with the "Feature Request" label
 3. Describe the feature and its use case clearly
 
@@ -55,8 +55,8 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/MyAgents.git
-cd MyAgents
+git clone https://github.com/YOUR_USERNAME/BlexAgent.git
+cd BlexAgent
 
 # Install dependencies
 ./setup.sh
@@ -68,7 +68,7 @@ cd MyAgents
 ### Project Structure
 
 ```
-MyAgents/
+BlexAgent/
 ├── src/
 │   ├── renderer/     # React frontend
 │   ├── server/       # Bun backend (Sidecar)
@@ -86,7 +86,7 @@ MyAgents/
 
 ### Questions?
 
-Feel free to open an issue or reach out at myagents.io@gmail.com
+Feel free to open an issue or reach out at team@blexagent.com
 
 ---
 
@@ -94,7 +94,7 @@ Feel free to open an issue or reach out at myagents.io@gmail.com
 
 ## 中文
 
-感谢您有兴趣为 MyAgents 做出贡献！本文档提供贡献指南和说明。
+感谢您有兴趣为 BlexAgent 做出贡献！本文档提供贡献指南和说明。
 
 ### 行为准则
 
@@ -104,7 +104,7 @@ Feel free to open an issue or reach out at myagents.io@gmail.com
 
 #### 报告 Bug
 
-1. 先在 [Issues](https://github.com/hAcKlyc/MyAgents/issues) 中检查是否已有相同报告
+1. 先在 [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues) 中检查是否已有相同报告
 2. 如果没有，创建新 issue 并包含：
    - 清晰的标题
    - 复现步骤
@@ -114,7 +114,7 @@ Feel free to open an issue or reach out at myagents.io@gmail.com
 
 #### 功能建议
 
-1. 先检查 [Issues](https://github.com/hAcKlyc/MyAgents/issues) 中是否有类似建议
+1. 先检查 [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues) 中是否有类似建议
 2. 使用 "Feature Request" 标签创建新 issue
 3. 清晰描述功能及其使用场景
 
@@ -141,8 +141,8 @@ Feel free to open an issue or reach out at myagents.io@gmail.com
 
 ```bash
 # 克隆你的 fork
-git clone https://github.com/YOUR_USERNAME/MyAgents.git
-cd MyAgents
+git clone https://github.com/YOUR_USERNAME/BlexAgent.git
+cd BlexAgent
 
 # 安装依赖
 ./setup.sh
@@ -154,7 +154,7 @@ cd MyAgents
 ### 项目结构
 
 ```
-MyAgents/
+BlexAgent/
 ├── src/
 │   ├── renderer/     # React 前端
 │   ├── server/       # Bun 后端 (Sidecar)
@@ -172,4 +172,4 @@ MyAgents/
 
 ### 有问题？
 
-欢迎创建 issue 或发送邮件至 myagents.io@gmail.com
+欢迎创建 issue 或发送邮件至 team@blexagent.com

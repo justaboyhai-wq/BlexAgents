@@ -16,7 +16,7 @@
 
 ### Reporting a Vulnerability
 
-If you discover a security vulnerability, please report it by emailing **myagents.io@gmail.com**.
+If you discover a security vulnerability, please report it by emailing **team@blexagent.com**.
 
 **Please do NOT:**
 - Open a public GitHub issue for security vulnerabilities
@@ -36,12 +36,12 @@ If you discover a security vulnerability, please report it by emailing **myagent
 
 ### Security Best Practices
 
-When using MyAgents:
+When using BlexAgent:
 
-1. **API Keys**: Store API keys securely. MyAgents stores them locally in `~/.myagents/`
+1. **API Keys**: Store API keys securely. BlexAgent stores them locally in `~/.blexagent/`
 2. **Project Access**: Only grant access to trusted projects
 3. **Tool Permissions**: Review tool permission requests carefully
-4. **Updates**: Keep MyAgents updated to the latest version
+4. **Updates**: Keep BlexAgent updated to the latest version
 
 ---
 
@@ -57,7 +57,7 @@ When using MyAgents:
 
 ### 报告漏洞
 
-如果您发现安全漏洞，请发送邮件至 **myagents.io@gmail.com**。
+如果您发现安全漏洞，请发送邮件至 **team@blexagent.com**。
 
 **请勿：**
 - 为安全漏洞创建公开的 GitHub issue
@@ -77,9 +77,9 @@ When using MyAgents:
 
 ### 安全最佳实践
 
-使用 MyAgents 时：
+使用 BlexAgent 时：
 
-1. **API 密钥**：安全存储 API 密钥。MyAgents 将其本地存储在 `~/.myagents/`
+1. **API 密钥**：安全存储 API 密钥。BlexAgent 将其本地存储在 `~/.blexagent/`
 2. **项目访问**：仅授权访问可信项目
 3. **工具权限**：仔细审查工具权限请求
-4. **更新**：保持 MyAgents 更新到最新版本
+4. **更新**：保持 BlexAgent 更新到最新版本

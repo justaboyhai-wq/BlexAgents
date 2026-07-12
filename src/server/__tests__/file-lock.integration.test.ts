@@ -17,7 +17,7 @@ import { withFileLock, FileBusyError } from '../utils/file-lock';
 let scratch: string;
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'myagents-file-lock-'));
+  scratch = mkdtempSync(join(tmpdir(), 'blexagent-file-lock-'));
 });
 
 afterEach(() => {

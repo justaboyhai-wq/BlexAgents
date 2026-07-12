@@ -12,18 +12,18 @@ describe('handleInboxDrain scenario routing', () => {
     };
     const message: PendingInboxMessage = {
       messageId: 'msg-space',
-      fromSessionId: 'myagents-space',
-      fromLabel: 'MyAgents Space',
+      fromSessionId: 'blexagent-space',
+      fromLabel: 'BlexAgent Space',
       toSessionId: 'session-space',
-      text: '<system-reminder>\n<myagents-space-issue>\nSpace issue delivery\n</myagents-space-issue>\n</system-reminder>\nVisible Space issue',
+      text: '<system-reminder>\n<blexagent-space-issue>\nSpace issue delivery\n</blexagent-space-issue>\n</system-reminder>\nVisible Space issue',
       replyBack: false,
       kind: 'event',
       sessionEvent: {
         version: 1,
         type: 'space.issue_delivery',
         eventId: 'msg-space',
-        sourceSessionId: 'myagents-space',
-        sourceLabel: 'MyAgents Space',
+        sourceSessionId: 'blexagent-space',
+        sourceLabel: 'BlexAgent Space',
         targetSessionId: 'session-space',
         createdAt: '2026-06-30T00:00:00.000Z',
         deliveryId: 'delivery-1',
@@ -40,7 +40,7 @@ describe('handleInboxDrain scenario routing', () => {
     expect(seen).toHaveLength(1);
     expect(seen[0][0]).toBe(message.text);
     expect(seen[0][0]).toContain('<system-reminder>');
-    expect(seen[0][0]).not.toContain('<myagents-session-event');
+    expect(seen[0][0]).not.toContain('<blexagent-session-event');
     expect(seen[0][2]).toMatchObject({
       allowLazySessionMaterialization: true,
       scenario: {

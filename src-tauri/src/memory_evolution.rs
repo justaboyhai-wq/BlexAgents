@@ -62,14 +62,14 @@ pub async fn cmd_configure_memory_evolution_tasks(
         MANAGED_KIND_MEMORY_GARDENER,
         "Memory Gardener",
         GARDENER_INTERVAL_MINUTES,
-        "myagents-memory-gardener",
+        "blexagent-memory-gardener",
         &request.workspace_path,
     );
     let molt = job_spec(
         MANAGED_KIND_MEMORY_MOLT,
         "Memory Molt",
         MOLT_INTERVAL_MINUTES,
-        "myagents-memory-molt",
+        "blexagent-memory-molt",
         &request.workspace_path,
     );
 
@@ -112,7 +112,7 @@ fn job_spec(
         name,
         interval_minutes,
         prompt: format!(
-            "Use the {} skill to maintain long-term memory for this workspace.\n\nWorkspace: `{}`\n\nConstraints:\n- Only inspect and edit memory-related files unless the skill explicitly requires a small supporting read.\n- If this workspace is a git repository, commit only the memory-related files changed by this run.\n- Do not push.\n- If required memory substrate files are missing, create them from the MyAgents defaults before continuing.",
+            "Use the {} skill to maintain long-term memory for this workspace.\n\nWorkspace: `{}`\n\nConstraints:\n- Only inspect and edit memory-related files unless the skill explicitly requires a small supporting read.\n- If this workspace is a git repository, commit only the memory-related files changed by this run.\n- Do not push.\n- If required memory substrate files are missing, create them from the BlexAgent defaults before continuing.",
             skill_name, workspace_path
         ),
     }

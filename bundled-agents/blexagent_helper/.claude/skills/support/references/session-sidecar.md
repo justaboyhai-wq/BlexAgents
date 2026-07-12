@@ -1,4 +1,4 @@
-# Session、Sidecar、Pre-warm 与历史
+﻿# Session、Sidecar、Pre-warm 与历史
 
 使用场景：AI 不回复、卡住、sidecar 重启、首次消息很慢、历史消息缺失、回溯/分叉异常、当前 session 状态不一致。
 
@@ -15,7 +15,7 @@
 ## 取证
 
 ```bash
-myagents status --json
+blexagent status --json
 rg -n "\\[sidecar\\]|\\[agent\\]|pre-warm|system_init|session|resume|message-replay|cold-history|terminal_reason|RuntimeDiagnostics|runtimeSource|managed-provider|rewind|fork|No conversation found|num_turns" ./logs/unified-*.log | tail -220
 ```
 

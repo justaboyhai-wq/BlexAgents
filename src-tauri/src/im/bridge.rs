@@ -18,7 +18,7 @@ use tokio::sync::{mpsc, Mutex};
 use crate::im::adapter::{AdapterResult, ImAdapter, ImStreamAdapter};
 use crate::im::types::{AskUserQuestionPayload, ImMessage, ImSourceType};
 use crate::{ulog_debug, ulog_error, ulog_info, ulog_warn};
-// Note: ulog_* macros write to BOTH system log AND unified log (~/.myagents/logs/unified-*.log)
+// Note: ulog_* macros write to BOTH system log AND unified log (~/.blexagent/logs/unified-*.log)
 // This is critical for bridge stdout/stderr — using log::info! only writes to system log.
 
 // ===== Per-plugin install/prepare mutex =====
@@ -38,7 +38,7 @@ use crate::{ulog_debug, ulog_error, ulog_info, ulog_warn};
 // bot using the same plugin spawns).
 //
 // In-process async mutex per `plugin_dir` is enough because:
-//   - Tauri single-instance plugin prevents cross-process MyAgents.
+//   - Tauri single-instance plugin prevents cross-process BlexAgent.
 //   - We only need to serialize *our own* mutations of `plugin_dir`.
 //
 // Keyed by canonicalised plugin_dir path so lexically-different paths
@@ -1245,8 +1245,8 @@ mod tests {
     #[test]
     fn openclaw_bridge_state_env_scopes_runtime_files_under_channel_dir() {
         let base = std::env::temp_dir()
-            .join("myagents-test")
-            .join(".myagents")
+            .join("blexagent-test")
+            .join(".blexagent")
             .join("agents")
             .join("agent-1")
             .join("channels")
@@ -1439,7 +1439,7 @@ pub async fn spawn_plugin_bridge<R: tauri::Runtime>(
     cmd.arg(bridge_script.to_string_lossy().as_ref())
         // Same marker as regular sidecars — ensures cleanup_stale_sidecars()
         // can find and kill orphaned bridge processes after a crash
-        .arg("--myagents-sidecar")
+        .arg("--blexagent-sidecar")
         .arg("--plugin-dir")
         .arg(plugin_dir)
         .arg("--port")
@@ -1450,7 +1450,7 @@ pub async fn spawn_plugin_bridge<R: tauri::Runtime>(
         .arg(bot_id)
         // Pass config via env var to avoid leaking secrets in `ps` process listing
         .env("BRIDGE_PLUGIN_CONFIG", &config_json)
-        // Keep plugin runtime state per MyAgents channel. QR-login plugins such
+        // Keep plugin runtime state per BlexAgent channel. QR-login plugins such
         // as Weixin include local tokens from this state when asking the
         // platform for a QR code; falling back to ~/.openclaw makes separate
         // workspaces look like the same OpenClaw instance.
@@ -1581,7 +1581,7 @@ pub async fn spawn_plugin_bridge<R: tauri::Runtime>(
     Ok(BridgeProcess { child, port })
 }
 
-/// Apply MyAgents proxy policy to a child `Command`.
+/// Apply BlexAgent proxy policy to a child `Command`.
 /// Delegates to the centralized `proxy_config::apply_to_subprocess()` (pit-of-success).
 fn apply_proxy_env(cmd: &mut std::process::Command) {
     crate::proxy_config::apply_to_subprocess(cmd);
@@ -1792,7 +1792,7 @@ pub async fn install_openclaw_plugin<R: tauri::Runtime>(
 
     let base_dir = dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".myagents")
+        .join(".blexagent")
         .join("openclaw-plugins")
         .join(&plugin_id);
 
@@ -1999,7 +1999,7 @@ pub async fn install_openclaw_plugin<R: tauri::Runtime>(
     if !npm_succeeded {
         return Err(format!(
             "Plugin install failed for {}: bundled npm unavailable and system npm not found in PATH. \
-             Install Node.js, or reinstall MyAgents to restore the bundled runtime.",
+             Install Node.js, or reinstall BlexAgent to restore the bundled runtime.",
             npm_spec
         ));
     }
@@ -2167,7 +2167,7 @@ async fn check_plugin_compat(pkg_json_path: &std::path::Path) -> Option<String> 
 
     if req > shim {
         Some(format!(
-            "Plugin requires openclaw >={} but MyAgents shim supports {}. Some features may not work.",
+            "Plugin requires openclaw >={} but BlexAgent shim supports {}. Some features may not work.",
             required_ver, SHIM_COMPAT_VERSION,
         ))
     } else {
@@ -2490,7 +2490,7 @@ pub async fn uninstall_openclaw_plugin(plugin_id: &str) -> Result<(), String> {
 
     let plugins_dir = dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".myagents")
+        .join(".blexagent")
         .join("openclaw-plugins")
         .join(plugin_id);
 
@@ -2518,7 +2518,7 @@ pub async fn uninstall_openclaw_plugin(plugin_id: &str) -> Result<(), String> {
 pub async fn list_openclaw_plugins() -> Result<Vec<serde_json::Value>, String> {
     let plugins_dir = dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".myagents")
+        .join(".blexagent")
         .join("openclaw-plugins");
 
     if !plugins_dir.exists() {

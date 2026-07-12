@@ -2,7 +2,7 @@ use super::*;
 
 // ===== Auto-start on app launch =====
 
-/// Config shape from ~/.myagents/config.json (only what we need)
+/// Config shape from ~/.blexagent/config.json (only what we need)
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PartialAppConfig {
@@ -45,7 +45,7 @@ fn read_archived_agent_workspaces_from_disk() -> ArchivedAgentWorkspaces {
         Some(h) => h,
         None => return ArchivedAgentWorkspaces::default(),
     };
-    let path = home.join(".myagents").join("projects.json");
+    let path = home.join(".blexagent").join("projects.json");
     let content = match std::fs::read_to_string(path) {
         Ok(c) => c,
         Err(_) => return ArchivedAgentWorkspaces::default(),
@@ -395,7 +395,7 @@ mod agent_monitor_tests {
             .unwrap()
             .as_nanos();
         let dir = std::env::temp_dir().join(format!(
-            "myagents-im-{}-{}-{}",
+            "blexagent-im-{}-{}-{}",
             name,
             std::process::id(),
             unique
@@ -882,7 +882,7 @@ pub fn schedule_auto_start<R: Runtime>(app_handle: AppHandle<R>) {
     });
 }
 
-/// Read IM bot configs from ~/.myagents/config.json
+/// Read IM bot configs from ~/.blexagent/config.json
 /// Returns (bot_id, config) pairs for all enabled bots.
 ///
 /// Recovery chain (mirrors frontend safeLoadJson):
@@ -894,7 +894,7 @@ pub(super) fn read_im_configs_from_disk() -> Vec<(String, ImConfig)> {
         Some(h) => h,
         None => return Vec::new(),
     };
-    let config_dir = home.join(".myagents");
+    let config_dir = home.join(".blexagent");
     let main_path = config_dir.join("config.json");
 
     // Try main → .bak → .tmp (same order as frontend safeLoadJson)
@@ -1550,7 +1550,7 @@ pub(super) fn read_agent_configs_from_disk() -> Vec<AgentConfigRust> {
         Some(h) => h,
         None => return Vec::new(),
     };
-    let config_dir = home.join(".myagents");
+    let config_dir = home.join(".blexagent");
     let main_path = config_dir.join("config.json");
 
     let candidates = [
@@ -1624,14 +1624,14 @@ pub(super) fn read_agent_configs_from_disk() -> Vec<AgentConfigRust> {
     Vec::new()
 }
 
-/// Persist a partial patch to a single agent's entry in `~/.myagents/config.json`.
+/// Persist a partial patch to a single agent's entry in `~/.blexagent/config.json`.
 #[allow(dead_code)] // Kept for potential future use; disk persistence now done by TypeScript service
 pub(super) fn persist_agent_config_patch(
     agent_id: &str,
     patch: &AgentConfigPatch,
 ) -> Result<(), String> {
     let home = dirs::home_dir().ok_or("[agent] Home dir not found")?;
-    let config_path = home.join(".myagents").join("config.json");
+    let config_path = home.join(".blexagent").join("config.json");
 
     with_config_lock(&config_path, true, |config| {
         let agents = config

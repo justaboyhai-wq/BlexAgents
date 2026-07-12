@@ -340,7 +340,7 @@ export default function MonacoEditor({
                 range: new monaco.Range(lineNumber, 1, lineNumber, 1),
                 options: {
                     isWholeLine: true,
-                    className: 'myagents-monaco-search-focus-line',
+                    className: 'blexagent-monaco-search-focus-line',
                 },
             },
         ]);
@@ -821,7 +821,7 @@ export default function MonacoEditor({
             )}
             {findTooltip && createPortal(
                 <div
-                    className="myagents-monaco-find-tooltip"
+                    className="blexagent-monaco-find-tooltip"
                     style={{ left: findTooltip.x, top: findTooltip.top }}
                 >
                     {findTooltip.label}

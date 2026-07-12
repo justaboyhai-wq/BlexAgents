@@ -97,12 +97,12 @@ import {
 } from './spaceStore';
 
 const fakeSession: SpaceSession = {
-  baseUrl: 'https://space.myagents.test',
+  baseUrl: 'https://space.blexagent.test',
   user: { id: 'user-1', email: 'user@example.com' },
   space: {
     id: 'space-1',
     slug: 'official',
-    name: 'MyAgents社区',
+    name: 'BlexAgent社区',
     joinPolicy: 'open',
   },
   membership: { id: 'membership-1', role: 'owner' },
@@ -177,7 +177,7 @@ const fakeSkill: SpaceSkill = {
 
 const fakeAgent: LocalRegisteredAgent = {
   id: 'rag_123',
-  baseUrl: 'https://space.myagents.test',
+  baseUrl: 'https://space.blexagent.test',
   spaceId: 'space-1',
   workspaceId: 'project-1',
   displayName: 'Frontend Agent',
@@ -314,7 +314,7 @@ describe('spaceStore issue refresh', () => {
       user: {
         ...fakeSession.user,
         name: 'I Ethan',
-        avatarUrl: 'https://r2-public.myagents.test/avatar.png',
+        avatarUrl: 'https://r2-public.blexagent.test/avatar.png',
       },
     };
     const staleCurrentUser = { id: 'user-1', name: 'Old User', avatarUrl: null };
@@ -636,8 +636,8 @@ describe('spaceStore issue refresh', () => {
   it('downloads an issue attachment through the workspace-safe Space command', async () => {
     apiMocks.spaceDownloadIssueAttachment.mockResolvedValueOnce({
       name: 'trace.log',
-      relativePath: 'myagents_files/space/issues/iss_123/attachments/att_1/trace.log',
-      fullPath: '/tmp/workspace/myagents_files/space/issues/iss_123/attachments/att_1/trace.log',
+      relativePath: 'blexagent_files/space/issues/iss_123/attachments/att_1/trace.log',
+      fullPath: '/tmp/workspace/blexagent_files/space/issues/iss_123/attachments/att_1/trace.log',
       sizeBytes: 42,
     });
 
@@ -654,7 +654,7 @@ describe('spaceStore issue refresh', () => {
       workspacePath: '/tmp/workspace',
       fileName: 'trace.log',
     });
-    expect(result.relativePath).toBe('myagents_files/space/issues/iss_123/attachments/att_1/trace.log');
+    expect(result.relativePath).toBe('blexagent_files/space/issues/iss_123/attachments/att_1/trace.log');
   });
 });
 
@@ -754,7 +754,7 @@ describe('spaceStore profile actions', () => {
       user: {
         ...fakeSession.user,
         name: 'Updated User',
-        avatarUrl: 'https://r2-public.myagents.test/avatar.png',
+        avatarUrl: 'https://r2-public.blexagent.test/avatar.png',
       },
       updatedAt: '2026-07-05T00:00:00.000Z',
     };

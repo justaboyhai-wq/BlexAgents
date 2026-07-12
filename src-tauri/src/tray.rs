@@ -1,4 +1,4 @@
-// System tray implementation for MyAgents
+// System tray implementation for BlexAgent
 // Provides minimize-to-tray functionality and right-click menu
 
 use serde::Deserialize;
@@ -92,7 +92,7 @@ pub fn setup_tray(app: &tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error
     let tray_builder = TrayIconBuilder::new()
         .icon(tray_icon)
         .menu(&menu)
-        .tooltip("MyAgents")
+        .tooltip("BlexAgent")
         .show_menu_on_left_click(false);
 
     // On macOS, mark as template image so system can adjust colors for light/dark mode
@@ -273,14 +273,14 @@ struct PartialAppConfig {
 }
 
 /// Check if minimize to tray is enabled
-/// Reads from ~/.myagents/config.json, defaults to false if not configured.
+/// Reads from ~/.blexagent/config.json, defaults to false if not configured.
 ///
-/// Uses the project-canonical `app_dirs::myagents_data_dir()` helper rather
+/// Uses the project-canonical `app_dirs::blexagent_data_dir()` helper rather
 /// than raw `dirs::home_dir()` — that way any future dev/prod data-dir
 /// isolation flows through automatically.
 #[allow(dead_code)]
 pub fn should_minimize_to_tray() -> bool {
-    if let Some(dir) = crate::app_dirs::myagents_data_dir() {
+    if let Some(dir) = crate::app_dirs::blexagent_data_dir() {
         let config_path = dir.join("config.json");
 
         if let Ok(content) = fs::read_to_string(&config_path) {

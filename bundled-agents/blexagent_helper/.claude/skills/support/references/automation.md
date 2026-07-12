@@ -1,4 +1,4 @@
-# Cron、Task、Thought 与 Session Inbox
+﻿# Cron、Task、Thought 与 Session Inbox
 
 使用场景：定时任务没执行、任务中心任务卡住、想法/任务状态异常、需要向另一个 session 反馈。
 
@@ -7,17 +7,17 @@
 ### Ground truth
 
 - Rust `CronTaskManager` 管理所有定时任务。
-- `myagents cron list` 默认按当前工作区作用域过滤。空结果不代表全局没有任务。
+- `blexagent cron list` 默认按当前工作区作用域过滤。空结果不代表全局没有任务。
 - 执行记录在 `cron_runs/`，日志有 `[CronTask]`。
 - 手动 `cron run-now` 是 active probe，会实际触发任务。
 
 ### 取证
 
 ```bash
-myagents cron status --json
-myagents cron list --json
-myagents cron list --workspace <absolute-workspace-path> --json
-myagents cron runs <task-id> --limit 20 --json
+blexagent cron status --json
+blexagent cron list --json
+blexagent cron list --workspace <absolute-workspace-path> --json
+blexagent cron runs <task-id> --limit 20 --json
 rg -n "CronTask|cron|cron_runs|Task .* execution failed|nextRun|workspacePath" ./logs/unified-*.log | tail -160
 ```
 
@@ -31,17 +31,17 @@ rg -n "CronTask|cron|cron_runs|Task .* execution failed|nextRun|workspacePath" .
 ## Task / Thought
 
 ```bash
-myagents task list --json
-myagents task get <task-id> --json
-myagents thought list --json
+blexagent task list --json
+blexagent task get <task-id> --json
+blexagent thought list --json
 ```
 
 创建或修改任务前：
 
 ```bash
-myagents runtime list --json
-myagents runtime describe <runtime> --json
-myagents agent show <agent-id> --json
+blexagent runtime list --json
+blexagent runtime describe <runtime> --json
+blexagent agent show <agent-id> --json
 ```
 
 不要猜 runtime/model/permissionMode。CLI 的 recovery hint 是恢复路径的一部分，要照着跑。
@@ -51,7 +51,7 @@ myagents agent show <agent-id> --json
 当用户要你给另一个 session 反馈、追问、澄清或下指令：
 
 ```bash
-myagents session send <session-id> -p "..."
+blexagent session send <session-id> -p "..."
 ```
 
 多行内容用 `--prompt-file`。仅回答当前用户时不要使用 session send。

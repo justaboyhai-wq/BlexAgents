@@ -1,5 +1,5 @@
-#!/bin/bash
-# MyAgents 本地发布脚本
+﻿#!/bin/bash
+# BlexAgent 本地发布脚本
 # 将构建产物上传到 Cloudflare R2，并生成更新清单
 #
 # 前置条件：
@@ -21,8 +21,8 @@ BUNDLE_DIR="${PROJECT_DIR}/src-tauri/target"
 ENV_FILE="${PROJECT_DIR}/.env"
 
 # 配置
-R2_BUCKET="myagents-releases"
-DOWNLOAD_BASE_URL="https://download.myagents.io"
+R2_BUCKET="blexagent-releases"
+DOWNLOAD_BASE_URL="https://download.blexagent.com"
 
 # 架构名称辅助函数（避免重复计算逻辑）
 get_arch_suffix() {
@@ -35,8 +35,8 @@ get_arch_suffix() {
 }
 
 # 获取带架构后缀的 tar.gz 文件名
-# 用法: get_tar_upload_name "MyAgents.app.tar.gz" "aarch64-apple-darwin"
-# 输出: MyAgents_aarch64.app.tar.gz
+# 用法: get_tar_upload_name "BlexAgent.app.tar.gz" "aarch64-apple-darwin"
+# 输出: BlexAgent_aarch64.app.tar.gz
 get_tar_upload_name() {
     local base="$1"
     local target="$2"
@@ -62,7 +62,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC}  ${GREEN}🚀 MyAgents 发布到 Cloudflare R2${NC}                     ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${GREEN}🚀 BlexAgent 发布到 Cloudflare R2${NC}                     ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${BLUE}Version: ${VERSION}${NC}                                      ${CYAN}║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
@@ -359,7 +359,7 @@ for TARGET in "${FOUND_TARGETS[@]}"; do
     TAR_FILENAME=$(basename "$TAR_GZ" 2>/dev/null || echo "")
 
     # 为 tar.gz 文件名添加架构标识，避免 ARM 和 Intel 互相覆盖
-    # MyAgents.app.tar.gz -> MyAgents_aarch64.app.tar.gz 或 MyAgents_x86_64.app.tar.gz
+    # BlexAgent.app.tar.gz -> BlexAgent_aarch64.app.tar.gz 或 BlexAgent_x86_64.app.tar.gz
     if [ -n "$TAR_FILENAME" ]; then
         TAR_UPLOAD_NAME=$(get_tar_upload_name "$TAR_FILENAME" "$TARGET")
     fi
@@ -373,7 +373,7 @@ for TARGET in "${FOUND_TARGETS[@]}"; do
         cat > "${MANIFEST_DIR}/${MANIFEST_NAME}.json" << EOF
 {
   "version": "${VERSION}",
-  "notes": "MyAgents v${VERSION}",
+  "notes": "BlexAgent v${VERSION}",
   "pub_date": "${PUB_DATE}",
   "signature": "${SIGNATURE}",
   "url": "${DOWNLOAD_BASE_URL}/releases/v${VERSION}/${TAR_UPLOAD_NAME}"
@@ -389,7 +389,7 @@ EOF
 done
 
 # 生成 latest.json（只包含存在的平台）
-LATEST_JSON="{\n  \"version\": \"${VERSION}\",\n  \"pub_date\": \"${PUB_DATE}\",\n  \"release_notes\": \"MyAgents v${VERSION}\",\n  \"downloads\": {"
+LATEST_JSON="{\n  \"version\": \"${VERSION}\",\n  \"pub_date\": \"${PUB_DATE}\",\n  \"release_notes\": \"BlexAgent v${VERSION}\",\n  \"downloads\": {"
 
 DOWNLOADS_ADDED=0
 if [ -n "$DMG_ARM64" ]; then

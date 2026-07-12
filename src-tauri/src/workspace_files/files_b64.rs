@@ -64,7 +64,7 @@ pub struct ImportResult {
 
 /// Import base64-encoded files into `<workspace>/<target_dir>/`.
 ///
-/// `target_dir` is workspace-relative (e.g. `"myagents_files"`). Empty string
+/// `target_dir` is workspace-relative (e.g. `"blexagent_files"`). Empty string
 /// means workspace root itself. The directory is created if it does not exist.
 ///
 /// Tauri auto-converts the JS-side camelCase (`targetDir`) to the Rust-side
@@ -321,13 +321,13 @@ mod tests {
         let res = cmd_workspace_import_files_b64(
             ws.to_string_lossy().to_string(),
             payload,
-            Some("myagents_files".to_string()),
+            Some("blexagent_files".to_string()),
         )
         .await
         .unwrap();
-        assert_eq!(res.files, vec!["myagents_files/hello.txt".to_string()]);
+        assert_eq!(res.files, vec!["blexagent_files/hello.txt".to_string()]);
         assert_eq!(
-            fs::read(ws.join("myagents_files").join("hello.txt")).unwrap(),
+            fs::read(ws.join("blexagent_files").join("hello.txt")).unwrap(),
             b"hi"
         );
         let _ = fs::remove_dir_all(&ws);

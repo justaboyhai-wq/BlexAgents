@@ -1,4 +1,4 @@
-# MyAgents Design Guide
+# BlexAgent Design Guide
 
 > **Version**: 2.5.7
 > **Last Updated**: 2026-06-20
@@ -9,7 +9,7 @@
 
 ## 设计理念
 
-MyAgents 是一款 AI Agent 桌面客户端，采用**温暖纸张质感**的设计风格，营造舒适、专业的使用体验。
+BlexAgent 是一款 AI Agent 桌面客户端，采用**温暖纸张质感**的设计风格，营造舒适、专业的使用体验。
 
 ### 核心原则
 
@@ -1067,15 +1067,15 @@ body {
 }
 
 /* Windows: renderer 全局 scroll capture 给正在滚动的元素加
-   .myagents-scrollbar-active。默认 thumb 透明，滚动停止后恢复透明，
+   .blexagent-scrollbar-active。默认 thumb 透明，滚动停止后恢复透明，
    保留 6px 几何以避免内容列重排。 */
 html.platform-windows.platform-windows,
 html.platform-windows.platform-windows * {
   scrollbar-color: transparent transparent;
 }
 
-html.platform-windows.platform-windows.myagents-scrollbar-active,
-html.platform-windows.platform-windows .myagents-scrollbar-active {
+html.platform-windows.platform-windows.blexagent-scrollbar-active,
+html.platform-windows.platform-windows .blexagent-scrollbar-active {
   scrollbar-color: var(--ink-subtle) transparent;
 }
 ```
@@ -1151,7 +1151,7 @@ Launcher 是应用的启动页，采用左右分栏布局。左侧负责品牌�
 │                    Tauri Title Bar                      │
 ├──────────────────────────┬─────────────────────────────┤
 │                          │  Agent 工作区       [+ 添加] │
-│        MyAgents          │  [卡片] [卡片]               │
+│        BlexAgent          │  [卡片] [卡片]               │
 │  对话 / 想法 + 输入框     │  [卡片] [卡片]               │
 │                          │  展开更多 N 个 / 收起         │
 │                          │  ────────────────────────── │
@@ -1167,7 +1167,7 @@ Launcher 是应用的启动页，采用左右分栏布局。左侧负责品牌�
 ### 15.2 品牌区域
 
 ```
-标题 "MyAgents":
+标题 "BlexAgent":
   - 字号: 4.5rem (桌面) / 3.5rem (移动)
   - 字重: 200 (font-light，保持品牌独特感)
   - 渐变: linear-gradient(145deg, var(--ink), var(--ink-muted))

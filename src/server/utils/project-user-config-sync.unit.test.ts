@@ -4,7 +4,7 @@ import { join } from 'path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getMyAgentsUserDir, syncProjectUserConfigFiles, trySyncProjectUserConfigFiles } from './project-user-config-sync';
+import { getBlexAgentUserDir, syncProjectUserConfigFiles, trySyncProjectUserConfigFiles } from './project-user-config-sync';
 
 describe('project-user-config-sync', () => {
   const tempRoots: string[] = [];
@@ -20,7 +20,7 @@ describe('project-user-config-sync', () => {
   });
 
   function makeEnv(): { root: string; home: string; workspace: string } {
-    const root = join(tmpdir(), `myagents-project-sync-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    const root = join(tmpdir(), `blexagent-project-sync-${Date.now()}-${Math.random().toString(16).slice(2)}`);
     const home = join(root, 'home');
     const temp = join(root, 'tmp');
     const workspace = join(root, 'workspace');
@@ -37,18 +37,18 @@ describe('project-user-config-sync', () => {
   }
 
   function writeUserSkill(home: string, name: string): void {
-    const dir = join(home, '.myagents', 'skills', name);
+    const dir = join(home, '.blexagent', 'skills', name);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'SKILL.md'), `---\nname: ${name}\ndescription: ${name}\n---\n`);
   }
 
   function writeUserCommand(home: string, name: string): void {
-    const dir = join(home, '.myagents', 'commands');
+    const dir = join(home, '.blexagent', 'commands');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, `${name}.md`), `# ${name}\n`);
   }
 
-  it('links enabled MyAgents user skills into the project .claude/skills directory', () => {
+  it('links enabled BlexAgent user skills into the project .claude/skills directory', () => {
     const { home, workspace } = makeEnv();
     writeUserSkill(home, 'review-helper');
 
@@ -57,7 +57,7 @@ describe('project-user-config-sync', () => {
     const linkPath = join(workspace, '.claude', 'skills', 'review-helper');
     expect(lstatSync(linkPath).isSymbolicLink()).toBe(true);
     expect(existsSync(join(linkPath, 'SKILL.md'))).toBe(true);
-    expect(getMyAgentsUserDir()).toBe(join(home, '.myagents'));
+    expect(getBlexAgentUserDir()).toBe(join(home, '.blexagent'));
   });
 
   it('removes managed skill symlinks when the skill is disabled', () => {
@@ -68,7 +68,7 @@ describe('project-user-config-sync', () => {
     const linkPath = join(workspace, '.claude', 'skills', 'review-helper');
     expect(lstatSync(linkPath).isSymbolicLink()).toBe(true);
 
-    const configPath = join(home, '.myagents', 'skills-config.json');
+    const configPath = join(home, '.blexagent', 'skills-config.json');
     writeFileSync(configPath, JSON.stringify({ disabled: ['review-helper'] }));
 
     syncProjectUserConfigFiles(workspace, { cliToolRegistryEnabled: true });
@@ -104,7 +104,7 @@ describe('project-user-config-sync', () => {
     expect(readFileSync(join(linkPath, 'SKILL.md'), 'utf-8')).toContain('review-helper');
   });
 
-  itNonWindows('links MyAgents user commands into the project .claude/commands directory', () => {
+  itNonWindows('links BlexAgent user commands into the project .claude/commands directory', () => {
     const { home, workspace } = makeEnv();
     writeUserCommand(home, 'ship-it');
 

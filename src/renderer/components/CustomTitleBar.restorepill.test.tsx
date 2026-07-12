@@ -83,7 +83,7 @@ describe('CustomTitleBar — 恢复对话 pill (Issue #309)', () => {
         expect(tauriDragRegions.length).toBeGreaterThanOrEqual(4);
         expect(tauriDragRegions.some((node) => (node as HTMLElement).style.width === '30px')).toBe(true);
         expect(tauriDragRegions.some((node) => (node as HTMLElement).className.includes('w-1'))).toBe(true);
-        expect(container.querySelector('[data-myagents-titlebar-drag-region]')).toBeNull();
+        expect(container.querySelector('[data-blexagent-titlebar-drag-region]')).toBeNull();
         expect(tabbarHost?.className).toContain('flex-1');
     });
 

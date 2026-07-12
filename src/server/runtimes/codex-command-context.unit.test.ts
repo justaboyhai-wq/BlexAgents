@@ -42,19 +42,19 @@ describe('codex command context', () => {
       return;
     }
 
-    tempHome = mkdtempSync(join(tmpdir(), 'myagents-managed-codex-'));
+    tempHome = mkdtempSync(join(tmpdir(), 'blexagent-managed-codex-'));
     vi.stubEnv('HOME', tempHome);
     vi.stubEnv('USERPROFILE', tempHome);
     vi.stubEnv('OPENAI_API_KEY', 'must-not-leak');
     vi.stubEnv('CODEX_ACCESS_TOKEN', 'must-not-leak');
     vi.stubEnv('CODEX_HOME', '/tmp/user-codex-home');
-    vi.stubEnv('MYAGENTS_PORT', '31415');
-    vi.stubEnv('MYAGENTS_MANAGEMENT_PORT', '27182');
-    vi.stubEnv('MYAGENTS_VERSION', '9.9.9-test');
+    vi.stubEnv('BLEXAGENT_PORT', '31415');
+    vi.stubEnv('BLEXAGENT_MANAGEMENT_PORT', '27182');
+    vi.stubEnv('BLEXAGENT_VERSION', '9.9.9-test');
 
     const installDir = join(
       tempHome,
-      '.myagents',
+      '.blexagent',
       'runtimes',
       'codex',
       MANAGED_CODEX_REQUIRED_RUNTIME.version,
@@ -72,23 +72,23 @@ describe('codex command context', () => {
     expect(context.env.CODEX_HOME).toBe(getManagedCodexHome());
     expect(context.env.OPENAI_API_KEY).toBeUndefined();
     expect(context.env.CODEX_ACCESS_TOKEN).toBeUndefined();
-    expect(context.env.MYAGENTS_PORT).toBe('31415');
-    expect(context.env.MYAGENTS_MANAGEMENT_PORT).toBe('27182');
-    expect(context.env.MYAGENTS_VERSION).toBe('9.9.9-test');
-    const rules = readFileSync(join(getManagedCodexHome(), 'rules', 'myagents.rules'), 'utf-8');
-    expect(rules).toContain('prefix_rule(pattern=["myagents"], decision="allow")');
-    expect(rules).toContain(JSON.stringify(join(tempHome, '.myagents', 'bin', process.platform === 'win32' ? 'myagents.cmd' : 'myagents')));
+    expect(context.env.BLEXAGENT_PORT).toBe('31415');
+    expect(context.env.BLEXAGENT_MANAGEMENT_PORT).toBe('27182');
+    expect(context.env.BLEXAGENT_VERSION).toBe('9.9.9-test');
+    const rules = readFileSync(join(getManagedCodexHome(), 'rules', 'blexagent.rules'), 'utf-8');
+    expect(rules).toContain('prefix_rule(pattern=["blexagent"], decision="allow")');
+    expect(rules).toContain(JSON.stringify(join(tempHome, '.blexagent', 'bin', process.platform === 'win32' ? 'blexagent.cmd' : 'blexagent')));
   });
 
   it('prefers executableRelativePath from managed installed metadata', () => {
     const platform = platformKey();
     if (!platform) return;
 
-    tempHome = mkdtempSync(join(tmpdir(), 'myagents-managed-codex-'));
+    tempHome = mkdtempSync(join(tmpdir(), 'blexagent-managed-codex-'));
     vi.stubEnv('HOME', tempHome);
     vi.stubEnv('USERPROFILE', tempHome);
 
-    const root = join(tempHome, '.myagents', 'runtimes', 'codex');
+    const root = join(tempHome, '.blexagent', 'runtimes', 'codex');
     const installDir = join(root, MANAGED_CODEX_REQUIRED_RUNTIME.version, platform);
     const nestedDir = join(installDir, 'package', 'bin');
     mkdirSync(nestedDir, { recursive: true });
@@ -109,11 +109,11 @@ describe('codex command context', () => {
     const platform = platformKey();
     if (!platform) return;
 
-    tempHome = mkdtempSync(join(tmpdir(), 'myagents-managed-codex-'));
+    tempHome = mkdtempSync(join(tmpdir(), 'blexagent-managed-codex-'));
     vi.stubEnv('HOME', tempHome);
     vi.stubEnv('USERPROFILE', tempHome);
 
-    const root = join(tempHome, '.myagents', 'runtimes', 'codex');
+    const root = join(tempHome, '.blexagent', 'runtimes', 'codex');
     const installDir = join(root, MANAGED_CODEX_REQUIRED_RUNTIME.version, platform);
     const nestedDir = join(installDir, 'vendor', 'x86_64-pc-windows-msvc', 'bin');
     mkdirSync(nestedDir, { recursive: true });
@@ -134,11 +134,11 @@ describe('codex command context', () => {
     const platform = platformKey();
     if (!platform) return;
 
-    tempHome = mkdtempSync(join(tmpdir(), 'myagents-managed-codex-'));
+    tempHome = mkdtempSync(join(tmpdir(), 'blexagent-managed-codex-'));
     vi.stubEnv('HOME', tempHome);
     vi.stubEnv('USERPROFILE', tempHome);
 
-    const root = join(tempHome, '.myagents', 'runtimes', 'codex');
+    const root = join(tempHome, '.blexagent', 'runtimes', 'codex');
     const installDir = join(root, MANAGED_CODEX_REQUIRED_RUNTIME.version, platform);
     mkdirSync(installDir, { recursive: true });
     writeFileSync(join(root, 'installed.json'), JSON.stringify({

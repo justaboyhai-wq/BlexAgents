@@ -5,7 +5,7 @@ import {
   effectiveProxyScopeKey,
   normalizeProxyScope,
   removeProviderFromProxySettingsScope,
-  shouldUseMyAgentsProxyForProvider,
+  shouldUseBlexAgentProxyForProvider,
 } from './proxyScope';
 
 function proxy(scope?: ProxySettings['scope'], enabled = true): ProxySettings {
@@ -38,24 +38,24 @@ describe('proxy scope normalization', () => {
 });
 
 describe('provider-owned proxy decision', () => {
-  it('does not use MyAgents proxy when disabled', () => {
-    expect(shouldUseMyAgentsProxyForProvider(proxy(undefined, false), 'deepseek')).toBe(false);
+  it('does not use BlexAgent proxy when disabled', () => {
+    expect(shouldUseBlexAgentProxyForProvider(proxy(undefined, false), 'deepseek')).toBe(false);
   });
 
-  it('uses MyAgents proxy for all providers by default', () => {
-    expect(shouldUseMyAgentsProxyForProvider(proxy(), 'deepseek')).toBe(true);
+  it('uses BlexAgent proxy for all providers by default', () => {
+    expect(shouldUseBlexAgentProxyForProvider(proxy(), 'deepseek')).toBe(true);
   });
 
-  it('uses MyAgents proxy only for selected custom providers', () => {
+  it('uses BlexAgent proxy only for selected custom providers', () => {
     const settings = proxy({ mode: 'custom', providerIds: ['anthropic-sub'] });
-    expect(shouldUseMyAgentsProxyForProvider(settings, 'anthropic-sub')).toBe(true);
-    expect(shouldUseMyAgentsProxyForProvider(settings, 'deepseek')).toBe(false);
+    expect(shouldUseBlexAgentProxyForProvider(settings, 'anthropic-sub')).toBe(true);
+    expect(shouldUseBlexAgentProxyForProvider(settings, 'deepseek')).toBe(false);
   });
 
   it('includes provider and proxy url in the effective restart key', () => {
-    expect(effectiveProxyScopeKey(proxy(), 'deepseek')).toBe('myagents-proxy:deepseek:http://127.0.0.1:7897');
+    expect(effectiveProxyScopeKey(proxy(), 'deepseek')).toBe('blexagent-proxy:deepseek:http://127.0.0.1:7897');
     expect(effectiveProxyScopeKey(proxy({ mode: 'custom', providerIds: ['anthropic-sub'] }), 'deepseek'))
-      .toBe('myagents-proxy:disabled-for-provider:deepseek');
+      .toBe('blexagent-proxy:disabled-for-provider:deepseek');
   });
 
   it('removes deleted provider ids from custom scope and falls back to all when empty', () => {

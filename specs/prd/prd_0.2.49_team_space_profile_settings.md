@@ -6,7 +6,7 @@ updated: 2026-07-05
 scope: "Team Space 登录用户资料设置：补齐昵称、头像、只读 Email、左下角账户菜单与设置 overlay；Google 登录头像作为默认头像，用户本地上传后写入公开 R2 直链；Issue / 评论 / Skill 上传人展示小圆形头像。不做头像移除、成员资料页、多 Space 资料体系或 Registered Agent 头像设置。"
 issue: "产品需求：Team Space 登录用户基础身份设置"
 research: ""
-review: "cross-review-code 已完成：三路 reviewer 发现并已修复 avatar-only 错标 name_source、头像预览绕过 workspace file service、Rust 头像读取 TOCTOU、R2 cleanup 无日志/并发残留风险；2026-07-06 已确认 myagents-space-assets 绑定 files.myagents.io，R2_PUBLIC_BASE_URL 配置为 https://files.myagents.io，并用临时对象完成公开直链实测。"
+review: "cross-review-code 已完成：三路 reviewer 发现并已修复 avatar-only 错标 name_source、头像预览绕过 workspace file service、Rust 头像读取 TOCTOU、R2 cleanup 无日志/并发残留风险；2026-07-06 已确认 blexagent-space-assets 绑定 files.blexagent.com，R2_PUBLIC_BASE_URL 配置为 https://files.blexagent.com，并用临时对象完成公开直链实测。"
 ---
 
 # Team Space 登录用户资料设置 PRD
@@ -18,16 +18,16 @@ review: "cross-review-code 已完成：三路 reviewer 发现并已修复 avatar
 动手前必须主动读：
 
 - `AGENTS.md` 或当前会话加载的项目指令，重点是 Space、Overlay、前端设计、文件上传、Rust HTTP 边界。
-- `specs/ARCHITECTURE.md`，尤其是「MyAgents Cloud Space」：Space 不是 Sidecar / AI Runtime；云端登录、session、HTTP 请求由 Rust Tauri command 拥有。
+- `specs/ARCHITECTURE.md`，尤其是「BlexAgent Cloud Space」：Space 不是 Sidecar / AI Runtime；云端登录、session、HTTP 请求由 Rust Tauri command 拥有。
 - `specs/tech_docs/space_cloud.md`：确认 Space session、cloud API、mock mode、registered agent 与 CLI 的边界。
 - `specs/DESIGN.md`：本需求包含 overlay、菜单和身份 UI，必须用现有 token、`OverlayBackdrop`、`useCloseLayer`、字号规范和 i18n 资源。
-- 平级云端仓库 `/Users/zhihu/Documents/project/MyAgents_space`：本需求需要同时改 Worker API、D1 migration、R2 存储和 route tests。
+- 平级云端仓库 `/Users/zhihu/Documents/project/BlexAgent_space`：本需求需要同时改 Worker API、D1 migration、R2 存储和 route tests。
 
 关键代码入口：
 
 - Desktop renderer：`src/renderer/api/spaceCloud.ts`、`src/renderer/pages/Space.tsx`、`src/renderer/pages/space/SpaceChrome.tsx`、`src/renderer/pages/space/spaceStore.ts`、`IssuesWorkspace.tsx`、`IssueDetailDrawer.tsx`、`SkillsWorkspace.tsx`。
 - Desktop Rust：`src-tauri/src/space_cloud.rs`、`src-tauri/src/lib.rs`。
-- Cloud Worker：`MyAgents_space/src/index.ts`、`src/domain/types.ts`、`src/services/storage.ts`、`migrations/`、`test/space-routes.test.ts`。
+- Cloud Worker：`BlexAgent_space/src/index.ts`、`src/domain/types.ts`、`src/services/storage.ts`、`migrations/`、`test/space-routes.test.ts`。
 
 引用符号名而非行号；行号会随并发修改漂移。
 
@@ -57,13 +57,13 @@ Team Space 已经有 Google OAuth 登录、官方 Space、Issue、评论、Skill
 - `SpaceChrome.tsx` 左下角账户按钮当前展示 email，菜单顶部显示登录方式和 email，并保留退出登录。
 - `Space.tsx` 持有 Space shell 和 tab 编排；`spaceStore.ts` 是 Space 数据快照 owner，适合承接 profile 更新后的 session 和作者缓存更新。
 - `src-tauri/src/space_cloud.rs` 是 Space session、OAuth、cloud API、multipart upload 的 owner。renderer 不应直接 fetch 云端。
-- `cmd_space_get_session` 当前主要读本地 `~/.myagents/space/session.json` 并 upsert device，没有主动刷新 `/api/me`。
+- `cmd_space_get_session` 当前主要读本地 `~/.blexagent/space/session.json` 并 upsert device，没有主动刷新 `/api/me`。
 - 现有 Skill zip / Issue attachment 上传命令已经有可复用的绝对路径、symlink、文件大小和 multipart 校验模式。
 - Tauri CSP 的 `img-src` 已允许 `https:`，Google / R2 公开头像 URL 可直接渲染。
 
 ### 2.2 Cloud 事实
 
-- `MyAgents_space` 的 `users` 表已有 `name` / `avatar_url`。
+- `BlexAgent_space` 的 `users` 表已有 `name` / `avatar_url`。
 - Google OAuth 已申请 `openid email profile` scope，`exchangeGoogleCode` 能拿到 `picture`。
 - `GET /api/me` 已返回 `serializeUser(user)`，包括 `id` / `email` / `name` / `avatarUrl`。
 - `upsertGoogleUser` 当前会更新 `users.name` / `users.avatar_url`，如果直接新增用户自定义资料，会在重新 Google 登录时被覆盖。
@@ -82,7 +82,7 @@ Team Space 已经有 Google OAuth 登录、官方 Space、Issue、评论、Skill
 4. 点击「设置」打开 profile settings overlay。
 5. overlay 支持编辑昵称、点击头像选择本地图片上传、展示只读 email。
 6. Google 登录的新用户默认使用 Google profile picture。
-7. 用户上传头像后，图片存入 MyAgents Space 的 R2 bucket，并把 `users.avatar_url` 更新为公开 R2 直链。
+7. 用户上传头像后，图片存入 BlexAgent Space 的 R2 bucket，并把 `users.avatar_url` 更新为公开 R2 直链。
 8. 重新 Google 登录不得覆盖用户自定义昵称，也不得覆盖 R2 自定义头像。
 9. Issue 列表作者、Issue 详情作者、Issue 评论作者、Skill 列表上传人、Skill 详情上传人，均在名字左侧展示小圆形头像。
 10. Skill 上传人语义使用「最新 revision 上传人」，不是首发创建者。
@@ -188,7 +188,7 @@ ALTER TABLE users ADD COLUMN avatar_storage_key TEXT;
 
 - `name_source = 'google' | 'user'`
   - `google`：可被下一次 Google profile name 刷新。
-  - `user`：用户在 MyAgents Space 设置过昵称，Google 重登不得覆盖。
+  - `user`：用户在 BlexAgent Space 设置过昵称，Google 重登不得覆盖。
 - `avatar_source = 'google' | 'r2'`
   - `google`：可被下一次 Google profile picture 刷新。
   - `r2`：用户上传过头像，Google 重登不得覆盖。
@@ -343,7 +343,7 @@ cmd_space_update_profile(input: {
   - 以 multipart 发送到 `POST /api/me/profile`。
 - 如果没有 `avatarFilePath`，仍以 multipart 只发送 `name`，保持云端 endpoint 单一。
 - 解析 cloud 返回的 `user` / `space` / `membership`。
-- 写回 `~/.myagents/space/session.json` 的 redacted session cache。
+- 写回 `~/.blexagent/space/session.json` 的 redacted session cache。
 - 返回 `SpaceSessionPublic` 给 renderer。
 
 `cmd_space_get_session` 调整：
@@ -481,7 +481,7 @@ updateProfile(input: { name: string; avatarFilePath?: string | null }): Promise<
 5. overlay 中 email 只读置灰，不可编辑。
 6. 用户可以修改昵称并保存；保存后 sidebar、菜单和当前用户相关作者显示更新。
 7. 用户可以点击头像选择本地 png / jpeg / webp 上传；保存后 cloud 返回公开 R2 URL，客户端直接渲染该 URL。
-8. 上传头像后重新启动 MyAgents，头像和昵称仍保持。
+8. 上传头像后重新启动 BlexAgent，头像和昵称仍保持。
 9. 上传头像后重新 Google 登录，R2 头像不会被 Google `picture` 覆盖。
 10. 修改昵称后重新 Google 登录，自定义昵称不会被 Google `name` 覆盖。
 11. Issue 列表作者、Issue 详情作者、Issue 评论作者均显示小圆形头像。
@@ -531,13 +531,13 @@ Cloud Worker：
 
 实现本需求不需要新的产品决策，但有一个部署前置：
 
-- `MyAgents_space` production / staging 必须配置公开可访问的 R2 头像域名，并设置 `R2_PUBLIC_BASE_URL`。
+- `BlexAgent_space` production / staging 必须配置公开可访问的 R2 头像域名，并设置 `R2_PUBLIC_BASE_URL`。
 
 如果当前 R2 bucket 还没有公开域名，需要先在 Cloudflare 侧完成 bucket public access 或自定义域名绑定。否则头像上传 endpoint 不应假装成功。
 
 ## 13. 附录：本轮关键裁决
 
-- 用户资料权威来源是云端 `users`；本地 `~/.myagents/space/session.json` 只是 redacted session cache。
+- 用户资料权威来源是云端 `users`；本地 `~/.blexagent/space/session.json` 只是 redacted session cache。
 - 左下角账户入口保留现有菜单，不直接点开设置面板。
 - 菜单中新增「设置」，点击后打开 overlay。
 - 邮箱只展示，不可修改。
@@ -559,7 +559,7 @@ Cloud Worker：
   - Renderer state：`src/renderer/pages/space/spaceStore.ts` 的 `SpaceActions` 和 patch/revalidate 模式；`Space.tsx` 持有 shell overlay open state；`SpaceChrome.tsx` 已有 account menu + `useCloseLayer`。
   - Renderer UI：`OverlayBackdrop`、`useCloseLayer`、`CustomSelect` 避免原生 select；`IssuesWorkspace` / `IssueDetailDrawer` / `SkillsWorkspace` 现有作者信息区域。
   - Cloud：`serializeUser`、`GET /api/me` envelope、`upsertGoogleUser`、`storeR2/deleteR2`、`safeFilename` / `sha256Hex` / `isUploadFile`、`installSkillZip` 与 `skill_revisions.created_by_user_id`。
-  - Tests：MyAgents `spaceStore.test.ts` / Space component i18n tests；MyAgents_space `test/space-routes.test.ts` / Miniflare migrations harness。
+  - Tests：BlexAgent `spaceStore.test.ts` / Space component i18n tests；BlexAgent_space `test/space-routes.test.ts` / Miniflare migrations harness。
 - 反向边界：不做头像移除、URL 头像输入、裁剪/生成头像、成员资料页、多 Space profile、Goals 作者改造、Registered Agent 头像设置、Worker 头像代理下载。
 - 新概念清单：
   - Cloud `name_source` / `avatar_source` / `avatar_storage_key`：必要，用来区分 Google 默认资料和用户自定义资料，防止 Google 重登覆盖。
@@ -579,12 +579,12 @@ Cloud Worker：
 - [x] Cloud Worker：新增 profile migration/env、Google upsert preservation、`POST /api/me/profile`、公开 R2 URL、Issue/Comment/Skill 作者 DTO、route tests。
 - [x] Desktop Rust：新增 `cmd_space_update_profile`、session refresh `/api/me`、本地头像校验、mock mode、command 注册。
 - [x] Desktop renderer：更新 API/types/store，新增头像/设置 overlay UI，改账户菜单与 Issue/Comment/Skill 作者展示，补 i18n。
-- [x] 自验证：MyAgents_space typecheck/tests；MyAgents typecheck/lint/相关测试；必要的 Rust check；需求符合性逐项核查。
+- [x] 自验证：BlexAgent_space typecheck/tests；BlexAgent typecheck/lint/相关测试；必要的 Rust check；需求符合性逐项核查。
 - [x] Cross review、修复问题、提交 git、更新 PRD status/review。
 
 ### 待用户决策
 
-无。`MyAgents_space` production 已配置公开 R2 域名 `files.myagents.io`，Worker `R2_PUBLIC_BASE_URL` 已更新为 `https://files.myagents.io`；实现仍会在缺失时 fail closed。
+无。`BlexAgent_space` production 已配置公开 R2 域名 `files.blexagent.com`，Worker `R2_PUBLIC_BASE_URL` 已更新为 `https://files.blexagent.com`；实现仍会在缺失时 fail closed。
 
 ### 进展日志
 
@@ -593,6 +593,6 @@ Cloud Worker：
 - 2026-07-05：桌面 Rust 完成 `cmd_space_update_profile`、`cmd_space_get_session` best-effort `/api/me` 刷新、mock profile 更新；`cargo check` 通过。
 - 2026-07-05：桌面 renderer 完成 `SpaceAvatar` / profile settings overlay / sidebar account menu / Issue 评论 Skill 作者头像展示，头像预览改走 `useWorkspaceFileService(null)`，overlay 使用 `OverlayBackdrop` + `useCloseLayer`。
 - 2026-07-05：cross-review-code 三路审查完成并修复：`nameChanged` 防止头像-only 保存锁死 Google 昵称、Rust no-follow + bounded read 降低本地头像 TOCTOU 风险、R2 旧对象/并发 orphan cleanup 加最终 key 对比与 warning、i18n hardcode 清理、Space Cloud 文档补 profile/R2 部署约束。
-- 2026-07-05：验证通过：MyAgents `npm run typecheck`、`npm run lint -- --max-warnings=0`（仅既有 depcruise orphan warning）、`npm run build:web`、`npm run test:classification && npm run test:unit && npm run test:dom`；MyAgents Rust `cargo test space_cloud`；MyAgents_space `npm run typecheck && npm test`。
-- 2026-07-05：部署检查：`npx wrangler r2 bucket domain list myagents-space-assets` 显示 no custom domains；`npx wrangler r2 bucket dev-url get myagents-space-assets` 显示 public r2.dev disabled。生产/灰度上传头像前必须先启用公开 R2 域名并配置 `R2_PUBLIC_BASE_URL`。
-- 2026-07-06：R2 公开域名更新完成：`files.myagents.io` 已绑定 `myagents-space-assets`。已上传临时对象 `__healthchecks/files-domain-check.txt` 并通过 `https://files.myagents.io/__healthchecks/files-domain-check.txt` 实测 200，随后删除临时对象并确认 404。Worker 配置更新为 `R2_PUBLIC_BASE_URL=https://files.myagents.io`。
+- 2026-07-05：验证通过：BlexAgent `npm run typecheck`、`npm run lint -- --max-warnings=0`（仅既有 depcruise orphan warning）、`npm run build:web`、`npm run test:classification && npm run test:unit && npm run test:dom`；BlexAgent Rust `cargo test space_cloud`；BlexAgent_space `npm run typecheck && npm test`。
+- 2026-07-05：部署检查：`npx wrangler r2 bucket domain list blexagent-space-assets` 显示 no custom domains；`npx wrangler r2 bucket dev-url get blexagent-space-assets` 显示 public r2.dev disabled。生产/灰度上传头像前必须先启用公开 R2 域名并配置 `R2_PUBLIC_BASE_URL`。
+- 2026-07-06：R2 公开域名更新完成：`files.blexagent.com` 已绑定 `blexagent-space-assets`。已上传临时对象 `__healthchecks/files-domain-check.txt` 并通过 `https://files.blexagent.com/__healthchecks/files-domain-check.txt` 实测 200，随后删除临时对象并确认 404。Worker 配置更新为 `R2_PUBLIC_BASE_URL=https://files.blexagent.com`。

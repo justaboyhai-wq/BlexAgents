@@ -60,7 +60,7 @@ function escapeHtml(s: string): string {
 function buildCallbackHtml(success: boolean, message: string): string {
   const color = success ? '#22c55e' : '#ef4444';
   const icon = success ? '&#10003;' : '&#10007;';
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>MyAgents OAuth</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>BlexAgent OAuth</title>
 <style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#e5e5e5}
 .card{text-align:center;padding:2rem;border-radius:12px;background:#171717;border:1px solid #262626}
 .icon{font-size:3rem;color:${color}}.msg{margin-top:1rem;font-size:1.1rem}</style></head>

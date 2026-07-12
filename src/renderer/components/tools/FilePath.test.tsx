@@ -38,7 +38,7 @@ import { FileActionProvider } from '@/context/FileActionContext';
 
 import { FilePath } from './utils';
 
-const WORKSPACE = '/Users/zhihu/Documents/project/MyAgents';
+const WORKSPACE = '/Users/zhihu/Documents/project/BlexAgent';
 // File-tool cards carry ABSOLUTE file_path values (what the chip displays),
 // but the existence check + menu actions must run against the WORKSPACE-RELATIVE
 // form — the backend resolver rejects absolute paths. These pairs lock that

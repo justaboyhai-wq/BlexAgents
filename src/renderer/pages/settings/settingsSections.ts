@@ -25,8 +25,8 @@ export const VALID_SECTIONS: SettingsSection[] = [
   'about',
 ];
 
-export const MYAGENTS_GITHUB_URL = 'https://github.com/hAcKlyc/MyAgents';
-export const MYAGENTS_RELEASES_URL = `${MYAGENTS_GITHUB_URL}/releases`;
+export const BLEXAGENT_GITHUB_URL = 'https://github.com/justaboyhai-wq/BlexAgents';
+export const BLEXAGENT_RELEASES_URL = `${BLEXAGENT_GITHUB_URL}/releases`;
 
 export const PLAYWRIGHT_DEVICE_PRESETS = [
   'iPhone 15 Pro',

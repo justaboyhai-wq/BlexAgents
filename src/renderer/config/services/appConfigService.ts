@@ -136,7 +136,7 @@ export async function ensureManagedCodexProviderDevGateDefault(): Promise<void> 
     if (isBrowserDevMode()) {
         let latest: Partial<AppConfig> = {};
         try {
-            const stored = localStorage.getItem('myagents:config');
+            const stored = localStorage.getItem('blexagent:config');
             latest = stored ? JSON.parse(stored) as Partial<AppConfig> : {};
         } catch {
             latest = {};
@@ -144,7 +144,7 @@ export async function ensureManagedCodexProviderDevGateDefault(): Promise<void> 
         if (Object.prototype.hasOwnProperty.call(latest, 'managedCodexProviderDevGate')) {
             return;
         }
-        localStorage.setItem('myagents:config', JSON.stringify({
+        localStorage.setItem('blexagent:config', JSON.stringify({
             ...latest,
             managedCodexProviderDevGate: true,
         }));
@@ -250,7 +250,7 @@ export async function saveAppConfig(config: AppConfig): Promise<void> {
  * leaving the live Chat sidecar with a stale `currentMcpServers` snapshot
  * (no MINERU_API_KEY) until the user happened to switch tabs.
  */
-export const CONFIG_CHANGED_EVENT = 'myagents:config-changed';
+export const CONFIG_CHANGED_EVENT = 'blexagent:config-changed';
 
 /**
  * Single sanctioned dispatcher for CONFIG_CHANGED_EVENT. Every renderer code
@@ -437,7 +437,7 @@ export async function ensureBundledWorkspace(): Promise<boolean> {
 // ============= Self-Awareness Workspace (Bug Report) =============
 
 /**
- * Ensure ~/.myagents is registered as an internal project. Called on-demand when user triggers bug report.
+ * Ensure ~/.blexagent is registered as an internal project. Called on-demand when user triggers bug report.
  *
  * Accepts ConfigProvider's wrapped actions (addProject/patchProject) so that both disk AND React state
  * are updated. Calling projectService directly would only write to disk, leaving ConfigProvider stale.
@@ -455,9 +455,9 @@ export async function ensureSelfAwarenessWorkspace(
             project = await addProject(dir);
         }
         if (project && !project.internal) {
-            await patchProject(project.id, { internal: true, name: 'MyAgents 诊断' });
+            await patchProject(project.id, { internal: true, name: 'BlexAgent 诊断' });
             // patchProject updates both disk and React state; use the patched fields locally
-            project = { ...project, internal: true, name: 'MyAgents 诊断' };
+            project = { ...project, internal: true, name: 'BlexAgent 诊断' };
         }
         return project ?? null;
     } catch (err) {

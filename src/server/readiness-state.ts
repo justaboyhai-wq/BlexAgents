@@ -16,7 +16,7 @@
  *  - Multiple endpoints (/health/ready) need to *peek* at the state without
  *    awaiting it.
  *
- * The existing `__myagentsDeferredInit` Promise stays alongside (other parts
+ * The existing `__blexagentDeferredInit` Promise stays alongside (other parts
  * of the codebase await it). This module is the new source of truth for
  * health endpoints and the route gate.
  */

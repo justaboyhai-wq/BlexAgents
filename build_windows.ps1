@@ -1,5 +1,5 @@
 ﻿#!/usr/bin/env pwsh
-# MyAgents Windows 正式发布构建脚本
+# BlexAgent Windows 正式发布构建脚本
 # 构建 NSIS 安装包和便携版 ZIP
 # 支持 Windows x64
 
@@ -24,7 +24,7 @@ try {
 
     Write-Host ""
     Write-Host "=========================================" -ForegroundColor Cyan
-    Write-Host "  MyAgents Windows 发布构建" -ForegroundColor Green
+    Write-Host "  BlexAgent Windows 发布构建" -ForegroundColor Green
     Write-Host "  Version: $Version" -ForegroundColor Blue
     Write-Host "=========================================" -ForegroundColor Cyan
     Write-Host ""
@@ -221,7 +221,7 @@ try {
 
     # 每次构建都拉取最新 cuse release — 从 Cloudflare R2 拉取（公网公开），
     # 不再依赖 gh CLI / 私有仓库访问权限。cuse 维护者负责在 GH Release 之后跑
-    # MyAgents-Cuse/publish_r2.sh 镜像产物到 R2（`download.myagents.io/cuse/...`）。
+    # BlexAgent-Cuse/publish_r2.sh 镜像产物到 R2（`download.blexagent.com/cuse/...`）。
     # 直接在当前 shell 里运行 .ps1，不走 `pwsh -File` ——
     # 这样 Windows PowerShell 5.1（Windows 自带）和 PowerShell 7+ 都能工作，
     # 避免用户没装 pwsh 时 preflight 直接失败。
@@ -234,7 +234,7 @@ try {
         Write-Host "  cuse OK" -ForegroundColor Green
     } catch {
         Write-Host "  cuse 下载失败: $_" -ForegroundColor Red
-        Write-Host "    检查网络连通性: curl https://download.myagents.io/cuse/latest.json" -ForegroundColor Yellow
+        Write-Host "    检查网络连通性: curl https://download.blexagent.com/cuse/latest.json" -ForegroundColor Yellow
         $depOk = $false
     }
 
@@ -409,7 +409,7 @@ try {
     $requiredCspParts = @(
         "http://ipc.localhost",
         "asset:",
-        "https://download.myagents.io"
+        "https://download.blexagent.com"
     )
 
     $missingParts = @()
@@ -490,18 +490,18 @@ try {
     Write-Host "[准备] 清理旧构建..." -ForegroundColor Blue
 
     # 杀死残留进程（避免文件锁定）
-    $appProcesses = Get-Process | Where-Object { $_.ProcessName -eq "MyAgents" }
+    $appProcesses = Get-Process | Where-Object { $_.ProcessName -eq "BlexAgent" }
 
     if ($appProcesses) {
         $appProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-        Write-Host "  清理了 $($appProcesses.Count) 个 MyAgents 进程" -ForegroundColor Gray
+        Write-Host "  清理了 $($appProcesses.Count) 个 BlexAgent 进程" -ForegroundColor Gray
     }
 
     # 验证进程清理完成（最多等待 2 秒）
     $maxWait = 20  # 20 * 100ms = 2s
     $waited = 0
     while ($waited -lt $maxWait) {
-        $remainingApp = Get-Process -Name "MyAgents" -ErrorAction SilentlyContinue
+        $remainingApp = Get-Process -Name "BlexAgent" -ErrorAction SilentlyContinue
         if (-not $remainingApp) {
             break
         }
@@ -560,7 +560,7 @@ try {
 
     # Sidecar / Bridge / CLI 三件套统一通过 npm scripts，由
     # `scripts/esbuild-bundle.mjs` 单一入口驱动。Driver 自带 post-build：
-    #   - cli: 复制 myagents.cmd 到 resources/cli/
+    #   - cli: 复制 blexagent.cmd 到 resources/cli/
     #   - server: 校验产物不含硬编码 __dirname 路径
     # 实际上 tauri:build 的 beforeBuildCommand (tauri.conf.json) 也会
     # 跑同一组 npm 脚本——这里显式提前一步是为了 build 阶段提早暴露
@@ -571,7 +571,7 @@ try {
     & npm run build:bridge
     if ($LASTEXITCODE -ne 0) { throw "Plugin Bridge 打包失败" }
     & npm run build:cli
-    if ($LASTEXITCODE -ne 0) { throw "myagents CLI 打包失败" }
+    if ($LASTEXITCODE -ne 0) { throw "blexagent CLI 打包失败" }
     Write-Host "    OK - Sidecar / Bridge / CLI 打包完成" -ForegroundColor Green
 
     # 填充 tsx-runtime（Plugin Bridge 走绝对路径 --import）—— Windows 当前
@@ -681,15 +681,15 @@ try {
 
         $targetDir = "src-tauri\target\x86_64-pc-windows-msvc\release"
         $nsisDir = "$targetDir\bundle\nsis"
-        # Cargo package name is `myagents` (lowercase), so Tauri's main binary is
-        # myagents.exe — NOT MyAgents.exe (that's only the productName / shortcut).
-        # The old MyAgents.exe path worked by luck on case-insensitive NTFS; use the
+        # Cargo package name is `blexagent` (lowercase), so Tauri's main binary is
+        # blexagent.exe — NOT BlexAgent.exe (that's only the productName / shortcut).
+        # The old BlexAgent.exe path worked by luck on case-insensitive NTFS; use the
         # real name so this stays correct on case-sensitive filesystems too.
-        $exePath = "$targetDir\myagents.exe"
+        $exePath = "$targetDir\blexagent.exe"
 
         if (Test-Path $exePath) {
             $portableDir = Join-Path $targetDir "portable"
-            $zipName = "MyAgents_${Version}_x86_64-portable.zip"
+            $zipName = "BlexAgent_${Version}_x86_64-portable.zip"
             $zipPath = Join-Path $nsisDir $zipName
 
             if (Test-Path $portableDir) {
@@ -722,7 +722,7 @@ try {
             Write-Host "  OK - 便携版 ZIP: $zipName" -ForegroundColor Green
         }
         else {
-            Write-Host "  警告: 未找到 myagents.exe，跳过便携版创建" -ForegroundColor Yellow
+            Write-Host "  警告: 未找到 blexagent.exe，跳过便携版创建" -ForegroundColor Yellow
         }
         Write-Host ""
     }

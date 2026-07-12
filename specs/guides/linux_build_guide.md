@@ -1,6 +1,6 @@
 # Linux 平台构建与运行指南
 
-MyAgents 在 Linux 上通过 AppImage（便携）+ deb（apt 源）分发。
+BlexAgent 在 Linux 上通过 AppImage（便携）+ deb（apt 源）分发。
 
 ## 支持矩阵
 
@@ -12,7 +12,7 @@ MyAgents 在 Linux 上通过 AppImage（便携）+ deb（apt 源）分发。
 | Arch / Manjaro | x64 | glibc | 二等 |
 | Alpine | x64, arm64 | **musl** | 三等（需用户手动替换 SDK native binary 和 Node.js） |
 
-**架构说明**：MyAgents Linux 默认构建 `x86_64-unknown-linux-gnu`，对应 glibc 发行版。arm64（`aarch64-unknown-linux-gnu`）需在对应 Linux arm64 主机上构建 —— Tauri 不支持从 macOS 交叉编译 Linux。
+**架构说明**：BlexAgent Linux 默认构建 `x86_64-unknown-linux-gnu`，对应 glibc 发行版。arm64（`aarch64-unknown-linux-gnu`）需在对应 Linux arm64 主机上构建 —— Tauri 不支持从 macOS 交叉编译 Linux。
 
 ## 构建环境准备
 
@@ -60,14 +60,14 @@ sudo apt-get install -y \
 ```
 
 产物路径：
-- AppImage：`src-tauri/target/<target>/release/bundle/appimage/MyAgents_<ver>_<arch>.AppImage`
-- deb：`src-tauri/target/<target>/release/bundle/deb/MyAgents_<ver>_<arch>.deb`
+- AppImage：`src-tauri/target/<target>/release/bundle/appimage/BlexAgent_<ver>_<arch>.AppImage`
+- deb：`src-tauri/target/<target>/release/bundle/deb/BlexAgent_<ver>_<arch>.deb`
 
 ### AppImage 用法
 
 ```bash
-chmod +x MyAgents_0.2.0_amd64.AppImage
-./MyAgents_0.2.0_amd64.AppImage
+chmod +x BlexAgent_0.2.0_amd64.AppImage
+./BlexAgent_0.2.0_amd64.AppImage
 ```
 
 AppImage 是**便携格式**：自带所有依赖，不需要 root，直接双击运行。桌面快捷方式可用 [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher) 自动集成。
@@ -75,14 +75,14 @@ AppImage 是**便携格式**：自带所有依赖，不需要 root，直接双�
 ### deb 用法
 
 ```bash
-sudo dpkg -i MyAgents_0.2.0_amd64.deb
+sudo dpkg -i BlexAgent_0.2.0_amd64.deb
 sudo apt-get install -f  # 补齐缺失的系统依赖（正常情况下 deb 元数据已声明）
 ```
 
 安装后启动：
 ```bash
-myagents  # deb 把可执行文件链接到 /usr/bin/
-# 或从桌面菜单启动（Applications > Development > MyAgents）
+blexagent  # deb 把可执行文件链接到 /usr/bin/
+# 或从桌面菜单启动（Applications > Development > BlexAgent）
 ```
 
 ## 运行时依赖
@@ -91,7 +91,7 @@ AppImage 和 deb 内部都包含：
 
 | 组件 | 路径（app 内） |
 |------|--------------|
-| Sidecar / Bridge / CLI | `resources/server-dist.js` / `plugin-bridge-dist.js` / `cli/myagents.js` |
+| Sidecar / Bridge / CLI | `resources/server-dist.js` / `plugin-bridge-dist.js` / `cli/blexagent.js` |
 | Node.js v24（含 npm/npx） | `resources/nodejs/bin/node`（+ `lib/node_modules/npm`） |
 | Claude Agent SDK native binary | `resources/claude-agent-sdk/claude`（~210 MB，SDK team 静态链接） |
 | mino 默认工作区 | `resources/mino/` |
@@ -143,12 +143,12 @@ sudo apt-get install -y fuse libfuse2
 或用 `--appimage-extract-and-run` 跳过 FUSE：
 
 ```bash
-./MyAgents_0.2.0_amd64.AppImage --appimage-extract-and-run
+./BlexAgent_0.2.0_amd64.AppImage --appimage-extract-and-run
 ```
 
 ## 发布 / CI
 
-[`publish_linux.sh`]（待建 —— 当前手动上传）：产物上传到 R2 的 `https://releases.myagents.io/linux/` 路径；Tauri updater manifest 自动包含 Linux 条目。
+[`publish_linux.sh`]（待建 —— 当前手动上传）：产物上传到 R2 的 `https://releases.blexagent.com/linux/` 路径；Tauri updater manifest 自动包含 Linux 条目。
 
 ---
 

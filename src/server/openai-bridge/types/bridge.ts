@@ -22,7 +22,7 @@ export interface BridgeConfig {
   maxOutputTokens?: number;
 
   /** Workspace path for saving tool result images that can't pass through OpenAI protocol.
-   *  When set, tool result images are saved to {workspacePath}/myagents_files/temp/
+   *  When set, tool result images are saved to {workspacePath}/blexagent_files/temp/
    *  instead of being silently dropped. */
   workspacePath?: string;
 }

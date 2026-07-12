@@ -15,13 +15,13 @@ The CLI is **not pre-installed** with the app — install it on first use, then 
 ```bash
 # Probe by RUNNING the CLI (not just checking PATH presence). This catches the
 # common case of a stale wrapper from a previous app version: it lives at
-# ~/.myagents/bin/agent-browser, satisfies `command -v`, but execs a deleted
+# ~/.blexagent/bin/agent-browser, satisfies `command -v`, but execs a deleted
 # bundle path → fails with "cannot find file". `--version` exercises the real
 # code path and triggers the install fallback when broken.
-agent-browser --version >/dev/null 2>&1 || npm_config_prefix="${MYAGENTS_NPM_GLOBAL_PREFIX:-$HOME/.myagents/npm-global}" npm install -g agent-browser@0.15.1
+agent-browser --version >/dev/null 2>&1 || npm_config_prefix="${BLEXAGENT_NPM_GLOBAL_PREFIX:-$HOME/.blexagent/npm-global}" npm install -g agent-browser@0.15.1
 ```
 
-The install lands in `~/.myagents/npm-global/bin/agent-browser`, which sits earlier in PATH than any legacy wrapper. MyAgents exposes `MYAGENTS_NPM_GLOBAL_PREFIX` for this command-local install instead of setting `npm_config_prefix` on the whole shell, so nvm-based user shells stay quiet. Subsequent `agent-browser …` calls find the new binary automatically.
+The install lands in `~/.blexagent/npm-global/bin/agent-browser`, which sits earlier in PATH than any legacy wrapper. BlexAgent exposes `BLEXAGENT_NPM_GLOBAL_PREFIX` for this command-local install instead of setting `npm_config_prefix` on the whole shell, so nvm-based user shells stay quiet. Subsequent `agent-browser …` calls find the new binary automatically.
 
 Tell the user **once** that you're installing the browser tool (~few seconds the first time, instant afterward), then proceed.
 
@@ -52,7 +52,7 @@ Inform the user this download may take a minute on slow connections.
 
 | Symptom | Fix |
 |---------|-----|
-| `agent-browser` runs but shows "cannot find file" | Stale wrapper from a previous app version is shadowing the new install. The new install at `~/.myagents/npm-global/bin/` should win on PATH; if it doesn't, run `which agent-browser` to see which path resolves first, then either remove the stale path or invoke the new binary by its absolute path. |
+| `agent-browser` runs but shows "cannot find file" | Stale wrapper from a previous app version is shadowing the new install. The new install at `~/.blexagent/npm-global/bin/` should win on PATH; if it doesn't, run `which agent-browser` to see which path resolves first, then either remove the stale path or invoke the new binary by its absolute path. |
 | `npm install -g` exits with the registry blocked / network error | Use the `npx` inline fallback above. If `npx` also fails, the user's network is blocking the npm registry — ask them about proxy / VPN. |
 | `agent-browser install` fails to download Chromium | Network issue / GFW. User may need a proxy or VPN. Ask the user. |
 | `Executable doesn't exist` mid-task | Chromium got deleted or the install never finished. Re-run `agent-browser install`. |
@@ -311,7 +311,7 @@ agent-browser -p ios screenshot mobile.png
 agent-browser -p ios close
 ```
 
-**Requirements:** macOS with Xcode, Appium (`npm_config_prefix="${MYAGENTS_NPM_GLOBAL_PREFIX:-$HOME/.myagents/npm-global}" npm install -g appium && appium driver install xcuitest`)
+**Requirements:** macOS with Xcode, Appium (`npm_config_prefix="${BLEXAGENT_NPM_GLOBAL_PREFIX:-$HOME/.blexagent/npm-global}" npm install -g appium && appium driver install xcuitest`)
 
 **Real devices:** Works with physical iOS devices if pre-configured. Use `--device "<UDID>"` where UDID is from `xcrun xctrace list devices`.
 

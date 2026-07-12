@@ -1,7 +1,7 @@
 //! Thought store for Task Center (v0.1.69).
 //!
 //! Thoughts are user-level freeform notes, not bound to any workspace. Each thought
-//! is stored as a single `.md` file under `~/.myagents/thoughts/<YYYY-MM>/<id>.md`
+//! is stored as a single `.md` file under `~/.blexagent/thoughts/<YYYY-MM>/<id>.md`
 //! with YAML-ish frontmatter followed by a Markdown body.
 //!
 //! Storage format:
@@ -10,12 +10,12 @@
 //! id: 7f3a9c2e-...
 //! createdAt: 1745000000000
 //! updatedAt: 1745000000100
-//! tags: [MyAgents, 维护]
+//! tags: [BlexAgent, 维护]
 //! images: []
 //! convertedTaskIds: []
 //! ---
 //!
-//! 帮我把 OpenClaw 的 lark 适配器升一下版本，#MyAgents #维护
+//! 帮我把 OpenClaw 的 lark 适配器升一下版本，#BlexAgent #维护
 //! ```
 //!
 //! Atomic writes via tmp+rename (mirrors `cron_task.rs` pattern). In-memory index
@@ -150,7 +150,7 @@ pub struct ThoughtListFilter {
 pub struct ThoughtStore {
     /// id → (thought, absolute path to .md file)
     inner: Arc<RwLock<HashMap<String, (Thought, PathBuf)>>>,
-    /// `~/.myagents/thoughts/` — parent dir; month subdirs are created lazily.
+    /// `~/.blexagent/thoughts/` — parent dir; month subdirs are created lazily.
     root: PathBuf,
 }
 
@@ -402,7 +402,7 @@ impl ThoughtStore {
         Ok(())
     }
 
-    /// Absolute path to the `~/.myagents/thoughts/` root. Used by
+    /// Absolute path to the `~/.blexagent/thoughts/` root. Used by
     /// `cmd_thought_open_dir` to reveal the directory in Finder/Explorer
     /// without exposing the raw path to the renderer layer.
     pub fn root_dir(&self) -> &PathBuf {
@@ -863,7 +863,7 @@ pub async fn cmd_thought_merge(
     state.merge(source_ids).await
 }
 
-/// Reveal `~/.myagents/thoughts/` in the OS file manager so users can
+/// Reveal `~/.blexagent/thoughts/` in the OS file manager so users can
 /// inspect / back-up the raw `.md` files. The path is sourced from the
 /// managed `ThoughtStore`, so the renderer can't coerce us into opening
 /// an arbitrary directory. Creates the dir on demand — a fresh install
@@ -918,8 +918,8 @@ mod tests {
 
     #[test]
     fn parse_tags_cjk() {
-        let tags = parse_tags("升级 #MyAgents #维护 适配器");
-        assert_eq!(tags, vec!["MyAgents".to_string(), "维护".to_string()]);
+        let tags = parse_tags("升级 #BlexAgent #维护 适配器");
+        assert_eq!(tags, vec!["BlexAgent".to_string(), "维护".to_string()]);
     }
 
     #[test]

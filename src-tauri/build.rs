@@ -5,10 +5,10 @@ use std::{
 };
 
 const SPACE_BUILD_ENV_KEYS: &[&str] = &[
-    "MYAGENTS_SPACE_ENABLED",
-    "MYAGENTS_SPACE_BASE_URL",
-    "MYAGENTS_SPACE_PUBLIC_CLIENT_ID",
-    "MYAGENTS_SPACE_CLIENT_ID",
+    "BLEXAGENT_SPACE_ENABLED",
+    "BLEXAGENT_SPACE_BASE_URL",
+    "BLEXAGENT_SPACE_PUBLIC_CLIENT_ID",
+    "BLEXAGENT_SPACE_CLIENT_ID",
 ];
 
 fn main() {
@@ -115,7 +115,7 @@ fn strip_unquoted_comment(value: &str) -> &str {
 
 fn normalize_space_build_env(values: &mut HashMap<String, String>) {
     let enabled = values
-        .get("MYAGENTS_SPACE_ENABLED")
+        .get("BLEXAGENT_SPACE_ENABLED")
         .map(String::as_str)
         .map(space_enabled_flag)
         .unwrap_or(false);
@@ -124,13 +124,13 @@ fn normalize_space_build_env(values: &mut HashMap<String, String>) {
     }
 
     let base_url = values
-        .get("MYAGENTS_SPACE_BASE_URL")
+        .get("BLEXAGENT_SPACE_BASE_URL")
         .map(String::as_str)
         .unwrap_or("")
         .trim();
     match normalize_space_base_url(base_url) {
         Ok(normalized) => {
-            values.insert("MYAGENTS_SPACE_BASE_URL".to_string(), normalized);
+            values.insert("BLEXAGENT_SPACE_BASE_URL".to_string(), normalized);
         }
         Err(error) => panic!("Invalid Space build configuration: {error}"),
     }
@@ -146,22 +146,22 @@ fn space_enabled_flag(value: &str) -> bool {
 fn normalize_space_base_url(raw: &str) -> Result<String, String> {
     if raw.is_empty() {
         return Err(
-            "MYAGENTS_SPACE_BASE_URL is required when MYAGENTS_SPACE_ENABLED=true".to_string(),
+            "BLEXAGENT_SPACE_BASE_URL is required when BLEXAGENT_SPACE_ENABLED=true".to_string(),
         );
     }
     let mut url = url::Url::parse(raw)
-        .map_err(|error| format!("Invalid MYAGENTS_SPACE_BASE_URL: {error}"))?;
+        .map_err(|error| format!("Invalid BLEXAGENT_SPACE_BASE_URL: {error}"))?;
     if url.scheme() != "https" {
-        return Err("MYAGENTS_SPACE_BASE_URL must use https".to_string());
+        return Err("BLEXAGENT_SPACE_BASE_URL must use https".to_string());
     }
     if url.host_str().is_none() {
-        return Err("MYAGENTS_SPACE_BASE_URL must include a host".to_string());
+        return Err("BLEXAGENT_SPACE_BASE_URL must include a host".to_string());
     }
     if !url.username().is_empty() || url.password().is_some() {
-        return Err("MYAGENTS_SPACE_BASE_URL must not include credentials".to_string());
+        return Err("BLEXAGENT_SPACE_BASE_URL must not include credentials".to_string());
     }
     if url.path() != "/" {
-        return Err("MYAGENTS_SPACE_BASE_URL must not include a path".to_string());
+        return Err("BLEXAGENT_SPACE_BASE_URL must not include a path".to_string());
     }
     url.set_query(None);
     url.set_fragment(None);

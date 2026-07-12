@@ -104,9 +104,9 @@ querySession = query({
 
 ### Session 间事件协议（send / watch）
 
-`myagents session send` / `watch` 不是普通文本拼接，而是结构化的 session event
+`blexagent session send` / `watch` 不是普通文本拼接，而是结构化的 session event
 协议。CLI 经 `/api/admin/session/*` 进入当前 Sidecar，事件统一渲染为
-`<myagents-session-event ...>` prompt，正文 payload 先经过结构标签 neutralize，
+`<blexagent-session-event ...>` prompt，正文 payload 先经过结构标签 neutralize，
 避免被跨 session 内容伪造协议边界。
 
 | 事件 | 语义 | 投递路径 |
@@ -125,10 +125,10 @@ delivery 成功后，目标 sidecar 才 ack 并清理 pending watch；Management
 
 Space Registered Agent 的 `space.issue_delivery` 复用 inbox 的 `sessionEvent`
 metadata 来选择 registered-agent scenario 和 lazy session materialization，但最终
-prompt 不走通用 `<myagents-session-event>` 外包。Rust Space owner 会直接渲染
-`<system-reminder><myagents-space-issue><myagents-space-event ...>` user message，
+prompt 不走通用 `<blexagent-session-event>` 外包。Rust Space owner 会直接渲染
+`<system-reminder><blexagent-space-issue><blexagent-space-event ...>` user message，
 让前端隐藏内部处理指令并显示 `Space issue` badge。这个特例只适用于 Space Issue
-delivery，不改变 `myagents session send/watch` 的通用事件协议。`system-reminder`
+delivery，不改变 `blexagent session send/watch` 的通用事件协议。`system-reminder`
 的通用隐藏 payload / badge / visible tail 规则见
 `system_reminder_protocol.md`。
 
@@ -255,7 +255,7 @@ if (sdkMessage.uuid) {
 ### 目录结构
 
 ```
-~/.myagents/
+~/.blexagent/
 ├── sessions.json          # 会话索引（SessionMetadata 数组）
 ├── sessions.lock/         # 文件锁（目录，非文件）
 ├── sessions/
@@ -305,7 +305,7 @@ if (newMessages.length > 0) {
 }
 ```
 
-**文件锁**：`sessions.json` 多 Sidecar 共享需锁。MyAgents 走 `withFileLock` / `with_file_lock`（详见 `pit_of_success.md` 的「withFileLock」节）。
+**文件锁**：`sessions.json` 多 Sidecar 共享需锁。BlexAgent 走 `withFileLock` / `with_file_lock`（详见 `pit_of_success.md` 的「withFileLock」节）。
 
 ### 损坏行容错
 
@@ -336,16 +336,16 @@ function isValidSessionId(sessionId: string): boolean {
 
 ---
 
-## 双重存储：MyAgents 与 SDK
+## 双重存储：BlexAgent 与 SDK
 
 ### 背景
 
-Claude Agent SDK 内置了独立的 session 持久化机制（`persistSession` 选项默认 `true`）。MyAgents 调用 SDK 时，**两端各自独立写入会话数据**，形成双重存储。
+Claude Agent SDK 内置了独立的 session 持久化机制（`persistSession` 选项默认 `true`）。BlexAgent 调用 SDK 时，**两端各自独立写入会话数据**，形成双重存储。
 
 ### 存储位置对比
 
 ```
-~/.myagents/sessions/                ← MyAgents 写入
+~/.blexagent/sessions/                ← BlexAgent 写入
 ├── {session-id}.jsonl               ← 精简业务数据
 
 ~/.claude/projects/{project-slug}/   ← SDK 自动写入
@@ -365,7 +365,7 @@ Claude Agent SDK 内置了独立的 session 持久化机制（`persistSession` �
 { "type": "queue-operation", "operation": "...", "timestamp": "...", "sessionId": "..." }
 ```
 
-**MyAgents JSONL**（精简业务数据）：
+**BlexAgent JSONL**（精简业务数据）：
 ```jsonc
 { "id": "...", "role": "user",      "content": "...", "timestamp": "..." }
 { "id": "...", "role": "assistant",  "content": "...", "timestamp": "...", "usage": {...}, "toolCount": 3, "durationMs": 4200 }
@@ -378,9 +378,9 @@ Claude Agent SDK 内置了独立的 session 持久化机制（`persistSession` �
 1. **Session Resume**：配置变更（Provider / Model / MCP / Agent）时通过 `resumeSessionId` 恢复对话上下文，SDK resume 机制依赖其自身 JSONL 文件中的消息树（`parentUuid` 链）来重建完整的会话状态。
 2. **`/insights` 报告**：SDK 内置命令，扫描 `~/.claude/projects/` 下的 session 数据生成使用分析报告，禁用后无数据源。
 
-### 为什么不能去掉 MyAgents 存储
+### 为什么不能去掉 BlexAgent 存储
 
-MyAgents 自身的存储服务于不同的业务场景：
+BlexAgent 自身的存储服务于不同的业务场景：
 
 1. **会话列表与历史浏览**：前端通过 `sessions.json` 索引和 `{id}.jsonl` 加载历史消息
 2. **业务指标**：`usage`、`toolCount`、`durationMs` 等 SDK 不记录的数据
@@ -390,15 +390,15 @@ MyAgents 自身的存储服务于不同的业务场景：
 
 **保留双重存储，各司其职。** 两份数据的格式、用途、消费者完全不同：
 
-| 维度 | SDK 存储 | MyAgents 存储 |
+| 维度 | SDK 存储 | BlexAgent 存储 |
 |------|----------|---------------|
-| 写入者 | SDK 内部自动写入 | MyAgents `agent-session.ts` |
-| 读取者 | SDK resume / `/insights` | MyAgents 前端 UI |
+| 写入者 | SDK 内部自动写入 | BlexAgent `agent-session.ts` |
+| 读取者 | SDK resume / `/insights` | BlexAgent 前端 UI |
 | 格式 | 消息树 + 操作记录 | 扁平消息列表 + 业务指标 |
 | 索引 | 无（按文件遍历） | `sessions.json` 全局索引 |
-| 生命周期 | 跟随 SDK 项目目录 | 跟随 MyAgents 数据目录 |
+| 生命周期 | 跟随 SDK 项目目录 | 跟随 BlexAgent 数据目录 |
 
-体积参考：SDK 存储约 1.7× MyAgents 存储（SDK 携带完整上下文元数据 + queue-operation 内部记录）。可定期清理过期的 SDK session 数据（例如 >30 天的已关闭 session）。
+体积参考：SDK 存储约 1.7× BlexAgent 存储（SDK 携带完整上下文元数据 + queue-operation 内部记录）。可定期清理过期的 SDK session 数据（例如 >30 天的已关闭 session）。
 
 ---
 
@@ -526,7 +526,7 @@ setSystemStatus(null);
 - `loadSession` 用**同步**标志 `restoredSessionIdRef`（**不是**异步滞后的 `historyMessagesRef.length`）决定是否 skip replay。在 `setHistoryMessages` 前就放开 loading 标志，会让迟到的 `chat:init` 命中 `!isLoading && length===0` → 清掉刚恢复的 REST 页 + `seenIds` → 内存 replay（可能传输截断）回填**旧**集（#0608 实测：后端发 id 111-190，前端却停在 109）。
 - 冷历史 backfill 打 `replayKind:'cold-history'`，**只 skip 它**；live echo 不打标记、永远渲染（统一 skip 会吞掉刚发的 user 气泡）。决策纯核心 `sessionRestoreGuards.ts`（可单测）。
 - `GET /sessions/:id` 的 active overlay（builtin 内存未持久化消息、external live streaming message、live session state）由 `SessionEngine.getLiveSessionOverlay()` 提供。Route 只做分页、redaction、response shaping，不直接读取 `agent-session.ts` / `external-session.ts`。
-- 诊断"恢复只显示一部分"：读磁盘 `~/.myagents/refs/<id>` 的 spilled body（后端实发的 JSON，可直接 `node` 解析）对比前端显示，先把"后端发了什么 vs 前端显示什么"一刀切开。
+- 诊断"恢复只显示一部分"：读磁盘 `~/.blexagent/refs/<id>` 的 spilled body（后端实发的 JSON，可直接 `node` 解析）对比前端显示，先把"后端发了什么 vs 前端显示什么"一刀切开。
 
 ### 会话快照类 SSE 必须按 session scope 过滤
 

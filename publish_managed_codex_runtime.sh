@@ -1,5 +1,5 @@
-#!/bin/bash
-# Publish the MyAgents-managed Codex runtime bundle to Cloudflare R2.
+﻿#!/bin/bash
+# Publish the BlexAgent-managed Codex runtime bundle to Cloudflare R2.
 #
 # This is intentionally separate from publish_release.sh so a missing or
 # republished runtime manifest can be fixed without rebuilding the desktop app.
@@ -9,8 +9,8 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${PROJECT_DIR}/.env"
 RUST_CODEX_FILE="${PROJECT_DIR}/src-tauri/src/managed_codex.rs"
-R2_BUCKET="myagents-releases"
-DOWNLOAD_BASE_URL="https://download.myagents.io"
+R2_BUCKET="blexagent-releases"
+DOWNLOAD_BASE_URL="https://download.blexagent.com"
 DEFAULT_OUT_DIR="${PROJECT_DIR}/dist/managed-codex"
 
 RED='\033[0;31m'

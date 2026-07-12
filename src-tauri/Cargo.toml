@@ -1,11 +1,11 @@
 [package]
-name = "myagents"
+name = "blexagent"
 version = "0.2.49"
-description = "MyAgents - Desktop Claude Code for everyone"
-authors = ["MyAgents Team <myagents.io@gmail.com>"]
+description = "BlexAgent - Desktop Claude Code for everyone"
+authors = ["BlexAgent Team <team@blexagent.com>"]
 license = "Apache-2.0"
-repository = "https://github.com/hAcKlyc/MyAgents"
-homepage = "https://myagents.io"
+repository = "https://github.com/justaboyhai-wq/BlexAgents"
+homepage = "https://blexagent.com"
 edition = "2021"
 # MSRV note: 1.81 documents `std::fs::rename` as atomic replace-on-existing
 # across all platforms (Windows uses MoveFileExW(REPLACE_EXISTING) under the

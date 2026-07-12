@@ -4,7 +4,7 @@
 
 ## 概述
 
-MyAgents 将 Node.js v24 运行时打包到应用内，实现**单一 runtime、零外部依赖**分发。用户无需安装 Node.js 即可运行所有功能（Sidecar、Plugin Bridge、MCP Server、社区 npm 包、`myagents` CLI）。
+BlexAgent 将 Node.js v24 运行时打包到应用内，实现**单一 runtime、零外部依赖**分发。用户无需安装 Node.js 即可运行所有功能（Sidecar、Plugin Bridge、MCP Server、社区 npm 包、`blexagent` CLI）。
 
 ## 二进制获取方式
 
@@ -23,14 +23,14 @@ Node.js v24 官方二进制通过 `scripts/download_nodejs.sh` / `.ps1` 从 node
 
 | 平台 | Node.js 二进制路径（打包后） |
 |---|---|
-| macOS ARM (M1/M2/...) | `MyAgents.app/Contents/Resources/nodejs/bin/node` |
+| macOS ARM (M1/M2/...) | `BlexAgent.app/Contents/Resources/nodejs/bin/node` |
 | macOS Intel | 同上（区分 triple 由 DMG target 决定） |
 | Windows x86_64 | `resources\nodejs\node.exe` |
 | Linux x86_64 (glibc) | AppImage / deb 里的 `resources/nodejs/bin/node` |
 
 ### Claude Agent SDK native binary（独立进程，非我们的 Node）
 
-SDK 自 0.2.113+ 以 `bun build --compile` 的 native binary 形式分发（SDK team 内嵌 Bun runtime，约 213 MB）。我们不共享 SDK 子进程的 Bun runtime 或 MyAgents Node 进程内状态，只通过 stdio NDJSON 通信。例外是 Claude Code 自己的外部状态：builtin `anthropic-sub` 会按 native 默认规则读取本机官方 OAuth credential store（macOS Keychain / `~/.claude/.credentials.json`），MyAgents 不通过 `CLAUDE_CONFIG_DIR` 改写这套位置，也不接管 OAuth token 生命周期。
+SDK 自 0.2.113+ 以 `bun build --compile` 的 native binary 形式分发（SDK team 内嵌 Bun runtime，约 213 MB）。我们不共享 SDK 子进程的 Bun runtime 或 BlexAgent Node 进程内状态，只通过 stdio NDJSON 通信。例外是 Claude Code 自己的外部状态：builtin `anthropic-sub` 会按 native 默认规则读取本机官方 OAuth credential store（macOS Keychain / `~/.claude/.credentials.json`），BlexAgent 不通过 `CLAUDE_CONFIG_DIR` 改写这套位置，也不接管 OAuth token 生命周期。
 
 | 文件 | 平台 | 来源 |
 |---|---|---|
@@ -42,7 +42,7 @@ SDK 自 0.2.113+ 以 `bun build --compile` 的 native binary 形式分发（SDK 
 ## 应用结构
 
 ```
-MyAgents.app/
+BlexAgent.app/
 └── Contents/
     ├── MacOS/
     │   └── app                        # Rust 主程序
@@ -54,12 +54,12 @@ MyAgents.app/
         ├── plugin-bridge-dist.mjs     # Plugin Bridge 打包产物
         ├── plugin-bridge-sdk-shim/    # OpenClaw SDK shim（ESM, v2026.4.24+）
         ├── claude-agent-sdk/          # SDK native binary（独立运行时）
-        └── cli/myagents.js            # myagents CLI（esbuild bundle）
+        └── cli/blexagent.js            # blexagent CLI（esbuild bundle）
 
 注：v0.2.0+ 起 `agent-browser` 不再 bundle —— 改由 bundled-skills/agent-browser/SKILL.md
-教 AI 在首次使用时通过命令级 `npm_config_prefix="$MYAGENTS_NPM_GLOBAL_PREFIX" npm install -g agent-browser@<pinned>`
-自装到 `~/.myagents/npm-global/bin/`。`buildClaudeSessionEnv` 只暴露
-`MYAGENTS_NPM_GLOBAL_PREFIX`，不把 `npm_config_prefix` 泄漏到整个 SDK shell env。
+教 AI 在首次使用时通过命令级 `npm_config_prefix="$BLEXAGENT_NPM_GLOBAL_PREFIX" npm install -g agent-browser@<pinned>`
+自装到 `~/.blexagent/npm-global/bin/`。`buildClaudeSessionEnv` 只暴露
+`BLEXAGENT_NPM_GLOBAL_PREFIX`，不把 `npm_config_prefix` 泄漏到整个 SDK shell env。
 ```
 
 ## 运行时路径工具 (`src/server/utils/runtime.ts`)
@@ -88,15 +88,15 @@ getSystemNodeDirs(): string[]
 SDK 子进程（AI Bash 工具）看到的 PATH 优先级：
 1. 用户系统安装的 Node.js 目录（`getSystemNodeDirs()`）—— 用户自己维护，npm 更可靠
 2. bundled Node.js 目录（`resources/nodejs/bin`）—— fallback
-3. `~/.myagents/npm-global/bin`（MyAgents-localized npm installs / legacy AI-installed CLIs）
-4. `~/.myagents/bin`（`myagents` CLI 所在）
+3. `~/.blexagent/npm-global/bin`（BlexAgent-localized npm installs / legacy AI-installed CLIs）
+4. `~/.blexagent/bin`（`blexagent` CLI 所在）
 5. 系统 PATH
 
 规则：**系统优先，bundled 兜底**。这让用户既能享受零依赖分发，又不会让 bundled Node 干扰其专业环境。
 
 注意：SDK shell env **不设置** `npm_config_prefix` / `NPM_CONFIG_PREFIX` / `PREFIX`。
 nvm 会在 shell 初始化时检测这些变量并输出兼容性警告。需要固定 npm 全局安装落点的
-skill 必须用命令级 env（例如 `npm_config_prefix="$MYAGENTS_NPM_GLOBAL_PREFIX" npm install -g ...`）。
+skill 必须用命令级 env（例如 `npm_config_prefix="$BLEXAGENT_NPM_GLOBAL_PREFIX" npm install -g ...`）。
 
 ## MCP / 社区 npm 包的执行
 
@@ -118,7 +118,7 @@ skill 必须用命令级 env（例如 `npm_config_prefix="$MYAGENTS_NPM_GLOBAL_P
 1. **TypeScript 类型检查**：`npm run typecheck`
 2. **服务端打包**：esbuild bundle `src/server/index.ts` → `server-dist.js`
 3. **Plugin Bridge 打包**：esbuild bundle `src/server/plugin-bridge/index.ts` → `plugin-bridge-dist.mjs`
-4. **CLI 打包**：esbuild bundle `src/cli/myagents.ts` → `resources/cli/myagents.js`
+4. **CLI 打包**：esbuild bundle `src/cli/blexagent.ts` → `resources/cli/blexagent.js`
 5. **SDK native binary**：按 target triple 拷贝 + codesign
 6. **Tauri 构建**：`npm run tauri:build -- --target <triple>`
 

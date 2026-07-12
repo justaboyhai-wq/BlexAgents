@@ -1,6 +1,6 @@
 {
-  "name": "myagents",
-  "description": "MyAgents - Desktop Claude Code for everyone. AI-powered productivity, not just for developers.",
+  "name": "blexagent",
+  "description": "BlexAgent - Desktop Claude Code for everyone. AI-powered productivity, not just for developers.",
   "type": "module",
   "version": "0.2.49",
   "license": "Apache-2.0",
@@ -8,14 +8,14 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "author": "MyAgents Team <myagents.io@gmail.com>",
-  "homepage": "https://myagents.io",
+  "author": "BlexAgent Team <team@blexagent.com>",
+  "homepage": "https://blexagent.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hAcKlyc/MyAgents.git"
+    "url": "git+https://github.com/justaboyhai-wq/BlexAgents.git"
   },
   "bugs": {
-    "url": "https://github.com/hAcKlyc/MyAgents/issues"
+    "url": "https://github.com/justaboyhai-wq/BlexAgents/issues"
   },
   "keywords": [
     "claude",

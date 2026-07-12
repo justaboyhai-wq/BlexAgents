@@ -78,7 +78,7 @@ pub fn start_tab_sidecar<R: Runtime>(
         Some(dir.clone())
     } else {
         // Global sidecar: use temp directory
-        let temp_dir = std::env::temp_dir().join(format!("myagents-global-{}", std::process::id()));
+        let temp_dir = std::env::temp_dir().join(format!("blexagent-global-{}", std::process::id()));
         ulog_info!("[sidecar] Creating temp agent directory: {:?}", temp_dir);
 
         // Create directory and fail early if unable to create
@@ -112,7 +112,7 @@ pub fn start_tab_sidecar<R: Runtime>(
     // Inject management API port for Bun→Rust IPC (v0.1.21)
     let mgmt_port = crate::management_api::get_management_port();
     if mgmt_port > 0 {
-        cmd.env("MYAGENTS_MANAGEMENT_PORT", mgmt_port.to_string());
+        cmd.env("BLEXAGENT_MANAGEMENT_PORT", mgmt_port.to_string());
     }
 
     // Inject runtime type for Agent Runtime selection (v0.1.59)
@@ -123,7 +123,7 @@ pub fn start_tab_sidecar<R: Runtime>(
     if !is_global {
         if let Some(ref dir) = agent_dir {
             if let Some(runtime) = resolve_agent_runtime_from_config(dir) {
-                cmd.env("MYAGENTS_RUNTIME", &runtime);
+                cmd.env("BLEXAGENT_RUNTIME", &runtime);
             }
         }
     }
@@ -919,7 +919,7 @@ pub async fn monitor_session_sidecars(
     struct RecoveryEntry {
         workspace: std::path::PathBuf,
         owners: Vec<SidecarOwner>,
-        /// Snapshot of the dead sidecar's `runtime` field (MYAGENTS_RUNTIME env
+        /// Snapshot of the dead sidecar's `runtime` field (BLEXAGENT_RUNTIME env
         /// var that it was originally spawned with). Captured at the time the
         /// dead sidecar is detected so that auto-restart can pin the new
         /// sidecar to the same runtime regardless of which owner happens to
@@ -930,7 +930,7 @@ pub async fn monitor_session_sidecars(
         /// config; Tab/Cron → read session metadata), producing different
         /// runtimes across hash-random restarts. See cross-review Codex #2.
         runtime: Option<String>,
-        /// Snapshot of MYAGENTS_RUNTIME_SOURCE captured with `runtime`.
+        /// Snapshot of BLEXAGENT_RUNTIME_SOURCE captured with `runtime`.
         runtime_source: Option<String>,
         failures: u32,
     }

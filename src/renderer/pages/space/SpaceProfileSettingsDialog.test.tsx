@@ -19,12 +19,12 @@ vi.mock('@/hooks/useCloseLayer', () => ({
 }));
 
 const session: SpaceSession = {
-  baseUrl: 'https://space.myagents.test',
+  baseUrl: 'https://space.blexagent.test',
   user: {
     id: 'user-1',
     email: 'user@example.com',
     name: 'Old Name',
-    avatarUrl: 'https://r2-public.myagents.test/old.png',
+    avatarUrl: 'https://r2-public.blexagent.test/old.png',
   },
   space: { id: 'space-1', slug: 'official', name: 'Official Space', joinPolicy: 'open' },
   membership: { id: 'membership-1', role: 'member' },

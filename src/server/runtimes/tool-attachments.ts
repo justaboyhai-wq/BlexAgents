@@ -5,7 +5,7 @@
  * PRD 0.2.15 §4.5。
  *
  * 安全：
- * - base64 落盘路径 MUST 在 trusted attachment root（~/.myagents/generated/tool-attachments/）
+ * - base64 落盘路径 MUST 在 trusted attachment root（~/.blexagent/generated/tool-attachments/）
  * - externalPath（Codex savedPath 等）MUST 过 validateExternalReadPathNode 黑名单
  * - 单文件大小 ≤ MAX_TOOL_ATTACHMENT_BYTES；caption 长度 ≤ MAX_TOOL_ATTACHMENT_CAPTION_BYTES
  *
@@ -195,7 +195,7 @@ async function saveBase64Source(
 
 /**
  * Positive allow-list for external-path attachments. Allows references to:
- *   - the MyAgents trusted root (own writes)
+ *   - the BlexAgent trusted root (own writes)
  *   - Codex's own caches under ~/.codex/ (savedPath from imageGeneration)
  *   - the OS user's typical "documents" dirs (when Codex saves a generated
  *     file into the working directory) — but still subject to blacklist
@@ -211,7 +211,7 @@ function isAllowedExternalAttachmentPrefix(canonical: string): boolean {
   const allowedPrefixes = [
     getToolAttachmentRoot(),
     path.join(HOME, '.codex'),
-    path.join(HOME, '.myagents'),
+    path.join(HOME, '.blexagent'),
     // Codex can also save into the project workspace; the workspacePath isn't
     // known here, so we allow ~/Documents and ~/Desktop as a pragmatic default.
     // These are still subject to blacklist (no credential subdirs etc.).

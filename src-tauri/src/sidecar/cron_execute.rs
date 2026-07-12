@@ -23,7 +23,7 @@ pub struct CronExecutePayload {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider_env: Option<ProviderEnv>,
     /// PRD 0.2.9: per-task provider id. When set, sidecar live-resolves the
-    /// provider env on every tick from `~/.myagents/config.json`. Mutually
+    /// provider env on every tick from `~/.blexagent/config.json`. Mutually
     /// exclusive with `provider_env` (legacy explicit-snapshot path).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider_id: Option<String>,

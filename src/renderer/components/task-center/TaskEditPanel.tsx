@@ -650,7 +650,7 @@ export function TaskEditPanel({
           title={t('detail.taskDocTitle')}
           action={<OpenFolderButton onClick={() => void handleOpenDocsDir()} />}
         >
-          <DocPathRow path={`~/.myagents/tasks/${task.id}/task.md`} />
+          <DocPathRow path={`~/.blexagent/tasks/${task.id}/task.md`} />
           {taskMdReadState === 'failed' ? (
             <div className="rounded-[var(--radius-md)] border border-[var(--error)]/30 bg-[var(--error-bg)] px-3 py-2.5 text-xs text-[var(--error)]">
               {t('edit.taskReadFailed')}
@@ -686,7 +686,7 @@ export function TaskEditPanel({
           hint={t('edit.optional')}
           action={<OpenFolderButton onClick={() => void handleOpenDocsDir()} />}
         >
-          <DocPathRow path={`~/.myagents/tasks/${task.id}/verify.md`} />
+          <DocPathRow path={`~/.blexagent/tasks/${task.id}/verify.md`} />
           {verifyMdReadState === 'failed' ? (
             <div className="rounded-[var(--radius-md)] border border-[var(--error)]/30 bg-[var(--error-bg)] px-3 py-2.5 text-xs text-[var(--error)]">
               {t('edit.verifyReadFailed')}

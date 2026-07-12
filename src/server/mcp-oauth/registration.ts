@@ -27,7 +27,7 @@ export async function dynamicRegister(
     token_endpoint_auth_method: 'none',
     grant_types: ['authorization_code', 'refresh_token'],
     response_types: ['code'],
-    client_name: 'MyAgents Desktop',
+    client_name: 'BlexAgent Desktop',
     ...(scopes?.length ? { scope: scopes.join(' ') } : {}),
   };
 

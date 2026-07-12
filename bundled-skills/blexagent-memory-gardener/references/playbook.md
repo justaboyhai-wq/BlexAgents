@@ -1,6 +1,6 @@
 # Memory Gardener Playbook
 
-这是 `myagents-memory-gardener` 的操作手册。原则在 `SKILL.md`，这里只写怎么下手。
+这是 `blexagent-memory-gardener` 的操作手册。原则在 `SKILL.md`，这里只写怎么下手。
 
 ## 1. 合并同根规则
 

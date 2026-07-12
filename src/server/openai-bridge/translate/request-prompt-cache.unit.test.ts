@@ -20,10 +20,10 @@ describe('Responses API prompt_cache_key injection', () => {
   it('forwards the bridge-generated prompt_cache_key without enabling stateful Responses fields', () => {
     const out = translateRequestToResponses(
       { ...baseReq },
-      { promptCacheKey: 'myagents:responses:abc123' },
+      { promptCacheKey: 'blexagent:responses:abc123' },
     );
 
-    expect(out.prompt_cache_key).toBe('myagents:responses:abc123');
+    expect(out.prompt_cache_key).toBe('blexagent:responses:abc123');
     expect('store' in out).toBe(false);
     expect('previous_response_id' in out).toBe(false);
     expect('conversation' in out).toBe(false);
@@ -41,10 +41,10 @@ describe('Chat Completions prompt_cache_key injection', () => {
   it('forwards the bridge-generated prompt_cache_key without enabling retention', () => {
     const out = translateRequest(
       { ...baseReq },
-      { promptCacheKey: 'myagents:chat_completions:abc123' },
+      { promptCacheKey: 'blexagent:chat_completions:abc123' },
     );
 
-    expect(out.prompt_cache_key).toBe('myagents:chat_completions:abc123');
+    expect(out.prompt_cache_key).toBe('blexagent:chat_completions:abc123');
     expect('prompt_cache_retention' in out).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 # Windows AI Review Traps
 
-> Purpose: a living adversarial-review checklist for MyAgents changes that are developed mostly on macOS but must work on Windows.
+> Purpose: a living adversarial-review checklist for BlexAgent changes that are developed mostly on macOS but must work on Windows.
 >
 > This is not a generic Windows compatibility guide and not a release-note archive. Each entry is a recurring failure pattern that AI agents are likely to miss, backed by issues or fixes this repo has already hit, and phrased as review pressure to apply before Windows users rediscover it.
 
@@ -15,7 +15,7 @@ Read this when a change touches any boundary that behaves differently on Windows
 - config/session/task persistence, updates, file replacement, fsync, install metadata
 - runtime detection, PATH/proxy/env injection, managed runtime packaging or signing
 
-Review rule: do not ask "does this work on my Mac?". Ask "which Windows boundary did this cross, and what existing MyAgents owner already normalizes that boundary?" If no owner/helper exists, add one close to the boundary instead of sprinkling call-site guards.
+Review rule: do not ask "does this work on my Mac?". Ask "which Windows boundary did this cross, and what existing BlexAgent owner already normalizes that boundary?" If no owner/helper exists, add one close to the boundary instead of sprinkling call-site guards.
 
 ## Evidence Sources
 
@@ -29,8 +29,8 @@ These are representative incidents that shaped the patterns below:
 | Workspace path identity mismatch silently breaks features | #320 / `d7d431d2`; `src/shared/workspacePath.ts`; `pit_of_success.md` workspace path section |
 | Archive paths accidentally serialized with OS separators | Managed Codex Windows install wrote `executableRelativePath` as `vendor\\...`; status reads rejected it as an archive path and preserved stale `downloading` at 100% |
 | File URLs are not paths with a prefix | Plugin local install parsed `file:///C:/...` via `new URL().pathname`, which becomes `/C:/...`; on Windows `resolve()` turns that into `C:\C:\...` |
-| `\\?\` long-path prefix breaks non-Rust consumers | `pit_of_success.md::normalize_external_path`; #229 stripped `\\?\` from bundled Node path in `myagents.cmd` |
-| Windows shell quoting drops CLI content | issue #149; `src/cli/myagents.ts` requires `--content-file` / `--prompt-file` for fragile payloads |
+| `\\?\` long-path prefix breaks non-Rust consumers | `pit_of_success.md::normalize_external_path`; #229 stripped `\\?\` from bundled Node path in `blexagent.cmd` |
+| Windows shell quoting drops CLI content | issue #149; `src/cli/blexagent.ts` requires `--content-file` / `--prompt-file` for fragile payloads |
 | GUI process spawn flashes or hangs through console wrappers | issue #170; `process_cmd::new`; `ed9c341c`, `1bb503db`, `bcb1a04e` |
 | WebView2 applies CSP/resource rules differently from macOS | `windows_cross_platform_review.md`; `798e59b8` custom protocol URL fix; widget Chart.js inline injection |
 | AV / indexer transient locks break writes | `windows_platform.md::cmd_fsync_path`; `CHANGELOG.md` Windows access denied / OneDrive / Backblaze entries |
@@ -62,7 +62,7 @@ These are representative incidents that shaped the patterns below:
 
 ## Trap 2: Assuming Path Strings Have One Identity
 
-**Why AI misses it.** macOS paths are usually POSIX, case-sensitive enough for developer mental models, and use `/`. Windows paths can arrive as `C:\...`, `C:/...`, `c:/...`, UNC paths, paths with trailing separators, or extended-length `\\?\` paths. Different stores in MyAgents legitimately persist different forms.
+**Why AI misses it.** macOS paths are usually POSIX, case-sensitive enough for developer mental models, and use `/`. Windows paths can arrive as `C:\...`, `C:/...`, `c:/...`, UNC paths, paths with trailing separators, or extended-length `\\?\` paths. Different stores in BlexAgent legitimately persist different forms.
 
 **Real failures.**
 
@@ -93,12 +93,12 @@ These are representative incidents that shaped the patterns below:
 
 ## Trap 3: Shell Quoting And `.cmd` Wrappers Are Not Portable Protocols
 
-**Why AI misses it.** AI-generated commands often work in zsh/bash and look escaped enough. On Windows, MyAgents may pass through Git Bash, `cmd.exe`, `.cmd` shims, npm wrappers, PowerShell, and Node argv parsing. Each layer has different quoting and newline behavior.
+**Why AI misses it.** AI-generated commands often work in zsh/bash and look escaped enough. On Windows, BlexAgent may pass through Git Bash, `cmd.exe`, `.cmd` shims, npm wrappers, PowerShell, and Node argv parsing. Each layer has different quoting and newline behavior.
 
 **Real failures.**
 
-- issue #149: `myagents thought create '<text>'` sometimes arrived without content on Windows, producing a server-side 422. The durable workaround is `--content-file`.
-- `myagents session send -p` rejects multiline or large inline prompts because `cmd.exe` can treat newline as a command boundary and drop subsequent flags.
+- issue #149: `blexagent thought create '<text>'` sometimes arrived without content on Windows, producing a server-side 422. The durable workaround is `--content-file`.
+- `blexagent session send -p` rejects multiline or large inline prompts because `cmd.exe` can treat newline as a command boundary and drop subsequent flags.
 - `.cmd` shim args needed explicit escaping; npm/npx on Windows often require wrapper-aware spawn resolution.
 - Codex TOML config args with quotes previously caused external runtime startup issues.
 
@@ -123,7 +123,7 @@ These are representative incidents that shaped the patterns below:
 **Real failures.**
 
 - Raw process spawn from GUI caused black console windows.
-- User-installed or MyAgents-managed CLIs were not detected because the app over-relied on shell PATH.
+- User-installed or BlexAgent-managed CLIs were not detected because the app over-relied on shell PATH.
 - Plugin/Sidecar/npm processes needed consistent proxy env and localhost bypass.
 - Stale process cleanup moved to native process enumeration because ad-hoc PowerShell/WMI/pgrep approaches were slow or fragile.
 
@@ -147,7 +147,7 @@ These are representative incidents that shaped the patterns below:
 
 **Real failures.**
 
-- Tool attachments initially used loopback HTTP URLs that did not match `img-src`; Windows needed app-owned custom protocol URL shape `http://myagents.localhost/...`.
+- Tool attachments initially used loopback HTTP URLs that did not match `img-src`; Windows needed app-owned custom protocol URL shape `http://blexagent.localhost/...`.
 - `srcdoc` widgets that load CDN scripts can be blank under Chromium CSP inheritance. Chart.js was fixed by bundled inline injection; the pattern can recur for D3/Lucide/Mermaid-like libraries.
 - Windows scrollbars consume layout width unless gutter is stabilized; macOS overlay scrollbars hide the issue.
 - OS child WebView2 bounds do not participate in CSS transitions like WKWebView; one-shot geometry sampling was replaced with a reconciler after #339.
@@ -156,7 +156,7 @@ These are representative incidents that shaped the patterns below:
 **Review pressure.**
 
 - For subresources, distinguish `connect-src`, `img-src`, `media-src`, and `script-src`. Adding loopback to `connect-src` does not make `<img>` work.
-- Use `myagentsProtocol` / attachment URL helpers for app-owned resources. Do not invent `file://`, `asset://`, raw loopback, or platform-specific URL literals in components.
+- Use `blexagentProtocol` / attachment URL helpers for app-owned resources. Do not invent `file://`, `asset://`, raw loopback, or platform-specific URL literals in components.
 - If widget code injects external scripts, prefer bundled raw source + inline injection inside the sandbox over relaxing parent CSP.
 - If a scroll container can cross the overflow threshold on Windows, consider `scrollbar-gutter: stable`.
 - For child webviews, assume CSS transitions and OS controller geometry can desync; use existing browser bounds owners/reconcilers.
@@ -194,13 +194,13 @@ These are representative incidents that shaped the patterns below:
 
 ## Trap 7: Runtime Identity And Environment Drift Are Easier To Hide On Windows
 
-**Why AI misses it.** External runtimes often work in the developer's terminal, then fail inside MyAgents because the app process has different env, PATH, proxy, HOME-like state, or runtime source. Windows makes this more visible because installed CLIs, `.cmd` wrappers, Git Bash, and enterprise proxy settings differ by launch context.
+**Why AI misses it.** External runtimes often work in the developer's terminal, then fail inside BlexAgent because the app process has different env, PATH, proxy, HOME-like state, or runtime source. Windows makes this more visible because installed CLIs, `.cmd` wrappers, Git Bash, and enterprise proxy settings differ by launch context.
 
 **Real failures.**
 
 - Windows Claude Code CLI runtime lost context until system prompt / session resume handling respected Windows process behavior.
-- Runtime env policy had to distinguish MyAgents proxy from terminal proxy.
-- MyAgents-managed Codex provider must resolve as `runtime='codex'`, `runtimeSource='managed-provider'`, and use managed `CODEX_HOME`; mixing it with user-managed system CLI state creates confusing success/failure.
+- Runtime env policy had to distinguish BlexAgent proxy from terminal proxy.
+- BlexAgent-managed Codex provider must resolve as `runtime='codex'`, `runtimeSource='managed-provider'`, and use managed `CODEX_HOME`; mixing it with user-managed system CLI state creates confusing success/failure.
 - Runtime model/session/provider identity mismatches previously surfaced as "No conversation found", wrong model, or false success.
 
 **Review pressure.**

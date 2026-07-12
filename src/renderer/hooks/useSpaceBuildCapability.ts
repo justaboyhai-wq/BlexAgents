@@ -18,7 +18,7 @@ const UNAVAILABLE_SPACE_CAPABILITY: SpaceBuildCapabilityState = {
   available: false,
   baseUrl: null,
   publicClientId: null,
-  reason: 'Team Space requires a Tauri build with MYAGENTS_SPACE_ENABLED=true',
+  reason: 'Team Space requires a Tauri build with BLEXAGENT_SPACE_ENABLED=true',
   isLoading: false,
 };
 

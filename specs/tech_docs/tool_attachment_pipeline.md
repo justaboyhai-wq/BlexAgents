@@ -47,7 +47,7 @@
            │  ├── makePlaceholderAttachment → pendingId          │
            │  └── trackInFlightSave(promise)                     │
            │      └── saveToolAttachment(...)  (async)           │
-           │          ├── base64: 落盘到 ~/.myagents/generated/  │
+           │          ├── base64: 落盘到 ~/.blexagent/generated/  │
            │          │       tool-attachments/<sid>/<tid>/      │
            │          ├── externalPath: 零拷贝引用 + register     │
            │          └── url: cancellableFetch (https-only) +   │
@@ -177,7 +177,7 @@ UnifiedEvent 扩展：
 | Node path-safety 黑名单 | `src/server/utils/path-safety.ts::validateExternalReadPathNode` | `/etc/passwd`、`~/.ssh/id_rsa` 等系统/凭据目录 |
 | Canonicalize symlinks（读侧） | 同上，`canonicalizeSymlinks:true` | `~/.codex/evil.png → /etc/passwd` symlink 逃逸 |
 | 拒绝 symlink leaf | `lstatSync.isSymbolicLink()` | 防范 fs.realpath 行为漂移 |
-| Positive allow-list | `tool-attachments.ts::isAllowedExternalAttachmentPrefix` | 拒绝引用 `~/Documents/secrets.docx` 等"既不在黑名单也不该读"的路径；只允许 `~/.codex/` `~/.myagents/` `~/Documents/` `~/Desktop/` `~/Downloads/` 及子目录 |
+| Positive allow-list | `tool-attachments.ts::isAllowedExternalAttachmentPrefix` | 拒绝引用 `~/Documents/secrets.docx` 等"既不在黑名单也不该读"的路径；只允许 `~/.codex/` `~/.blexagent/` `~/Documents/` `~/Desktop/` `~/Downloads/` 及子目录 |
 | Trusted root（写侧） | `validateTrustedAttachmentRoot` | 禁止把 base64 落盘写到 attachment root 之外 |
 
 URL 下载额外防 SSRF：
@@ -304,7 +304,7 @@ attachment。任何触发这种路径的入口视为 bug。
 | `src/server/runtimes/external-session.ts` | tool_result / tool_attachment_update event shell；session resume 重 register |
 | `src/server/runtimes/external-session/content-blocks.ts` | tool_result attachments 的 streaming content state 与 pendingId patch target |
 | `src/server/index.ts` | `/api/attachment/tool/<sid>/<tid>/<file>` endpoint |
-| `src/renderer/utils/myagentsProtocol.ts` | Tauri custom-protocol URL 形态：macOS/Linux = `myagents://...`；Windows/WebView2 = `http://myagents.localhost/...` |
+| `src/renderer/utils/blexagentProtocol.ts` | Tauri custom-protocol URL 形态：macOS/Linux = `blexagent://...`；Windows/WebView2 = `http://blexagent.localhost/...` |
 | `src/renderer/utils/toolAttachment.ts` | `useAttachmentUrl` hook + `resolveToolAttachmentUrl` |
 | `src/renderer/components/tools/ToolAttachmentGallery.tsx` | 归一化容器 |
 | `src/renderer/components/tools/ToolImageAttachment.tsx` | 单张图片渲染 + placeholder / error 状态 |
@@ -333,12 +333,12 @@ attachment。任何触发这种路径的入口视为 bug。
     共用 `attachBuiltinMediaIfAny` 统一入口）；剩余文本里所有 base64-ish payload 脱敏为
     `[N bytes omitted]` — **session JSONL / SSE 从此只携带 path 引用，绝不进图片字节**（此前非
     Playwright 产图工具的 base64 会整段灌进 JSONL）。AI 侧 SDK transcript 不受影响（模型仍看得到图）。
-    **存储位置**：base64 图片写进统一的工作区目录 `<workspace>/myagents_files/<工具名>/`（不同工具各自
-    一个文件夹，沿用 edge-tts / gemini-image 的 `myagents_files/` 约定，首写自动 gitignore），作为
+    **存储位置**：base64 图片写进统一的工作区目录 `<workspace>/blexagent_files/<工具名>/`（不同工具各自
+    一个文件夹，沿用 edge-tts / gemini-image 的 `blexagent_files/` 约定，首写自动 gitignore），作为
     `sourcePath`（工具卡「在 Finder 显示 / 打开」指向它）；同时保留一份 trusted-root 副本
-    （`~/.myagents/generated/tool-attachments/<sid>/<tid>/`）作 `savedPath` 供重启后稳定渲染——
+    （`~/.blexagent/generated/tool-attachments/<sid>/<tid>/`）作 `savedPath` 供重启后稳定渲染——
     即「工作区原件 + trusted 服务副本」双写，与 gemini-image 同构。无工作区（IM/cron）回退
-    `~/.myagents/generated/<工具名>/`。`externalPath` / `url` 源保留各自 allow-list / SSRF 守卫的原位置。
+    `~/.blexagent/generated/<工具名>/`。`externalPath` / `url` 源保留各自 allow-list / SSRF 守卫的原位置。
     新增 `ToolAttachment.presentation: 'artifact' | 'process'`（仅 'process' 显式写入，缺省=artifact，
     老数据无需迁移）：artifact=交付物，Message.tsx 对话流内可见卡片（0.2.30 行为不变）；
     process=过程产物（`classifyToolAttachmentPresentation`：`mcp__playwright__*` / `mcp__computer-use__*` /
@@ -352,6 +352,6 @@ attachment。任何触发这种路径的入口视为 bug。
     未在防护面内。
 - **Gemini / CC Runtime tool image**：协议层就位，对应 Runtime parseNotification 改造接入
 - **IM Bot 媒体下发**：tool_result 转发链路消费 attachments，把图片送达 Telegram / 飞书 / 微信
-- **GC / size limits**：session 软删除时清理 `~/.myagents/generated/tool-attachments/<sid>/`；
+- **GC / size limits**：session 软删除时清理 `~/.blexagent/generated/tool-attachments/<sid>/`；
   per-session attachment 上限（500）+ oldest-first 淘汰
 - **Node ↔ Rust 黑名单同步测试**：PRD 7.2 承诺的 cross-check 测试（防 Rust 改了 Node 没跟）

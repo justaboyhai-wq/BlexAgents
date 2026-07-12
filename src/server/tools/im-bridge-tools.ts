@@ -293,7 +293,7 @@ export async function setImBridgeToolsContext(ctx: ImBridgeToolsContext): Promis
             }
 
             // Pattern 2 §F — Cap large tool results. Anything over 256KB is
-            // spilled to ~/.myagents/refs/<id> and we return a preview-only
+            // spilled to ~/.blexagent/refs/<id> and we return a preview-only
             // tool result with a `@ref:<id>` marker pointing to the full body.
             // Keeps a 10MB plugin response from blasting through SSE / IPC /
             // disk in one go.

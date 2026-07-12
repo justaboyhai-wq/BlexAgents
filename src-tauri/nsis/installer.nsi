@@ -1,4 +1,4 @@
-Unicode true
+﻿Unicode true
 ManifestDPIAware true
 ; Add in `dpiAwareness` `PerMonitorV2` to manifest for Windows 10 1607+ (note this should not affect lower versions since they should be able to ignore this and pick up `dpiAware` `true` set by `ManifestDPIAware true`)
 ; Currently undocumented on NSIS's website but is in the Docs folder of source tree, see
@@ -206,7 +206,7 @@ Function PageReinstall
   ${EndIf}
   ${IfThen} $R0 == "" ${|} StrCpy $R4 "$(unknown)" ${|}
 
-  ; MyAgents: Save old version string before comparison overwrites $R0
+  ; BlexAgent: Save old version string before comparison overwrites $R0
   StrCpy $R5 $R0
 
   nsis_tauri_utils::SemverCompare "${VERSION}" $R0
@@ -217,7 +217,7 @@ Function PageReinstall
     StrCpy $R2 "$(addOrReinstall)"
     StrCpy $R3 "$(uninstallApp)"
     !insertmacro MUI_HEADER_TEXT "$(alreadyInstalled)" "$(chooseMaintenanceOption)"
-  ; Upgrading - MyAgents: swapped options so "overwrite upgrade" is default
+  ; Upgrading - BlexAgent: swapped options so "overwrite upgrade" is default
   ${ElseIf} $R0 = 1
     StrCpy $R1 "$(olderOrUnknownVersionInstalled)"
     StrCpy $R2 "$(dontUninstall)"
@@ -309,7 +309,7 @@ Function PageLeaveReinstall
     ${Else}                    ; User chose to uninstall
       Goto reinst_uninstall
     ${EndIf}
-  ${ElseIf} $R0 = 1 ; Upgrading - MyAgents: inverted logic due to swapped options
+  ${ElseIf} $R0 = 1 ; Upgrading - BlexAgent: inverted logic due to swapped options
     ${If} $R1 = 1              ; User chose 覆盖升级 (do NOT uninstall)
       Goto reinst_done
     ${Else}                    ; User chose 安装前卸载 (uninstall first)
@@ -614,7 +614,7 @@ Section WebView2
   ${EndIf}
 SectionEnd
 
-; MyAgents: Git for Windows installation section
+; BlexAgent: Git for Windows installation section
 ; Claude Agent SDK requires Git Bash on Windows
 Section GitForWindows
   ; Check if Git is already installed

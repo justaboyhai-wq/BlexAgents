@@ -147,7 +147,7 @@ export function UnifiedLogsPanel({ sseLogs, isVisible, onClose, onClearAll }: Un
         }
         if (hideFilters.has('analytics')) {
             logs = logs.filter(log =>
-                !log.message.includes('analytics.myagents.io') &&
+                !log.message.includes('analytics.blexagent.com') &&
                 !log.message.includes('/api/unified-log')
             );
         }
@@ -261,7 +261,7 @@ export function UnifiedLogsPanel({ sseLogs, isVisible, onClose, onClearAll }: Un
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `myagents-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+        a.download = `blexagent-logs-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
         a.click();
         URL.revokeObjectURL(url);
     }, [filteredLogs]);

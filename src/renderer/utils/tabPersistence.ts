@@ -20,7 +20,7 @@
 import { MAX_TABS, type Tab } from '@/types/tab';
 import { isPendingSessionId } from '../../shared/constants';
 
-const PERSIST_KEY = 'myagents.openTabs.v1';
+const PERSIST_KEY = 'blexagent.openTabs.v1';
 const PERSIST_VERSION = 1 as const;
 
 /** The whitelisted, persisted shape of a restorable chat tab. Intentionally a
@@ -229,7 +229,7 @@ export function pickDurableOverride(
     return durable;
 }
 
-/** Parse the Rust-written clean-exit marker (`~/.myagents/last-exit.json`).
+/** Parse the Rust-written clean-exit marker (`~/.blexagent/last-exit.json`).
  *  Returns true ONLY for a well-formed `{ "clean": true }`; anything else
  *  (absent → null, malformed, `clean:false`) is treated as NOT a clean quit so
  *  the boot offers to restore. See `lastExitMarker.ts`. */

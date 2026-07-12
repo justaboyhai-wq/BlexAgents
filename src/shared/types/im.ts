@@ -104,7 +104,7 @@ export interface ImBotConfig {
   groupToolsDeny?: string[];
 
   // ===== OpenClaw Channel Plugin =====
-  /** Install plugin ID used to locate ~/.myagents/openclaw-plugins/<pluginId>. */
+  /** Install plugin ID used to locate ~/.blexagent/openclaw-plugins/<pluginId>. */
   openclawPluginId?: string;
   openclawNpmSpec?: string;
   openclawPluginConfig?: Record<string, string>;
@@ -112,7 +112,7 @@ export interface ImBotConfig {
 }
 
 /**
- * Installed OpenClaw channel plugin (from ~/.myagents/openclaw-plugins/)
+ * Installed OpenClaw channel plugin (from ~/.blexagent/openclaw-plugins/)
  */
 export interface InstalledPlugin {
   pluginId: string;

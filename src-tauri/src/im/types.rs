@@ -870,7 +870,7 @@ pub struct PendingCronEvent {
     /// Sidecar uses this + `from_label` to wrap the prompt with an
     /// `<inbox-message from="Cron: <name>" reply_back="false">` prefix so the
     /// IM Bot AI sees the same envelope context as messages from
-    /// `myagents session send`. Without this, the AI doesn't know which
+    /// `blexagent session send`. Without this, the AI doesn't know which
     /// session to reply back to if the user wants to follow up.
     /// `#[serde(default)]` keeps backward compatibility with old payloads.
     #[serde(default)]
@@ -1528,7 +1528,7 @@ mod tests {
     }
 
     #[test]
-    fn codex_subscription_channel_maps_myagents_permission_overrides() {
+    fn codex_subscription_channel_maps_blexagent_permission_overrides() {
         let agent = base_agent();
         let mut channel = base_channel();
         channel.overrides = Some(ChannelOverrides {

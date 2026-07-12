@@ -21,7 +21,7 @@ describe('systemReminder', () => {
     expect(reminder).toContain(`<${FLOATING_BALL_CONTEXT_TAG}>`);
     expect(reminder).toContain('<application>Safari</application>');
     expect(reminder).toContain('<window-title>Docs</window-title>');
-    expect(reminder).toContain('This message comes from the MyAgents floating window.');
+    expect(reminder).toContain('This message comes from the BlexAgent floating window.');
     expect(reminder).toContain('<selected-text>\nraw &lt;text&gt; stays raw\n</selected-text>');
     expect(reminder).toContain('<screenshot attached="true" />');
   });
@@ -42,7 +42,7 @@ describe('systemReminder', () => {
     const raw = [
       '<system-reminder>',
       '<CRON_TASK>',
-      'You are running inside a MyAgents scheduled task execution.',
+      'You are running inside a BlexAgent scheduled task execution.',
       'cronTaskId: cron_123',
       '</CRON_TASK>',
       '</system-reminder>',
@@ -60,19 +60,19 @@ describe('systemReminder', () => {
     const raw = [
       '<system-reminder>',
       `<${SPACE_ISSUE_CONTEXT_TAG}>`,
-      '<myagents-space-event version="1" type="issue-delivery">',
+      '<blexagent-space-event version="1" type="issue-delivery">',
       '<issue-instruction>hidden instructions</issue-instruction>',
-      '</myagents-space-event>',
+      '</blexagent-space-event>',
       `</${SPACE_ISSUE_CONTEXT_TAG}>`,
       '</system-reminder>',
-      'MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。',
+      'BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。',
     ].join('\n');
 
     const parsed = parseLeadingSystemReminder(raw);
     expect(parsed.kind).toBe(SPACE_ISSUE_CONTEXT_TAG);
     expect(parsed.body).toContain('<issue-instruction>hidden instructions</issue-instruction>');
-    expect(parsed.visibleText).toBe('MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。');
-    expect(stripLeadingSystemReminder(raw)).toBe('MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。');
+    expect(parsed.visibleText).toBe('BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。');
+    expect(stripLeadingSystemReminder(raw)).toBe('BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。');
   });
 
   it('treats a pure floating-ball context reminder as non-visible text', () => {
@@ -84,9 +84,9 @@ describe('systemReminder', () => {
     const raw = [
       '<system-reminder>',
       `<${SPACE_ISSUE_CONTEXT_TAG}>`,
-      '<myagents-space-event version="1" type="issue-delivery">',
+      '<blexagent-space-event version="1" type="issue-delivery">',
       '<issue-instruction>hidden instructions</issue-instruction>',
-      '</myagents-space-event>',
+      '</blexagent-space-event>',
       `</${SPACE_ISSUE_CONTEXT_TAG}>`,
       '</system-reminder>',
     ].join('\n');

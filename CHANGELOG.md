@@ -36,11 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.48] - 2026-07-05
 
-> 本版修复 Anthropic 订阅登录在新版 Claude SDK 下无法真正复用本机 OAuth 的问题：MyAgents 会把订阅账号交回 Claude Code 原生凭据系统管理，同时避免第三方 API Provider 环境污染订阅校验。
+> 本版修复 Anthropic 订阅登录在新版 Claude SDK 下无法真正复用本机 OAuth 的问题：BlexAgent 会把订阅账号交回 Claude Code 原生凭据系统管理，同时避免第三方 API Provider 环境污染订阅校验。
 
 ### Fixed
 
-- **Anthropic 订阅登录恢复可用**：完成官方登录后，MyAgents 会复用本机 Claude Code/桌面端的订阅凭据，不再因为额外接管 OAuth token 或错误注入 provider env 导致验证失败。
+- **Anthropic 订阅登录恢复可用**：完成官方登录后，BlexAgent 会复用本机 Claude Code/桌面端的订阅凭据，不再因为额外接管 OAuth token 或错误注入 provider env 导致验证失败。
 - **订阅验证不再串到第三方 Provider**：在当前会话使用第三方 API Provider 时，设置页的 Anthropic 订阅验证会显式切到官方订阅身份，避免误带 `ANTHROPIC_BASE_URL` / `ANTHROPIC_API_KEY`。
 - **登录失败时可手动继续**：当浏览器回跳未能自动完成时，设置页支持粘贴官方登录输出的授权码继续验证，减少卡在登录流程中的情况。
 
@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Claude 订阅登录状态更准确**：点击登录并完成浏览器 OAuth 后，MyAgents 不再只根据 OAuth 完成状态判断成功，而是以实际订阅验证结果为准；验证失败时不会缓存成阻塞后续重试的状态。
+- **Claude 订阅登录状态更准确**：点击登录并完成浏览器 OAuth 后，BlexAgent 不再只根据 OAuth 完成状态判断成功，而是以实际订阅验证结果为准；验证失败时不会缓存成阻塞后续重试的状态。
 - **Claude 订阅错误信息更清楚**：设置页红色错误提示会展示 SDK 返回的真实 detail，便于区分登录过期、权限不足、网络错误等原因。
 - **Space Issue 详情抽屉显示优化**：加宽 Issue 详情抽屉，长内容查看时更舒展。
 
@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **网络代理支持按供应商选择**：Settings 的网络代理可以选择「全部供应商」或自定义供应商范围；未选中的供应商不会注入 MyAgents 代理，但仍保留系统代理、TUN 或启动环境中的默认网络行为。
+- **网络代理支持按供应商选择**：Settings 的网络代理可以选择「全部供应商」或自定义供应商范围；未选中的供应商不会注入 BlexAgent 代理，但仍保留系统代理、TUN 或启动环境中的默认网络行为。
 - **Agent 工作区归档能力**：不常用的 Agent 工作区可以归档，Launcher 和管理入口会更清楚地区分活跃工作区与已归档工作区。
 - **Runtime 诊断信息更完整**：错误横幅和诊断入口补充更多环境、代理和 Runtime 线索，便于排查本机 Provider / CLI 连接问题。
 
@@ -131,11 +131,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.43] - 2026-06-30
 
-> 本版继续收紧 Codex 订阅 Provider 与外部 Runtime 的身份边界：Codex 会话可以读取 MyAgents 用户 Skills，订阅型 Codex 在 Chat、任务、定时任务和 IM / Agent Channel 中更稳定地保持受管身份；同时修复 Windows 上 managed Codex 安装、模型解析和本地插件路径相关问题，并补齐若干菜单与历史操作细节。
+> 本版继续收紧 Codex 订阅 Provider 与外部 Runtime 的身份边界：Codex 会话可以读取 BlexAgent 用户 Skills，订阅型 Codex 在 Chat、任务、定时任务和 IM / Agent Channel 中更稳定地保持受管身份；同时修复 Windows 上 managed Codex 安装、模型解析和本地插件路径相关问题，并补齐若干菜单与历史操作细节。
 
 ### Added
 
-- **Codex 会话可使用 MyAgents 用户 Skills**：启用的用户级 Skills 会同步到工作区并注入 Codex Runtime，Codex 订阅和系统 Codex CLI 都能发现同一套工作区 Skills。
+- **Codex 会话可使用 BlexAgent 用户 Skills**：启用的用户级 Skills 会同步到工作区并注入 Codex Runtime，Codex 订阅和系统 Codex CLI 都能发现同一套工作区 Skills。
 
 ### Fixed
 
@@ -154,9 +154,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **界面语言支持更完整**：Settings 可选择跟随系统、中文或 English；Launcher、Chat、Settings、Task Center、Agent 设置、工具卡片、IM 渠道、悬浮球和托盘等界面文案会随语言切换。
-- **Codex 订阅 Provider**：新增 Codex（订阅）入口，MyAgents 可管理 Codex runtime 的安装、更新与 ChatGPT 订阅登录，并把它和普通 Provider 一样用于 Chat、任务、定时任务和 Agent 默认配置。
+- **Codex 订阅 Provider**：新增 Codex（订阅）入口，BlexAgent 可管理 Codex runtime 的安装、更新与 ChatGPT 订阅登录，并把它和普通 Provider 一样用于 Chat、任务、定时任务和 Agent 默认配置。
 - **订阅登录能力补齐**：Provider 设置中补充 Anthropic 订阅登录验证，并把 Codex 订阅入口放到 Anthropic 附近，减少订阅账户和 API Key 配置混用时的误选。
-- **官方图片理解 CLI 工具**：新增 `myagents vision`，可在已启用工具箱和读图模型配置后分析工作区内图片，支持短 prompt 与 workspace 内 prompt 文件。
+- **官方图片理解 CLI 工具**：新增 `blexagent vision`，可在已启用工具箱和读图模型配置后分析工作区内图片，支持短 prompt 与 workspace 内 prompt 文件。
 
 ### Changed
 
@@ -186,8 +186,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **会话中切换 Provider / 模型不再过度受限**（[#406](https://github.com/hAcKlyc/MyAgents/issues/406)）：普通可兼容的 Provider / 模型切换可以留在当前会话；只有跨不兼容历史边界时才会新开会话。旧版 `model + configSnapshotAt` 但缺 provider 的会话也不会出现“看得到模型但发送/切换不正常”的状态。
-- **删除 custom MCP 后不再复活或自动重启用**（[#405](https://github.com/hAcKlyc/MyAgents/issues/405)）：Settings / CLI 删除 custom MCP 会级联清理全局配置、Agent/Bot legacy payload、Project、Session、Task 和 Cron 引用；旧 HTTP/SSE MCP 不会再从 Agent 残留配置提升回全局列表。
+- **会话中切换 Provider / 模型不再过度受限**（[#406](https://github.com/justaboyhai-wq/BlexAgents/issues/406)）：普通可兼容的 Provider / 模型切换可以留在当前会话；只有跨不兼容历史边界时才会新开会话。旧版 `model + configSnapshotAt` 但缺 provider 的会话也不会出现“看得到模型但发送/切换不正常”的状态。
+- **删除 custom MCP 后不再复活或自动重启用**（[#405](https://github.com/justaboyhai-wq/BlexAgents/issues/405)）：Settings / CLI 删除 custom MCP 会级联清理全局配置、Agent/Bot legacy payload、Project、Session、Task 和 Cron 引用；旧 HTTP/SSE MCP 不会再从 Agent 残留配置提升回全局列表。
 - **重新添加同 ID MCP 不再继承旧任务/会话选择**：删除后再添加同名 MCP 时，历史 Session / Task / Cron / Project 不会因为旧引用自动启用这个新 identity。
 - **用量统计按 Provider 分开**：会话统计和用量面板会把不同 Provider 的 token / usage 分开记录，减少多供应商混用时的统计串线。
 - **Codex Runtime 接受引导后的输入更稳**：Codex 在接受用户 steering / 确认后会把后续输入拆到正确回合，减少指令混入上一轮或被错误消费的问题。
@@ -218,7 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **空会话改模型不再误报配置未保存**（[#399](https://github.com/hAcKlyc/MyAgents/issues/399)）：刚打开的空 session 在切换模型或配置时，会先完成必要的会话物化与配置落盘，不再提示“配置未能完全保存”。
+- **空会话改模型不再误报配置未保存**（[#399](https://github.com/justaboyhai-wq/BlexAgents/issues/399)）：刚打开的空 session 在切换模型或配置时，会先完成必要的会话物化与配置落盘，不再提示“配置未能完全保存”。
 - **恢复 / 懒加载会话配置不再丢失**：从启动页、历史或冷恢复进入会话时，owned config snapshot 会被保留，避免 Provider、模型、MCP 或插件配置回退成旧值。
 - **通道会话不再覆盖桌面会话状态**：IM、定时任务和后台 completion 流程保留各自 owner 的 session state，减少跨入口切换后的配置串线。
 - **活跃 sidecar 不再被清理误删**：会话清理流程会跳过仍在运行或已被其他 owner 接管的 sidecar，避免误删后重启、失忆或空转。
@@ -239,7 +239,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **会话运行时架构收敛**：内置 SDK 与外部 Runtime 的会话读取、配置同步、注入 turn、队列和会话操作统一到 Session Engine 路径，减少 IM、定时任务、后台任务和桌面会话之间的状态漂移。
 - **大规模技术债清理**：拆分 Sidecar / Cron / IM 的 Rust owner 模块、builtin / external runtime 的会话状态 owner，以及 Settings、DirectoryPanel、SimpleChatInput 等前端巨型入口；公共 facade 保留外部协议，内部职责边界更清晰，后续排查和迭代成本更低。
-- **外部 Runtime CLI 检测更可靠**：应用内置或 MyAgents 管理的 Claude Code / Codex / Gemini CLI 能被更稳定地识别，不再过度依赖用户 shell 环境。
+- **外部 Runtime CLI 检测更可靠**：应用内置或 BlexAgent 管理的 Claude Code / Codex / Gemini CLI 能被更稳定地识别，不再过度依赖用户 shell 环境。
 - **产品说明与截图更新**：README 和产品截图刷新，便于新用户理解工作区、任务、模型供应商和悬浮入口等核心能力。
 
 ### Fixed
@@ -260,7 +260,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Session watch 事件协议**：`myagents session watch` 可监听另一个 session 的当前运行结果，完成后通过 `<myagents-session-event type="watch.completed">` 推回当前 session。
+- **Session watch 事件协议**：`blexagent session watch` 可监听另一个 session 的当前运行结果，完成后通过 `<blexagent-session-event type="watch.completed">` 推回当前 session。
 - **连续发送响应模式**：设置中新增“连续发送消息”，可选择“实时响应”或“轮次响应”；轮次响应会等 AI 完成当前轮次后再自动发送下一条消息，适合希望严格一问一答的场景。
 - **大图片路径 ref 发送**：从 Finder / Explorer 拖入聊天的大图片会先落到 app 附件目录，再以 ref 进入 Sidecar，避免大 base64 直接穿过 IPC / SSE。
 - **启动页历史与收藏控制**：历史会话、对话收藏和右栏交互补齐更多 hover / 右键 / 分页细节，提升长列表使用效率。
@@ -342,7 +342,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **桌面宠物 / 悬浮球（实验室）**：Mino 可作为屏幕边缘常驻入口，hover 半透明预览、点击固定聊天；小窗内支持正常对话、停止、查看思考 / 工具进度，并可处理权限确认、向用户提问和退出规划确认。发送时可附带前台 App / 窗口标题、选中文本、截图与图片附件，适合快速基于当前桌面内容发起请求。
 - **桌宠素材管理**：设置页新增「桌面宠物」，可开关桌宠、绑定工作区、开关悬停预览、切换内置样式，并支持从 Codex Pets、本地 zip 或 Petdex 链接导入素材。
 - **CLI 工具箱注册表（实验室）**：用户可以让 AI 把常用命令或脚本注册成可复用工具；设置里的「工具箱」可查看、启停、配置环境变量 / API Key 和删除这些 CLI 工具，新会话可自动发现已启用工具。
-- **会话级推理强度**（[#324](https://github.com/hAcKlyc/MyAgents/issues/324)）：启动页、Chat 输入栏和 Agent 默认设置中新增「推理强度」，可在服务商 / Runtime 支持时选择更快或更深的推理档位。
+- **会话级推理强度**（[#324](https://github.com/justaboyhai-wq/BlexAgents/issues/324)）：启动页、Chat 输入栏和 Agent 默认设置中新增「推理强度」，可在服务商 / Runtime 支持时选择更快或更深的推理档位。
 - **始终阻止电脑睡眠**：设置中新增全局开关，开启后即使 AI 当前未运行，电脑也不会自动进入空闲睡眠；界面会明确提示合盖仍会睡眠且会增加耗电。
 - **默认工作区可隐藏**：内置 Mino 默认工作区可以从启动页隐藏，不会删除本地文件，也不会被启动自修复反复加回来。
 - **新增智谱 GLM 5.2 预设**：智谱相关 Provider 增加 GLM 5.2，并按大上下文能力配置模型信息。
@@ -371,18 +371,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **工作区文件树升级为完整文件管理器**：对标 VS Code 的文件管理体验 —— 方向键 / 首字母定位等键盘导航；行内重命名与新建（不再弹对话框）；⌘C / ⌘X / ⌘V 复制、剪切、粘贴，复制的文件还能直接粘贴到终端或聊天输入框；删除默认进入系统回收站（Finder「放回原处」即可找回），⌘Z 或右键「撤销上一步操作」可撤销移动 / 重命名 / 新建 / 粘贴；拖放文件时有清晰的落点预览，不再误放到根目录；右键菜单新增「全选」。
-- **AI 工具产出的图片直接显示在对话里**（[#293](https://github.com/hAcKlyc/MyAgents/issues/293)）：任意工具（MCP / 内置）返回的图片即时呈现在工具卡片中，并自动保存到工作区 `myagents_files/<工具名>/` 目录便于回找；会话文件不再内嵌图片数据，较早会话打开更快。
-- **每个模型可单独设置**（[#325](https://github.com/hAcKlyc/MyAgents/issues/325)）：模型管理中可为单个模型自定义上下文窗口大小、输入模态（图片 / 视频 / 音频）与显示名称，应对第三方供应商信息缺失或不准的情况。
+- **AI 工具产出的图片直接显示在对话里**（[#293](https://github.com/justaboyhai-wq/BlexAgents/issues/293)）：任意工具（MCP / 内置）返回的图片即时呈现在工具卡片中，并自动保存到工作区 `blexagent_files/<工具名>/` 目录便于回找；会话文件不再内嵌图片数据，较早会话打开更快。
+- **每个模型可单独设置**（[#325](https://github.com/justaboyhai-wq/BlexAgents/issues/325)）：模型管理中可为单个模型自定义上下文窗口大小、输入模态（图片 / 视频 / 音频）与显示名称，应对第三方供应商信息缺失或不准的情况。
 - **内置 prompt-writer 技能**：让 AI 按系统化方法论帮你撰写、优化提示词。
 
 ### Fixed
 
-- **大上下文模型不再被按 200K 截断**（[#335](https://github.com/hAcKlyc/MyAgents/issues/335)）：262K–512K 窗口的模型（MiniMax / 豆包 / Kimi 等）现在能用满真实上下文窗口，不再过早自动压缩、附件不再被按 200K 截断。
-- **会话统计与上下文占用显示**：修复会话统计显示 0 tokens（[#331](https://github.com/hAcKlyc/MyAgents/issues/331)）、`/compact` 压缩后上下文占用显示 100% 或不可能数字（[#323](https://github.com/hAcKlyc/MyAgents/issues/323)），以及重新添加已移除的预置模型时出现重复条目的问题。
-- **IM 渠道配置不再覆盖桌面会话**（[#327](https://github.com/hAcKlyc/MyAgents/issues/327)）：开启 IM 机器人后，桌面正在进行的会话的模型 / 权限配置不再被渠道配置同步意外覆盖。
-- **删除会话彻底删除**（[#336](https://github.com/hAcKlyc/MyAgents/issues/336)）：删除会话后不再出现看不见的「幽灵会话文件」继续占用磁盘。
+- **大上下文模型不再被按 200K 截断**（[#335](https://github.com/justaboyhai-wq/BlexAgents/issues/335)）：262K–512K 窗口的模型（MiniMax / 豆包 / Kimi 等）现在能用满真实上下文窗口，不再过早自动压缩、附件不再被按 200K 截断。
+- **会话统计与上下文占用显示**：修复会话统计显示 0 tokens（[#331](https://github.com/justaboyhai-wq/BlexAgents/issues/331)）、`/compact` 压缩后上下文占用显示 100% 或不可能数字（[#323](https://github.com/justaboyhai-wq/BlexAgents/issues/323)），以及重新添加已移除的预置模型时出现重复条目的问题。
+- **IM 渠道配置不再覆盖桌面会话**（[#327](https://github.com/justaboyhai-wq/BlexAgents/issues/327)）：开启 IM 机器人后，桌面正在进行的会话的模型 / 权限配置不再被渠道配置同步意外覆盖。
+- **删除会话彻底删除**（[#336](https://github.com/justaboyhai-wq/BlexAgents/issues/336)）：删除会话后不再出现看不见的「幽灵会话文件」继续占用磁盘。
 - **IM / 定时任务不再偶发拿到上一轮回复**：外部 Runtime（Codex / Claude Code / Gemini）下，IM 机器人与定时任务偶发收到上一轮内容或空回复的问题修复。
-- **界面渐变灰带修复**（[#333](https://github.com/hAcKlyc/MyAgents/issues/333)）：部分系统上深色渐变处显示灰色污带的问题修复。
+- **界面渐变灰带修复**（[#333](https://github.com/justaboyhai-wq/BlexAgents/issues/333)）：部分系统上深色渐变处显示灰色污带的问题修复。
 - **分栏网页预览更稳定**：窗口 / 布局调整时分栏网页预览偶发错位、闪烁的问题修复。
 - **Windows 启动失败提示更准确**：AI 引擎子进程启动失败时给出基于证据的诊断提示，不再笼统归因于 Git for Windows。
 - **安全与可靠性**：修复工作区文件导入可经符号链接读取受保护目录的安全隐患；拖入文件失败时现在会明确提示原因，不再静默忽略。
@@ -405,8 +405,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **会话恢复更可靠**：修复了恢复会话时偶尔只显示到较早历史、最新几条消息「消失」的问题（你的数据始终安全），以及个别情况下打开较早或被中断过的会话会整窗口报「界面渲染出错」的问题；应用重启后恢复的标签页也更稳定。
-- **Windows 兼容性修复**：修复了 Windows 上旧版定时任务升级时「找不到工作区」、任务卡片缺工作区名 / 图标、最近会话列表空白、工作区筛选全部显示「已失效」等一系列因路径格式不一致导致的问题（[#320](https://github.com/hAcKlyc/MyAgents/issues/320)）；修复了升级后用户技能意外消失（[#321](https://github.com/hAcKlyc/MyAgents/issues/321)）；以及分栏打开网页预览时偶发的显示异常（[#322](https://github.com/hAcKlyc/MyAgents/issues/322)）。
-- **能力面板重复分隔线**：当前会话未启用任何能力时，面板顶部不再出现两条叠加的分隔线（[#314](https://github.com/hAcKlyc/MyAgents/issues/314)）。
+- **Windows 兼容性修复**：修复了 Windows 上旧版定时任务升级时「找不到工作区」、任务卡片缺工作区名 / 图标、最近会话列表空白、工作区筛选全部显示「已失效」等一系列因路径格式不一致导致的问题（[#320](https://github.com/justaboyhai-wq/BlexAgents/issues/320)）；修复了升级后用户技能意外消失（[#321](https://github.com/justaboyhai-wq/BlexAgents/issues/321)）；以及分栏打开网页预览时偶发的显示异常（[#322](https://github.com/justaboyhai-wq/BlexAgents/issues/322)）。
+- **能力面板重复分隔线**：当前会话未启用任何能力时，面板顶部不再出现两条叠加的分隔线（[#314](https://github.com/justaboyhai-wq/BlexAgents/issues/314)）。
 
 ---
 
@@ -416,7 +416,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **退出原因感知的会话恢复**（[#309](https://github.com/hAcKlyc/MyAgents/issues/309)）：启动不再无差别强制恢复上次的所有标签页。你主动退出（⌘Q / Dock / 托盘）时，下次是干净启动，不再被上次的会话打扰；只有当上次是崩溃或「重启更新」时，才在标题栏显示一个可点可叉的「恢复上次对话」入口，由你决定是否恢复。
+- **退出原因感知的会话恢复**（[#309](https://github.com/justaboyhai-wq/BlexAgents/issues/309)）：启动不再无差别强制恢复上次的所有标签页。你主动退出（⌘Q / Dock / 托盘）时，下次是干净启动，不再被上次的会话打扰；只有当上次是崩溃或「重启更新」时，才在标题栏显示一个可点可叉的「恢复上次对话」入口，由你决定是否恢复。
 - **默认工作区开箱即用的主动 Agent 能力**：默认的 Mino 工作区（以及从模板库新建的 Mino 工作区）现在默认开启「主动 Agent 模式」，内置心跳与记忆更新 —— 新用户第一次打开即是一个完整的 Agent 工作区，无需手动开启（不会自动创建任何 IM 渠道）。
 - **会话历史新增「更多」菜单与「在新标签页打开」**：工作区历史里的会话行不再堆叠一排悬停按钮 —— 高频的「在新标签页打开」直接可见，收藏 / 导出 / 统计 / 删除收进每行的「更多」(⋯) 菜单，列表更清爽。
 - **聊天中右键路径可「在文件目录中展示」**：在聊天里右键一个文件路径，可直接在系统文件管理器中定位到该文件。
@@ -428,7 +428,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **应用启动与新建标签页更快**：精简了首屏加载体积、改为按需加载各页面，首次启动和新建标签页明显更快。
 - **工作区文件树不再闪烁**：在有文件持续写入（AI / 开发服务 / git 等）时，文件树不再频繁闪烁；滚动到底部时顶部面包屑也不再抖动。
 - **Windows 兼容性修复**：修复了 Windows 上 AI 生成图片不显示、部分图表 widget 空白、滚动条占用布局导致错位、分栏预览过渡撕裂等问题。
-- **心跳间隔「自定义」输入修复**（[#310](https://github.com/hAcKlyc/MyAgents/issues/310)）：自定义心跳间隔时可以正常输入数字，不再被中途清空或误触成预设值。
+- **心跳间隔「自定义」输入修复**（[#310](https://github.com/justaboyhai-wq/BlexAgents/issues/310)）：自定义心跳间隔时可以正常输入数字，不再被中途清空或误触成预设值。
 - **生成的音频卡片重新设计为播放器**：AI 生成的语音以更完整的播放器卡片在对话流中内联呈现，支持暂停 / 继续与进度查看。
 
 ---
@@ -439,17 +439,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **对话自动生成标题**（[#296](https://github.com/hAcKlyc/MyAgents/issues/296)）：对话进行到第 2 轮后，会自动生成一个便于日后在会话列表里一眼认出的标题（尽量保留项目名、编号、文件名等独特锚点）。改由后端统一生成，因此 Chat、IM 机器人、定时任务、后台任务的会话都能拿到标题；此前只有打开着的聊天标签会生成，关闭或刷新后就丢了。
+- **对话自动生成标题**（[#296](https://github.com/justaboyhai-wq/BlexAgents/issues/296)）：对话进行到第 2 轮后，会自动生成一个便于日后在会话列表里一眼认出的标题（尽量保留项目名、编号、文件名等独特锚点）。改由后端统一生成，因此 Chat、IM 机器人、定时任务、后台任务的会话都能拿到标题；此前只有打开着的聊天标签会生成，关闭或刷新后就丢了。
 - **生成的语音 / 图片直接成为聊天附件**：用语音合成（edge-tts）生成的音频、用 Gemini 生成或编辑的图片，现在直接作为聊天附件呈现 —— 音频可内联播放、图片可查看，不再只是一行文件路径文字。Codex 等外部 Runtime 的官方产图工具也走同一套呈现管道。
 
 ### Fixed
 
 - **供应商验证失败显示真实原因**：第三方供应商的 API Key 验证失败时，不再一律提示「验证超时，请检查网络连接」。现在会区分并显示真实原因 —— 模型不存在、余额不足 / 欠费、Key 受限、Base URL 错误、或供应商返回的真实 HTTP 状态，并附「详情」按钮便于排查。
-- **删除 API Key 时不再刷屏报错**（[#306](https://github.com/hAcKlyc/MyAgents/issues/306)）：退格或清空 API Key 输入框时，不再每删一个字符就触发一次验证、堆叠出一串「Key 无效」提示。只有粘贴、正向输入、或替换成另一个 Key 才会触发验证。
+- **删除 API Key 时不再刷屏报错**（[#306](https://github.com/justaboyhai-wq/BlexAgents/issues/306)）：退格或清空 API Key 输入框时，不再每删一个字符就触发一次验证、堆叠出一串「Key 无效」提示。只有粘贴、正向输入、或替换成另一个 Key 才会触发验证。
 - **新建标签页不再短暂黄屏**：新建标签页现在即时显示内容，不再出现 1–2 秒的全屏空白（俗称「黄屏」）。
-- **点「停止」不再弹出内部诊断错误**（[#307](https://github.com/hAcKlyc/MyAgents/issues/307)）：手动中止 AI 回合时，不再把内部诊断信息当成报错横幅弹出（桌面、IM 转发、外部 Runtime 三处一致）。
-- **标签内切换模型 / 权限模式后不再丢失**（[#305](https://github.com/hAcKlyc/MyAgents/issues/305)）：在某个标签内临时切换的模型或权限模式，关闭标签再重新打开后能正确保留。
-- **仅修改 MCP 环境变量也即时生效**（[#303](https://github.com/hAcKlyc/MyAgents/issues/303)）：只改某个 MCP 工具的环境变量（没有增删工具）时，改动现在会即时同步到当前正在对话的 Chat，无需重启会话。
+- **点「停止」不再弹出内部诊断错误**（[#307](https://github.com/justaboyhai-wq/BlexAgents/issues/307)）：手动中止 AI 回合时，不再把内部诊断信息当成报错横幅弹出（桌面、IM 转发、外部 Runtime 三处一致）。
+- **标签内切换模型 / 权限模式后不再丢失**（[#305](https://github.com/justaboyhai-wq/BlexAgents/issues/305)）：在某个标签内临时切换的模型或权限模式，关闭标签再重新打开后能正确保留。
+- **仅修改 MCP 环境变量也即时生效**（[#303](https://github.com/justaboyhai-wq/BlexAgents/issues/303)）：只改某个 MCP 工具的环境变量（没有增删工具）时，改动现在会即时同步到当前正在对话的 Chat，无需重启会话。
 - **@ 提及文件搜索布局优化**：输入 `@` 提及文件时，搜索结果的排版更清晰易读。
 - **Windows 便携版可正常启动**：修正了 Windows 便携版（portable）可执行文件的命名，便携包不再因此无法启动。
 
@@ -466,10 +466,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **切换会话不再静默重置模型 / Provider**（[#300](https://github.com/hAcKlyc/MyAgents/issues/300)）：此前切回一个绑定了不可用 Provider（缺 API Key / 已禁用）的会话时，会静默回退到第一个可用 Provider 并把模型覆盖成它的默认模型，导致下一条消息被计费到错误的 Provider（402）。现在会保留你 pin 的合法模型；Provider 不可用时拦截发送并明确提示，而不是悄悄切走、错误计费。
-- **Agent 渠道配置更健壮**（[#301](https://github.com/hAcKlyc/MyAgents/issues/301)）：修复了 Agent 的 Provider / MCP 配置在某些情况下被存成对象（而非字符串化 JSON），导致渠道启动报 `invalid type: map`、甚至开机时全部 Agent 自启失败的问题。现在加载时自动归一化，且单个损坏的 Agent 不再拖垮其它 Agent 的自启。
+- **切换会话不再静默重置模型 / Provider**（[#300](https://github.com/justaboyhai-wq/BlexAgents/issues/300)）：此前切回一个绑定了不可用 Provider（缺 API Key / 已禁用）的会话时，会静默回退到第一个可用 Provider 并把模型覆盖成它的默认模型，导致下一条消息被计费到错误的 Provider（402）。现在会保留你 pin 的合法模型；Provider 不可用时拦截发送并明确提示，而不是悄悄切走、错误计费。
+- **Agent 渠道配置更健壮**（[#301](https://github.com/justaboyhai-wq/BlexAgents/issues/301)）：修复了 Agent 的 Provider / MCP 配置在某些情况下被存成对象（而非字符串化 JSON），导致渠道启动报 `invalid type: map`、甚至开机时全部 Agent 自启失败的问题。现在加载时自动归一化，且单个损坏的 Agent 不再拖垮其它 Agent 的自启。
 - **外部 Runtime 记忆更新修复**：使用 Codex / Claude Code / Gemini 外部 Runtime 的会话，定时记忆更新此前会静默空转（0 轮、假成功，留下孤儿气泡）。现在正确走对应 Runtime 执行，并以真实回合成功为准。
-- **中文输入法误发修复**（[#123](https://github.com/hAcKlyc/MyAgents/issues/123)）：AI 小助理与问题反馈输入框，在用中文 / 日文输入法选词时按回车不再误发送。
+- **中文输入法误发修复**（[#123](https://github.com/justaboyhai-wq/BlexAgents/issues/123)）：AI 小助理与问题反馈输入框，在用中文 / 日文输入法选词时按回车不再误发送。
 - **嵌套子 agent 图片产物显示修复**：使用 Codex 外部 Runtime 时，子 agent 生成的图片等富媒体产物此前会被丢弃、只显示一行文字；现在能像主流程一样正确渲染图库。
 - **响应超时后自动恢复**：AI 回合因长时间无响应被中止后，现在会自动续上继续执行，不再卡住、需要手动重发。
 
@@ -481,8 +481,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Plan（规划）模式现在真正强制只读**（[#295](https://github.com/hAcKlyc/MyAgents/issues/295)）：此前在 Plan 模式下，部分第三方模型仍可能不经审批就直接执行写文件、运行命令等有副作用的操作，存在误操作风险。现在这类操作会被硬性拦截 —— Plan 模式下 AI 只能做只读调研与规划，必须经你审批退出 Plan 模式后才能执行写操作（内置读取、搜索与「向用户提问 / 提交方案」不受影响）。
-- **「重启更新」后标签页恢复更可靠**（[#232](https://github.com/hAcKlyc/MyAgents/issues/232) 加固）：标签恢复此前只写 localStorage，而 WebView 把 localStorage 落盘是异步的——点「重启更新」时进程被立即强制退出（Windows 走 NSIS `exit(0)`、macOS 走 `relaunch()`），最后一次写入可能还没落盘就丢了，导致重启后标签没恢复。现在在退出前额外把标签快照 fsync 落盘到 `~/.myagents/open-tabs.json`（复用 config.json 的原子写），重启时若 localStorage 读到空就从这个兜底快照恢复，用完即删。
+- **Plan（规划）模式现在真正强制只读**（[#295](https://github.com/justaboyhai-wq/BlexAgents/issues/295)）：此前在 Plan 模式下，部分第三方模型仍可能不经审批就直接执行写文件、运行命令等有副作用的操作，存在误操作风险。现在这类操作会被硬性拦截 —— Plan 模式下 AI 只能做只读调研与规划，必须经你审批退出 Plan 模式后才能执行写操作（内置读取、搜索与「向用户提问 / 提交方案」不受影响）。
+- **「重启更新」后标签页恢复更可靠**（[#232](https://github.com/justaboyhai-wq/BlexAgents/issues/232) 加固）：标签恢复此前只写 localStorage，而 WebView 把 localStorage 落盘是异步的——点「重启更新」时进程被立即强制退出（Windows 走 NSIS `exit(0)`、macOS 走 `relaunch()`），最后一次写入可能还没落盘就丢了，导致重启后标签没恢复。现在在退出前额外把标签快照 fsync 落盘到 `~/.blexagent/open-tabs.json`（复用 config.json 的原子写），重启时若 localStorage 读到空就从这个兜底快照恢复，用完即删。
 
 ---
 
@@ -499,8 +499,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **超长会话恢复后内容截断**：包含大量工具输出的超长会话（尤其 Codex 子 agent 批量产出的回合）重新打开时，历史不再卡在中间某条消息、后续内容不显示；现在会完整加载，个别超大的单条消息折叠为预览，完整内容仍保存在本地会话文件。
-- **HTML 预览窗口定位异常**（[#290](https://github.com/hAcKlyc/MyAgents/issues/290)）：点击文件名预览 HTML 时，内嵌浏览器有时以 0 宽度创建、悬浮覆盖在聊天区域上方而非显示在右侧浏览器面板。根因是右侧分栏容器在聊天区 300ms 宽度过渡动画期间宽度仍为 0，创建时读到的尺寸是 0。现已改为等容器完成布局后再创建 webview，并在前后端两侧都拦截退化尺寸。
-- **强制发送会浮现在途排队消息**（[#289](https://github.com/hAcKlyc/MyAgents/issues/289)）：对排队消息点「立即发送」时，正在处理中的那条消息会正确浮现为对话气泡（而非被丢弃），与「停止」语义区分开。
+- **HTML 预览窗口定位异常**（[#290](https://github.com/justaboyhai-wq/BlexAgents/issues/290)）：点击文件名预览 HTML 时，内嵌浏览器有时以 0 宽度创建、悬浮覆盖在聊天区域上方而非显示在右侧浏览器面板。根因是右侧分栏容器在聊天区 300ms 宽度过渡动画期间宽度仍为 0，创建时读到的尺寸是 0。现已改为等容器完成布局后再创建 webview，并在前后端两侧都拦截退化尺寸。
+- **强制发送会浮现在途排队消息**（[#289](https://github.com/justaboyhai-wq/BlexAgents/issues/289)）：对排队消息点「立即发送」时，正在处理中的那条消息会正确浮现为对话气泡（而非被丢弃），与「停止」语义区分开。
 - **多选问答回答丢失**：升级 SDK 0.3.158 后，内置「向用户提问」工具改为按问题文本回填答案，旧的按序号回填会让模型收到「用户未作答」。现已改为按问题文本作答案键。
 - **思考块在流式期间不再抖动**：AI 回复流式输出时，思考块不再自动展开 / 折叠；展开某个工具执行行后也会保持展开，不会因折叠卸载而丢失已加载内容。
 - **OpenClaw 渠道状态按渠道隔离**：多个 IM 渠道使用 OpenClaw 插件时，各自的本地登录状态相互隔离，不再串到同一个 `~/.openclaw` 实例。
@@ -524,7 +524,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **OpenAI 协议供应商的 token 使用统计**（[#277](https://github.com/hAcKlyc/MyAgents/issues/277)）：使用 OpenAI 兼容协议的第三方供应商（如 APIFree）时，使用统计不再一直显示 0，输入 / 输出 token 能正确统计。
+- **OpenAI 协议供应商的 token 使用统计**（[#277](https://github.com/justaboyhai-wq/BlexAgents/issues/277)）：使用 OpenAI 兼容协议的第三方供应商（如 APIFree）时，使用统计不再一直显示 0，输入 / 输出 token 能正确统计。
 
 ---
 
@@ -534,14 +534,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **重启后自动恢复会话标签**（[#232](https://github.com/hAcKlyc/MyAgents/issues/232)）：重启或更新应用后，之前打开的聊天标签会自动恢复，不用再一个个重新打开。
+- **重启后自动恢复会话标签**（[#232](https://github.com/justaboyhai-wq/BlexAgents/issues/232)）：重启或更新应用后，之前打开的聊天标签会自动恢复，不用再一个个重新打开。
 - **思考过程与回复支持导出**：聊天中的 AI 思考块和单条回复现在可以单独复制或导出为 Markdown 文件。
-- **历史对话支持按 ID 跳转**（[#260](https://github.com/hAcKlyc/MyAgents/issues/260)）：在历史对话搜索框粘贴会话 ID，即可直接定位到对应会话。
-- **后台智能体权限策略**（[#264](https://github.com/hAcKlyc/MyAgents/issues/264)）：新增后台运行子任务的工具权限策略，可选择继承当前会话的授权或完全自主执行，后台任务不再因无人放行而被静默拒绝。
+- **历史对话支持按 ID 跳转**（[#260](https://github.com/justaboyhai-wq/BlexAgents/issues/260)）：在历史对话搜索框粘贴会话 ID，即可直接定位到对应会话。
+- **后台智能体权限策略**（[#264](https://github.com/justaboyhai-wq/BlexAgents/issues/264)）：新增后台运行子任务的工具权限策略，可选择继承当前会话的授权或完全自主执行，后台任务不再因无人放行而被静默拒绝。
 
 ### Fixed
 
-- **设置页显示真实仓库地址**（[#256](https://github.com/hAcKlyc/MyAgents/issues/256)）：关于页脚的 GitHub 链接现在指向真实的项目仓库。
+- **设置页显示真实仓库地址**（[#256](https://github.com/justaboyhai-wq/BlexAgents/issues/256)）：关于页脚的 GitHub 链接现在指向真实的项目仓库。
 - **会话标题显示更干净**：标题截断前会先剥离系统包装文本，显示更贴近真实内容。
 - **修复输入法重复输入**：在带文件引用的输入框中使用中文输入法，不再产生重复字符。
 - **定时任务与渠道恢复更稳定**：加固了定时任务和 IM Agent 渠道的自动恢复逻辑，异常后能更可靠地自行拉起。
@@ -573,18 +573,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **点击历史对话现在会稳定打开被点击的那一条**（[#255](https://github.com/hAcKlyc/MyAgents/issues/255)）：历史切换时不再被上一条会话遗留的运行状态拦住，界面、Sidecar 和消息历史会一起切到目标会话。
+- **点击历史对话现在会稳定打开被点击的那一条**（[#255](https://github.com/justaboyhai-wq/BlexAgents/issues/255)）：历史切换时不再被上一条会话遗留的运行状态拦住，界面、Sidecar 和消息历史会一起切到目标会话。
 - **历史对话标题显示口径统一**：右上历史下拉、启动页 / 全部历史面板、打开后的 Chat 顶部现在使用同一套规则：优先显示会话标题，标题为空时 fallback 到最后一条真实用户消息；Codex / Claude Code 等外部 Runtime 不再把 AI 回复片段当作历史列表标题。
 
 ---
 
 ## [0.2.22] - 2026-05-26
 
-> 本版继续收紧外部 Runtime 和长对话体验：Codex Runtime 的工具/权限/协议适配更稳，聊天列表在隐藏窗口后不再容易错位，AI 回复尾部淡出、用户消息气泡、Markdown 文件链接和 SessionID 复制这些高频细节也做了补齐。另外修复了 MyAgents 自己的 npm 安装隔离变量泄漏到用户 shell、触发 nvm 警告的问题。
+> 本版继续收紧外部 Runtime 和长对话体验：Codex Runtime 的工具/权限/协议适配更稳，聊天列表在隐藏窗口后不再容易错位，AI 回复尾部淡出、用户消息气泡、Markdown 文件链接和 SessionID 复制这些高频细节也做了补齐。另外修复了 BlexAgent 自己的 npm 安装隔离变量泄漏到用户 shell、触发 nvm 警告的问题。
 
 ### Added
 
-- **Markdown 里的工作区文件链接可直接预览**：AI 回复中出现当前工作区内的文件路径链接时，点击会在 MyAgents 的文件预览 / 分屏预览中打开，支持 `:42` / `#L42` 这类行号定位；不可预览的文件会交给系统默认应用打开，网页链接仍按原来的浏览器逻辑处理。
+- **Markdown 里的工作区文件链接可直接预览**：AI 回复中出现当前工作区内的文件路径链接时，点击会在 BlexAgent 的文件预览 / 分屏预览中打开，支持 `:42` / `#L42` 这类行号定位；不可预览的文件会交给系统默认应用打开，网页链接仍按原来的浏览器逻辑处理。
 - **对话菜单可复制 SessionID**：会话右上角菜单顶部现在显示当前 SessionID，并提供一键复制，方便在 issue、排查日志或跨会话协作时准确引用。
 
 ### Fixed
@@ -596,7 +596,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **IM / OpenClaw Bridge 派发更稳**：修复部分 IM fallback、history 渲染和 Bridge pending dispatch 失败路径，避免非 @ 群消息或插件回调失败时把渠道卡到长时间等待。
 - **Agent Channel 会话交接更可靠**：桌面会话交接到 IM 频道、频道间切换或新建频道会话后，不再容易把回复路由到旧会话或旧频道。
 - **TodoWrite 待办状态显示跟随实际结果**：TodoWrite 完成后，工具卡片、紧凑标签和 Agent 状态面板会显示最新待办状态，不再停留在调用输入里的旧进度。
-- **nvm 用户不再看到 MyAgents 注入的 npm prefix 警告**（[#247](https://github.com/hAcKlyc/MyAgents/issues/247)）：MyAgents 不再把 `npm_config_prefix=~/.myagents/npm-global` 泄漏到整个 AI shell 环境；需要安装 CLI 时改为命令级隔离安装，既不污染用户 nvm 环境，也保留 AI 自装工具的可用性。
+- **nvm 用户不再看到 BlexAgent 注入的 npm prefix 警告**（[#247](https://github.com/justaboyhai-wq/BlexAgents/issues/247)）：BlexAgent 不再把 `npm_config_prefix=~/.blexagent/npm-global` 泄漏到整个 AI shell 环境；需要安装 CLI 时改为命令级隔离安装，既不污染用户 nvm 环境，也保留 AI 自装工具的可用性。
 - **Task / AskUserQuestion 输入展示细节修复**：选择题和相关输入区域的布局、滚动同步在 resize 后更稳定，减少内容错位。
 
 ---
@@ -607,12 +607,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Windows 对话进行中频繁掉线、全局 Sidecar 反复重启**（[#236](https://github.com/hAcKlyc/MyAgents/issues/236)）：全局 Sidecar 的健康检查原本单次探测失败（进程其实还活着，只是被 Defender 扫描 / 瞬时高负载卡了一下）就重启，连带所有 Tab 一起掉线。现在要求连续两次探测失败才重启，进程真死仍立即重启，并在日志里标注存活状态便于排查。（注：日志里的 `SSE stream error / 10054` 是进程被回收的结果，不是原因。）
-- **历史记录切换后界面卡死 / 空白**（[#235](https://github.com/hAcKlyc/MyAgents/issues/235)）：网络抖动导致 SSE 连接一直连不上时，会话加载会无限等待、界面永久空白。现在加了超时兜底——超时后直接用 HTTP 加载会话内容让你先看到对话，SSE 恢复后继续流式。
-- **新建 Tab 首条消息没按工作区权限模式发送**（[#244](https://github.com/hAcKlyc/MyAgents/issues/244)）：新建 Tab 后立刻发的第一条消息会用默认的 `auto` 而不是工作区配置的权限（如 fullAgency），表现为「明明配了权限却说工具不可用」。现在首条消息也正确采用配置值。
-- **改 Agent 默认 Provider 后快捷启动栏仍用旧 Provider**（[#234](https://github.com/hAcKlyc/MyAgents/issues/234)）：在设置里把 Agent 默认 Provider 换掉后，快捷启动栏仍记着旧的，从启动栏开的新会话会走错 Provider 导致超时。现在启动栏会跟随 Agent 当前默认 Provider。
-- **本地插件 `cc-plugin install file://` 报「目录已存在」却装不上**（[#239](https://github.com/hAcKlyc/MyAgents/issues/239)）：当插件目录已经放在 `~/.myagents/plugins/<名字>` 下、再用 `file://` 指向它安装时会 409 失败、且 `cc-plugin list` 看不到。现在能原地正确注册。
-- **对话自动命名被 API 错误信息污染**（[#245](https://github.com/hAcKlyc/MyAgents/issues/245)）：上游返回 4xx/5xx 时错误文本会被当成正常回复，导致会话被自动命名成「API Error: 400 …」。现在带错误的轮次不再参与自动起标题。
+- **Windows 对话进行中频繁掉线、全局 Sidecar 反复重启**（[#236](https://github.com/justaboyhai-wq/BlexAgents/issues/236)）：全局 Sidecar 的健康检查原本单次探测失败（进程其实还活着，只是被 Defender 扫描 / 瞬时高负载卡了一下）就重启，连带所有 Tab 一起掉线。现在要求连续两次探测失败才重启，进程真死仍立即重启，并在日志里标注存活状态便于排查。（注：日志里的 `SSE stream error / 10054` 是进程被回收的结果，不是原因。）
+- **历史记录切换后界面卡死 / 空白**（[#235](https://github.com/justaboyhai-wq/BlexAgents/issues/235)）：网络抖动导致 SSE 连接一直连不上时，会话加载会无限等待、界面永久空白。现在加了超时兜底——超时后直接用 HTTP 加载会话内容让你先看到对话，SSE 恢复后继续流式。
+- **新建 Tab 首条消息没按工作区权限模式发送**（[#244](https://github.com/justaboyhai-wq/BlexAgents/issues/244)）：新建 Tab 后立刻发的第一条消息会用默认的 `auto` 而不是工作区配置的权限（如 fullAgency），表现为「明明配了权限却说工具不可用」。现在首条消息也正确采用配置值。
+- **改 Agent 默认 Provider 后快捷启动栏仍用旧 Provider**（[#234](https://github.com/justaboyhai-wq/BlexAgents/issues/234)）：在设置里把 Agent 默认 Provider 换掉后，快捷启动栏仍记着旧的，从启动栏开的新会话会走错 Provider 导致超时。现在启动栏会跟随 Agent 当前默认 Provider。
+- **本地插件 `cc-plugin install file://` 报「目录已存在」却装不上**（[#239](https://github.com/justaboyhai-wq/BlexAgents/issues/239)）：当插件目录已经放在 `~/.blexagent/plugins/<名字>` 下、再用 `file://` 指向它安装时会 409 失败、且 `cc-plugin list` 看不到。现在能原地正确注册。
+- **对话自动命名被 API 错误信息污染**（[#245](https://github.com/justaboyhai-wq/BlexAgents/issues/245)）：上游返回 4xx/5xx 时错误文本会被当成正常回复，导致会话被自动命名成「API Error: 400 …」。现在带错误的轮次不再参与自动起标题。
 - **生成式 UI widget 在桌面端空白**：仅桌面端打开的生成式 UI widget 因导航守卫误拦内部 iframe 而显示空白，已修。
 - **安全加固**：关闭 macOS 路径安全黑名单缺口——`/etc`、`/var` 在 macOS 上是指向 `/private/*` 的符号链接，其规范化形式 `/private/etc`、`/private/var` 此前能绕过黑名单，现已一并拦截；同时加固了工具下载图片时对内网 / loopback 地址（含 IPv6 映射形式）的 SSRF 防护。
 
@@ -632,14 +632,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **长任务在系统休眠 / App Nap 后被「突然自动中止」**：响应超时计时器原本用墙钟计时，进程被系统挂起期间墙钟照走、醒来即被误判为「10 分钟无响应」而 kill。现在只统计进程实际活跃时间，挂起期间不计入；交互式 turn 等待你输入期间也不再误触发超时，并对其持有系统 wake-lock。
 - **关闭 Tab 会中断正在后台跑的任务**：之前关掉聊天 Tab 会被当成「取消任务」，导致后台完成 / 定时任务 / IM 派发的 turn 被中断，飞书等渠道收到 `turn_failed`。现在任务生命周期与前端连接解耦，关 Tab 不再影响后台执行。
-- **后台子任务通知丢失**（[#227](https://github.com/hAcKlyc/MyAgents/issues/227)）：后台子 Agent 完成通知约 23% 静默丢失，且富文本摘要会被丢弃只剩一行。现已确保通知必达、摘要完整保留。
-- **非 Claude 模型下图表卡片空白**（[#221](https://github.com/hAcKlyc/MyAgents/issues/221)）：Codex / Gemini 等模型生成的图表卡片因脚本竞态与解析问题渲染空白；正文中含字面量 `<` 开标签的卡片也会被截断。均已修正。
-- **切到 Codex runtime 模型名错配**（[#224](https://github.com/hAcKlyc/MyAgents/issues/224)）：Codex 会话的快照会错存成 Claude 模型名，导致读取时模型不符。改为按 runtime 存取并在读侧纠正。
-- **定时任务推送到 IM 缺少来源会话标识**（[#225](https://github.com/hAcKlyc/MyAgents/issues/225)）：cron 结果投递到飞书等渠道时缺 Source session id 行，可能落错会话，已补全。
-- **渠道停用未跨重启保持**（[#219](https://github.com/hAcKlyc/MyAgents/issues/219)）：手动停用的 IM 渠道在应用重启后会自己复活。现在停用状态会持久化，重启后保持停用。
-- **粘贴超长文本卡死输入框**（[#231](https://github.com/hAcKlyc/MyAgents/issues/231)）：往聊天输入框粘贴超长文本会导致界面冻结，已修。
-- **代理设置每敲一键就重连**（[#230](https://github.com/hAcKlyc/MyAgents/issues/230)）：设置页编辑代理端口 / 主机时每个字符都触发重载，现改为编辑完成后再生效。
-- **Windows 下 CLI 调用内置 Node 失败**（[#229](https://github.com/hAcKlyc/MyAgents/issues/229)）：`myagents.cmd` 拿到的内置 Node 路径带 `\\?\` 长路径前缀导致调用失败，已剥除。
+- **后台子任务通知丢失**（[#227](https://github.com/justaboyhai-wq/BlexAgents/issues/227)）：后台子 Agent 完成通知约 23% 静默丢失，且富文本摘要会被丢弃只剩一行。现已确保通知必达、摘要完整保留。
+- **非 Claude 模型下图表卡片空白**（[#221](https://github.com/justaboyhai-wq/BlexAgents/issues/221)）：Codex / Gemini 等模型生成的图表卡片因脚本竞态与解析问题渲染空白；正文中含字面量 `<` 开标签的卡片也会被截断。均已修正。
+- **切到 Codex runtime 模型名错配**（[#224](https://github.com/justaboyhai-wq/BlexAgents/issues/224)）：Codex 会话的快照会错存成 Claude 模型名，导致读取时模型不符。改为按 runtime 存取并在读侧纠正。
+- **定时任务推送到 IM 缺少来源会话标识**（[#225](https://github.com/justaboyhai-wq/BlexAgents/issues/225)）：cron 结果投递到飞书等渠道时缺 Source session id 行，可能落错会话，已补全。
+- **渠道停用未跨重启保持**（[#219](https://github.com/justaboyhai-wq/BlexAgents/issues/219)）：手动停用的 IM 渠道在应用重启后会自己复活。现在停用状态会持久化，重启后保持停用。
+- **粘贴超长文本卡死输入框**（[#231](https://github.com/justaboyhai-wq/BlexAgents/issues/231)）：往聊天输入框粘贴超长文本会导致界面冻结，已修。
+- **代理设置每敲一键就重连**（[#230](https://github.com/justaboyhai-wq/BlexAgents/issues/230)）：设置页编辑代理端口 / 主机时每个字符都触发重载，现改为编辑完成后再生效。
+- **Windows 下 CLI 调用内置 Node 失败**（[#229](https://github.com/justaboyhai-wq/BlexAgents/issues/229)）：`blexagent.cmd` 拿到的内置 Node 路径带 `\\?\` 长路径前缀导致调用失败，已剥除。
 - **Fork 过期会话无限重试**：源会话的 SDK session UUID 过期后 Fork 会无限重试，已修为优雅处理。
 - **零碎体验**：右键「复制文件 / 文件夹路径」现在复制完整绝对路径而非工作区相对路径；工具卡片图标在 Windows 11 上错位已对齐；点击菜单 / 能力 / 输入区按钮时焦点不再被抢走（macOS 触控板 tap）；切换 Tab 更跟手。
 
@@ -647,7 +647,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.19] - 2026-05-20
 
-> 主修「长跑 cron 任务被系统休眠杀掉」这一类问题：cron 执行期间主动向系统申请「防 idle sleep」锁，三平台（macOS / Windows / Linux）全部支持；万一锁不住（用户合上盖子、Linux 无 systemd），AI 下次回到这个 session 时会自动续跑上次未完成的任务，不用手动 "继续"。另外修了 Chat Cmd+F 翻页被流式更新打断、SiliconFlow 上的 Kimi K2.5 模型一日挂死 43 次（[#216](https://github.com/hAcKlyc/MyAgents/issues/216)）等社区报告的问题。
+> 主修「长跑 cron 任务被系统休眠杀掉」这一类问题：cron 执行期间主动向系统申请「防 idle sleep」锁，三平台（macOS / Windows / Linux）全部支持；万一锁不住（用户合上盖子、Linux 无 systemd），AI 下次回到这个 session 时会自动续跑上次未完成的任务，不用手动 "继续"。另外修了 Chat Cmd+F 翻页被流式更新打断、SiliconFlow 上的 Kimi K2.5 模型一日挂死 43 次（[#216](https://github.com/justaboyhai-wq/BlexAgents/issues/216)）等社区报告的问题。
 
 ### Added
 
@@ -656,8 +656,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Chat Cmd+F 搜索翻页被流式更新打断**（[#214](https://github.com/hAcKlyc/MyAgents/issues/214)）：消息流式刷新或父组件 re-render 时会触发一个 150ms 防抖的 reconcile，原本会无条件覆盖用户刚点的 next/prev 跳转位置，看起来像「卡在最后一个匹配」。现在 reconcile 检测到用户刚翻过页就保留用户的位置。
-- **SiliconFlow 上的 Kimi K2.5 等模型挂死**（[#216](https://github.com/hAcKlyc/MyAgents/issues/216)）：SiliconFlow 的 Anthropic 兼容层对这类模型返回非规范的 thinking block，SDK 抛 `Content block is not a text block` 直接挂死会话（报告者一天遇到 43 次）。预设改走它的 OpenAI 兼容层（`/v1`），reasoning_content / tool_calls 都标准，已有的 OpenAI Bridge 也显式适配 Kimi K2.5 的 reasoning_content。
+- **Chat Cmd+F 搜索翻页被流式更新打断**（[#214](https://github.com/justaboyhai-wq/BlexAgents/issues/214)）：消息流式刷新或父组件 re-render 时会触发一个 150ms 防抖的 reconcile，原本会无条件覆盖用户刚点的 next/prev 跳转位置，看起来像「卡在最后一个匹配」。现在 reconcile 检测到用户刚翻过页就保留用户的位置。
+- **SiliconFlow 上的 Kimi K2.5 等模型挂死**（[#216](https://github.com/justaboyhai-wq/BlexAgents/issues/216)）：SiliconFlow 的 Anthropic 兼容层对这类模型返回非规范的 thinking block，SDK 抛 `Content block is not a text block` 直接挂死会话（报告者一天遇到 43 次）。预设改走它的 OpenAI 兼容层（`/v1`），reasoning_content / tool_calls 都标准，已有的 OpenAI Bridge 也显式适配 Kimi K2.5 的 reasoning_content。
 - **Chat 输入框 Todo 卡片被发送队列遮住**：AgentStatusPanel 与 QueuedMessagesPanel 都在输入框正上方右对齐 z-20 渲染，发消息后排队卡会盖住 Todo。两者合并到同一行 flex 排布，不再抢 Z 层。
 - **WeCom 群聊「全部消息」开关说明**：企微 AI Bot 平台 webhook 仅在 @ 机器人时下发事件，原生没有「未 @ 也响应所有群消息」的能力。设置页里禁用该渠道的「全部消息」开关并给出 tooltip 说明，避免用户误以为关掉就能跑。
 
@@ -665,22 +665,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.18] - 2026-05-19
 
-> 引入「Session 间异步消息」——AI 现在可以用一行 `myagents session send` 让另一个 session 帮忙处理子任务，跑完自动把结果推回。Chat 顶部 Cmd+F 长会话搜索打通虚拟化，再也不会出现 "0 matches"。CLI 端 `task` 补齐缺口，从命令行就能搭起带 IM 推送的循环任务。配套修了一批 cron 历史会话、IM 渠道、Markdown 渲染上的细碎问题。
+> 引入「Session 间异步消息」——AI 现在可以用一行 `blexagent session send` 让另一个 session 帮忙处理子任务，跑完自动把结果推回。Chat 顶部 Cmd+F 长会话搜索打通虚拟化，再也不会出现 "0 matches"。CLI 端 `task` 补齐缺口，从命令行就能搭起带 IM 推送的循环任务。配套修了一批 cron 历史会话、IM 渠道、Markdown 渲染上的细碎问题。
 
 ### Added
 
-- **Session 间异步消息通道（Session Inbox）**：AI 通过 `myagents session send <sid> -p "..."` 把 prompt 投递给另一个 session，target 处理完自动把回复推回 caller 的下一个 turn。Fire-and-forget 不阻塞，支持 `--no-reply` 单向投递（target 收到后不回包）。秘书 AI、并行调研、跨 workspace 协作场景的基础设施。
-- **长会话 Cmd+F 搜索打通虚拟化**（[#209](https://github.com/hAcKlyc/MyAgents/issues/209)）：之前 Chat 搜索只在已渲染的消息里扫，长会话往上的关键词显示 "0 matches"，要手动滚到那条才能搜到。现在直接扫消息数组，跳转时自动滚动定位并高亮命中位置，落点还有 pulse 提示。
-- **`myagents task` CLI 全 flag 支持**（[#205](https://github.com/hAcKlyc/MyAgents/issues/205)）：`task create-direct` 现在能接 `--intervalMinutes / --cronExpression / --cronTimezone / --dispatchAt`，以及 `--notificationBotChannelId / --notificationBotThread / --notificationDesktop / --notificationEvents` 等 IM 推送字段，纯命令行就能搭起 recurring Task Center 任务。新增 `task update <id>`（与 `cron update` 能力对齐），可在创建后改 interval / cron / notification / prompt / 各 runtime 覆写；通知字段是客户端 merge，不会一改 `--notificationDesktop` 就把 botChannelId 一起抹掉。
+- **Session 间异步消息通道（Session Inbox）**：AI 通过 `blexagent session send <sid> -p "..."` 把 prompt 投递给另一个 session，target 处理完自动把回复推回 caller 的下一个 turn。Fire-and-forget 不阻塞，支持 `--no-reply` 单向投递（target 收到后不回包）。秘书 AI、并行调研、跨 workspace 协作场景的基础设施。
+- **长会话 Cmd+F 搜索打通虚拟化**（[#209](https://github.com/justaboyhai-wq/BlexAgents/issues/209)）：之前 Chat 搜索只在已渲染的消息里扫，长会话往上的关键词显示 "0 matches"，要手动滚到那条才能搜到。现在直接扫消息数组，跳转时自动滚动定位并高亮命中位置，落点还有 pulse 提示。
+- **`blexagent task` CLI 全 flag 支持**（[#205](https://github.com/justaboyhai-wq/BlexAgents/issues/205)）：`task create-direct` 现在能接 `--intervalMinutes / --cronExpression / --cronTimezone / --dispatchAt`，以及 `--notificationBotChannelId / --notificationBotThread / --notificationDesktop / --notificationEvents` 等 IM 推送字段，纯命令行就能搭起 recurring Task Center 任务。新增 `task update <id>`（与 `cron update` 能力对齐），可在创建后改 interval / cron / notification / prompt / 各 runtime 覆写；通知字段是客户端 merge，不会一改 `--notificationDesktop` 就把 botChannelId 一起抹掉。
 
 ### Fixed
 
-- **`task remove` 与 `im --help` 命令补齐**（[#205](https://github.com/hAcKlyc/MyAgents/issues/205)）：`task remove` 不再 404，是 `task delete` 的别名；`im --help` 不再返回硬编码的过期组列表，fallback 由真实 `HELP_TEXTS` 自动派生，并补上 `im / thought / widget / skill / diagnose` 五组 `--help` 文案。`task get` 在 recurring/scheduled/loop 任务上显式标出「IM 推送：未配置」，recurring 不带 interval 时直接 warning，避免静默走 60 分钟默认。
-- **Cron `new_session` 历史会话不再被任务面板挡住**（[#206](https://github.com/hAcKlyc/MyAgents/issues/206)）：`runMode: new_session` 模式下每次执行都换新 sessionId，从「任务详情 → 关联会话」打开的历史会话本就是只读的一次性记录，但之前还会显示 CronTask Overlay 把输入框挡住。现在 new_session 历史会话与普通会话一致；single_session（连续模式）行为不变。
-- **WeCom 渠道凭据被静默覆盖**（[#207](https://github.com/hAcKlyc/MyAgents/issues/207)）：通过 dualConfig 表单填的 botId / secret 在保存时会被空 customFields 覆盖，重开渠道发现凭据没了。现已修正保存逻辑。
-- **OpenClaw 第三方插件适配**（[#208](https://github.com/hAcKlyc/MyAgents/issues/208)）：openclaw-plugin-yuanbao 等第三方插件首次收消息时报 `Cannot read properties of undefined (reading 'debouncer')` 而崩溃。补全 channel-inbound / reply-pipeline 两个 shim 后正常路由。
+- **`task remove` 与 `im --help` 命令补齐**（[#205](https://github.com/justaboyhai-wq/BlexAgents/issues/205)）：`task remove` 不再 404，是 `task delete` 的别名；`im --help` 不再返回硬编码的过期组列表，fallback 由真实 `HELP_TEXTS` 自动派生，并补上 `im / thought / widget / skill / diagnose` 五组 `--help` 文案。`task get` 在 recurring/scheduled/loop 任务上显式标出「IM 推送：未配置」，recurring 不带 interval 时直接 warning，避免静默走 60 分钟默认。
+- **Cron `new_session` 历史会话不再被任务面板挡住**（[#206](https://github.com/justaboyhai-wq/BlexAgents/issues/206)）：`runMode: new_session` 模式下每次执行都换新 sessionId，从「任务详情 → 关联会话」打开的历史会话本就是只读的一次性记录，但之前还会显示 CronTask Overlay 把输入框挡住。现在 new_session 历史会话与普通会话一致；single_session（连续模式）行为不变。
+- **WeCom 渠道凭据被静默覆盖**（[#207](https://github.com/justaboyhai-wq/BlexAgents/issues/207)）：通过 dualConfig 表单填的 botId / secret 在保存时会被空 customFields 覆盖，重开渠道发现凭据没了。现已修正保存逻辑。
+- **OpenClaw 第三方插件适配**（[#208](https://github.com/justaboyhai-wq/BlexAgents/issues/208)）：openclaw-plugin-yuanbao 等第三方插件首次收消息时报 `Cannot read properties of undefined (reading 'debouncer')` 而崩溃。补全 channel-inbound / reply-pipeline 两个 shim 后正常路由。
 - **Markdown 自动修正过于激进**：之前会把 `#210`（issue 引用）、`#topic`（tag）改成 h1，把 `0.2.18` `2026.5.18` `192.168.1.1` 改成 ordered list，把 `-50%` 改成 unordered list。现在只在明确是列表的场景（`1.item` → `1. item`、`-item` → `- item`）改写，其余依 CommonMark 原样渲染。
-- **IM Bot Bridge 启动时序**（[#211](https://github.com/hAcKlyc/MyAgents/issues/211)）：Bridge `/status` 在 spawn 后 ~13ms 第一次查询时会因 ECONNREFUSED 直接退出，导致渠道偶发起不来。现在连接失败按 retry 处理，仍在 15s 重试窗口内。
+- **IM Bot Bridge 启动时序**（[#211](https://github.com/justaboyhai-wq/BlexAgents/issues/211)）：Bridge `/status` 在 spawn 后 ~13ms 第一次查询时会因 ECONNREFUSED 直接退出，导致渠道偶发起不来。现在连接失败按 retry 处理，仍在 15s 重试窗口内。
 
 ---
 
@@ -694,13 +694,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **批量装插件**：一个仓库里平铺多个插件时（如 `anthropics/claude-for-legal` 的 13 个法律插件），安装弹窗自动列出全部候选默认全选，逐个安装；失败的不影响其它继续装。
 - **按工作区启用插件**：设置页的开关只决定「这个插件在工作区里是否能看到」；是否对当前工作区生效，在 Chat 输入框「工具 → 插件」子菜单或 Agent 设置面板「插件」一行勾选，两个入口同步。
 - **Chat 顶部 Agent Status 悬浮面板**：实时汇总当前轮的 Todo 进度和正在跑的子 Agent，点击展开看详情；点子 Agent 卡片直接跳到对话里发起它的位置；全部完成后自动淡出。
-- **供应商启用与排序**（[#201](https://github.com/hAcKlyc/MyAgents/pull/201) by [@Wesegm](https://github.com/Wesegm)，社区贡献 🙏）：设置 → 供应商新增「启用和排序」对话框，可拖拽排序、按需开关。禁用的供应商从模型选择器、fallback 链、cron 路由、IM Bot 选择器全面隐藏，但 API Key 和配置保留，重新启用即恢复。
-- **CLI `myagents cc-plugin` 子命令**：`list / install / uninstall / enable / disable / show`，命令行管理 Claude 插件。
+- **供应商启用与排序**（[#201](https://github.com/justaboyhai-wq/BlexAgents/pull/201) by [@Wesegm](https://github.com/Wesegm)，社区贡献 🙏）：设置 → 供应商新增「启用和排序」对话框，可拖拽排序、按需开关。禁用的供应商从模型选择器、fallback 链、cron 路由、IM Bot 选择器全面隐藏，但 API Key 和配置保留，重新启用即恢复。
+- **CLI `blexagent cc-plugin` 子命令**：`list / install / uninstall / enable / disable / show`，命令行管理 Claude 插件。
 
 ### Fixed
 
-- **订阅登录识别**（[#203](https://github.com/hAcKlyc/MyAgents/issues/203)，感谢 [@TimCheung-jx](https://github.com/TimCheung-jx) 反馈）：在 Claude Code CLI 上只跑过 `claude auth login`、OAuth token 仅存在系统 Keychain 的用户，之前会被误判成「未登录」导致订阅模型不可用。现在能正确识别。
-- **Cron 任务的 `--model` 在外部 Runtime 生效**（[#204](https://github.com/hAcKlyc/MyAgents/issues/204)，感谢 [@sundanian1991](https://github.com/sundanian1991) 反馈）：之前 `myagents task create-direct --runtime codex --model X` 里的 `--model` 会被 Agent 默认模型覆盖，Codex 等模型名不同的 Runtime 会直接报 unknown model。现已修正优先级。
+- **订阅登录识别**（[#203](https://github.com/justaboyhai-wq/BlexAgents/issues/203)，感谢 [@TimCheung-jx](https://github.com/TimCheung-jx) 反馈）：在 Claude Code CLI 上只跑过 `claude auth login`、OAuth token 仅存在系统 Keychain 的用户，之前会被误判成「未登录」导致订阅模型不可用。现在能正确识别。
+- **Cron 任务的 `--model` 在外部 Runtime 生效**（[#204](https://github.com/justaboyhai-wq/BlexAgents/issues/204)，感谢 [@sundanian1991](https://github.com/sundanian1991) 反馈）：之前 `blexagent task create-direct --runtime codex --model X` 里的 `--model` 会被 Agent 默认模型覆盖，Codex 等模型名不同的 Runtime 会直接报 unknown model。现已修正优先级。
 
 ---
 
@@ -710,17 +710,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **全局快捷键唤起 MyAgents**：默认 `⌘⇧M`（Windows / Linux: `Ctrl+Shift+M`），按一下前台、再按一下隐藏到托盘（Raycast 风格 toggle）。可在 设置 → 通用 → 启动设置 改键或关闭。当前 tab / 焦点保持不变——快捷键纯粹是窗口显隐切换，不抢焦点也不强切到 launcher。
-- **Codex Runtime 自诊断面板 + 每 Agent 网络代理选择**（#194）：用 Codex Runtime 时如果遇到登录、MCP server、外部连接器（artifact-tool 等）问题，chat 顶栏会自动浮出一条诊断条让你直接看到「哪里挂了」，不用翻日志。每个 Agent 的「基础设置」也多了一项「网络代理」二选一：**MyAgents 代理**（默认，与桌面端 设置 → 网络代理 一致）和 **跟随终端**（等同于在你电脑的终端里手动启动这个 CLI 时看到的环境变量）。解决一类典型问题：用户终端里能调到的外部连接器，MyAgents 里因为代理不一致调不到。
+- **全局快捷键唤起 BlexAgent**：默认 `⌘⇧M`（Windows / Linux: `Ctrl+Shift+M`），按一下前台、再按一下隐藏到托盘（Raycast 风格 toggle）。可在 设置 → 通用 → 启动设置 改键或关闭。当前 tab / 焦点保持不变——快捷键纯粹是窗口显隐切换，不抢焦点也不强切到 launcher。
+- **Codex Runtime 自诊断面板 + 每 Agent 网络代理选择**（#194）：用 Codex Runtime 时如果遇到登录、MCP server、外部连接器（artifact-tool 等）问题，chat 顶栏会自动浮出一条诊断条让你直接看到「哪里挂了」，不用翻日志。每个 Agent 的「基础设置」也多了一项「网络代理」二选一：**BlexAgent 代理**（默认，与桌面端 设置 → 网络代理 一致）和 **跟随终端**（等同于在你电脑的终端里手动启动这个 CLI 时看到的环境变量）。解决一类典型问题：用户终端里能调到的外部连接器，BlexAgent 里因为代理不一致调不到。
 - **想法可归档**：想法列表的「更多」菜单和批量操作栏都加了归档/取消归档。归档后从默认视图隐藏但全文搜索仍可命中（邮箱式语义）。在已归档分段里也能直接新建想法（会自动切回活跃视图）。Launcher 最近想法行 / 输入框 `#` picker 默认不展示已归档项。
 - **链接右键菜单**：chat 消息 / AI 回复里的链接，右键弹自定义菜单「预览（内置浏览器）/ 拷贝链接 / 在系统浏览器中打开」——之前只能直接外部打开。「预览」在 split view 启用时会落到右侧浏览器面板。
-- **CLI 新增 runtime 诊断子命令**：`myagents runtime diagnose codex`（或 `myagents diagnose runtime codex`），返回结构化 JSON 可直接贴 GitHub issue。
+- **CLI 新增 runtime 诊断子命令**：`blexagent runtime diagnose codex`（或 `blexagent diagnose runtime codex`），返回结构化 JSON 可直接贴 GitHub issue。
 
 ### Fixed
 
 - **工作区文件树不再每次 AI 写文件后就收起**：展开了多层目录后，AI 跑工具 / 保存文件 / 文件 watcher 事件 / 120s 后台轮询任意一个动作都会让深层目录视觉上收回去——多层嵌套项目用户感受明显。现在 tab 生命周期里展开状态稳定。
 - **第三方迁订阅用户的 Anthropic 订阅验证不再 403**（#199）：从 cc-switch / Claude Code Router 等第三方 CLI 工具迁过来的用户，`~/.claude/settings.json` 里残留的 `apiKeyHelper` 字段会让 SDK 拒绝走 OAuth → verify 报 403。verify 路径不再加载这个文件，与 chat session 行为一致，SDK 走 macOS Keychain 完成认证。
-- **CLI 创建的定时任务能正确用工作区 provider 与模型**（#197）：`myagents cron add` 创建的任务之前会忽略工作区 Agent 配的第三方 provider，回退到订阅 + Sonnet 默认模型，上游报 403。现在与桌面端 Chat 路径对齐，自动从 Agent 配置捕获 providerId + model；存量旧 cron 在执行时也会动态解析 provider env。
+- **CLI 创建的定时任务能正确用工作区 provider 与模型**（#197）：`blexagent cron add` 创建的任务之前会忽略工作区 Agent 配的第三方 provider，回退到订阅 + Sonnet 默认模型，上游报 403。现在与桌面端 Chat 路径对齐，自动从 Agent 配置捕获 providerId + model；存量旧 cron 在执行时也会动态解析 provider env。
 - **Codex Runtime 切换不再带走旧 runtime 的模型设置**（#194）：从 Gemini Agent 切到 Codex，新开 tab 之前会继续把 `gemini-3.1-pro-preview` 喂给 Codex，CLI 直接报 "model not supported"。Settings 面板 / Launcher / CLI `agent set runtime` 三条切换路径现在统一清理跨 runtime 不通用的字段；启动时还会自动扫描并修复旧版本残留的污染配置。
 - **Codex 已登录用户不再误报"需要登录"**（#194）：诊断面板把 Codex 的产品级元标志当成了用户态信号，已登录的 ChatGPT 账号也会被判定"需要登录 Codex"。现在按真信号判断。
 - **打开 Codex / Gemini 历史会话从 8-10 秒变成几乎瞬间**：以前切到 prewarm 过的同一 session 还要再等一遍 CLI 冷启动，纯白屏；现在同 session 切换立即返回。
@@ -757,7 +757,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **外部 Runtime 长 turn 不再误报"AI 调用失败：网络错误"**（#188）：Codex / Gemini 跑 2 分钟以上的 turn 时桌面端会假性报错——AI 还在干活，只是前端等不到。
 - **Windows 上 Claude Code CLI runtime 不再丢上下文**：之前 Windows 切到 Claude Code CLI runtime 后，每条消息都开新 session 导致多轮对话失忆。
 - **元宝等 OpenClaw 插件升级后启动不再报缺接口**（#187）：插件升级后频繁出现 "does not provide an export named X"、bridge 启动超时——这次从生成器层做结构性修复，未来同类升级不再触发同样的失败。
-- **点开 user-level skill / command 的文件不再误报"文件预览失败"**：在工作区里点开 `.claude/skills/<skill>/SKILL.md` 等通过 junction 链接到 `~/.myagents/skills` 的文件能正常预览。Windows 上尤其常见。
+- **点开 user-level skill / command 的文件不再误报"文件预览失败"**：在工作区里点开 `.claude/skills/<skill>/SKILL.md` 等通过 junction 链接到 `~/.blexagent/skills` 的文件能正常预览。Windows 上尤其常见。
 - **文件预览快速点击不再错位**：工作区面板里连点两个文件不再"看到的是先点的那个"，错误提示也不再双弹。
 - **代码块行号不再被选中/复制**：跨多行框选代码时不再把左侧行号带上。
 
@@ -835,15 +835,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.11] - 2026-05-08
 
-> 重点修复：微信 bot 升级到 2.4.2 后能正常启动；切到 IM bot 历史会话不再被弹回 Launcher；订阅版 Sonnet 4.6 不再撞 1M 限额；流式输出中"取消排队消息"真的能取消。同时把定时任务 / 退出 cron / IM 发图统一到 `myagents` CLI，让外部 runtime（Codex / Gemini / Claude Code CLI）也能用。
+> 重点修复：微信 bot 升级到 2.4.2 后能正常启动；切到 IM bot 历史会话不再被弹回 Launcher；订阅版 Sonnet 4.6 不再撞 1M 限额；流式输出中"取消排队消息"真的能取消。同时把定时任务 / 退出 cron / IM 发图统一到 `blexagent` CLI，让外部 runtime（Codex / Gemini / Claude Code CLI）也能用。
 
 ### Added
 
-- **说一声「记一下…」AI 直接落库**：在桌面 / IM bot / agent 渠道里，用户说「记一下周五要准备演讲」「帮我记…」「note this down」「remember this」，AI 会调 `myagents thought create` 把内容存进收件箱，而不只是嘴上回复"好的我记住了"。触发器严格区分"明确请求记录" vs "顺嘴提到的想法"——FYI / 偏好 / 头脑风暴等不会误存。
+- **说一声「记一下…」AI 直接落库**：在桌面 / IM bot / agent 渠道里，用户说「记一下周五要准备演讲」「帮我记…」「note this down」「remember this」，AI 会调 `blexagent thought create` 把内容存进收件箱，而不只是嘴上回复"好的我记住了"。触发器严格区分"明确请求记录" vs "顺嘴提到的想法"——FYI / 偏好 / 头脑风暴等不会误存。
 
 ### Changed
 
-- **定时任务 / cron 退出 / IM 发图统一走 CLI**：之前这三类能力是 builtin Claude Agent SDK 专属的内置 MCP 工具，外部 runtime（Codex CLI / Gemini CLI / Claude Code CLI）用不了。现在改为通过 `myagents` CLI 提供，所有 runtime 行为一致。同时 cron 增加跨 workspace 隔离——一个 workspace 里创建的定时任务不能被另一个 workspace 的会话删除 / 修改 / 立即执行。
+- **定时任务 / cron 退出 / IM 发图统一走 CLI**：之前这三类能力是 builtin Claude Agent SDK 专属的内置 MCP 工具，外部 runtime（Codex CLI / Gemini CLI / Claude Code CLI）用不了。现在改为通过 `blexagent` CLI 提供，所有 runtime 行为一致。同时 cron 增加跨 workspace 隔离——一个 workspace 里创建的定时任务不能被另一个 workspace 的会话删除 / 修改 / 立即执行。
 
 ### Fixed
 
@@ -852,11 +852,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **流式输出中点 × 取消排队消息真的能取消**：AI 还在输出时用户用"深入讲讲"等快捷动作把消息塞进队列，再点 × 取消——之前内部已同步把消息丢进 SDK，× 只删 UI，AI 仍然会回。现在排队消息延后到 AI 当前轮结束才下发，期间取消即真取消（IM bot 上的取消请求若失败会如实返回 409 而非假装成功）。
 - **订阅版 Sonnet 4.6 不再撞 1M 限额**：`Anthropic（订阅）`预设里 sonnet-4-6 之前被标为 1M 上下文，但订阅默认只给 200K，结果发消息直接报 `Extra usage is required for 1M context`。校正回 200K，订阅用户开箱即用；想用 1M 的可以自定义 provider 显式启用。
 - **删除会话时确认按钮无响应**：会话历史里点删除，确认按钮不触发任何事件——改用统一确认弹窗组件。
-- **行动模式下 AI 调用 `myagents thought create` 不再弹权限框**：AI 用单引号包裹内容（防 shell 注入）调 thought create，过去仍要用户点一次"允许"才能落库。现在符合"单引号、无尾随 shell 元字符"形式直接放行；双引号 / 不带引号等任何不安全形式仍会拦截。
+- **行动模式下 AI 调用 `blexagent thought create` 不再弹权限框**：AI 用单引号包裹内容（防 shell 注入）调 thought create，过去仍要用户点一次"允许"才能落库。现在符合"单引号、无尾随 shell 元字符"形式直接放行；双引号 / 不带引号等任何不安全形式仍会拦截。
 - **Windows CLI 一组体感问题（issue #149）**：
   - `cron add --dry-run` 之前会真的写入任务（CLI 没把 flag 传给 server），现在按 `mcp add --dry-run` 同款形态返回 `[DRY RUN] Would apply:` 预览。
-  - `myagents thought create` 在 Windows 上偶尔丢内容报 422，新增 `--content-file <abs-path>` 跨平台保底通道（写文件 → 传路径，不受任何 shell 引号问题影响），CLI 端把空内容拦在 API round-trip 之前给可恢复错误提示。
-  - `myagents thought readme` 之前返回 `Unknown admin route`，现在返回简短指引（含 `--content-file` 用法）。
+  - `blexagent thought create` 在 Windows 上偶尔丢内容报 422，新增 `--content-file <abs-path>` 跨平台保底通道（写文件 → 传路径，不受任何 shell 引号问题影响），CLI 端把空内容拦在 API round-trip 之前给可恢复错误提示。
+  - `blexagent thought readme` 之前返回 `Unknown admin route`，现在返回简短指引（含 `--content-file` 用法）。
   - `plugin list` 之前每行字段都是 `?`（CLI formatter 字段名跟 Rust 返回结构对不上），修正字段映射。
   - `config get / mcp env get / agent channel list` 之前只显示 `✓ <action>` 没数据，补 3 个 formatter 渲染实际 key/value / env map / channel 列表。
   - `mcp show / agent show / runtime describe / task get` 在 Windows 报 "Missing required argument"（根因待 Windows 端调试，无法在 macOS 复现）：CLI 端早期校验把不清晰的 server 422 替换为带 `--<flag>` workaround 提示的清晰错误。
@@ -928,7 +928,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **AI 小助理 inbox 加「历史」入口**：设置页右上角新增「历史」按钮，点选直接新开 Tab 进会话 (#120)。
-- **任意会话都能驱动 MyAgents 自身**：`/self-config` 升级为全局 `/myagents-cli`，Chat / IM Bot / Cron 都能用。
+- **任意会话都能驱动 BlexAgent 自身**：`/self-config` 升级为全局 `/blexagent-cli`，Chat / IM Bot / Cron 都能用。
 
 ### Fixed
 
@@ -948,7 +948,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **启动页升级为「项目主页」**：启动页输入框现在可以直接 `@` 引用文件、贴图、拖放上传，不再需要先开聊天；侧栏目录、文件预览、引用、复制路径、在 Finder 中显示在没有打开会话时也能用。
 - **WorkspaceSelector 重做**：工作区下拉改为带标题的扁平列表；hover 出现「设为默认」；触摸板滚动顺滑；整体视觉与启动页输入区对齐。
 - **会话收藏**：任务中心列表行 hover 出现 ★ 收藏按钮，顶部多了「收藏」筛选 chip，方便沉淀长期关注的会话。
-- **MA 小助理 inbox 直接挂在「设置 → AI 供应商」页顶部**：不用再翻菜单找入口。
+- **Blex 小助理 inbox 直接挂在「设置 → AI 供应商」页顶部**：不用再翻菜单找入口。
 - **目录就地重命名 + 新建笔记**：右键目录里的文件可直接改名；右键空白处「新建笔记」自动建一个 `note-…md` 并跳进编辑模式。
 - **文件预览底部信息栏显示绝对路径 + 在 Finder 中显示**：点图标直接揭示文件位置。
 
@@ -972,9 +972,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **同 Tab 内切到另一段历史会话后，新消息能正常发送并收到流式回复**：0.2.5 在同一个 Tab 里跳到另一段历史会话后发消息没有结果，要重新加载历史才能看到。
-- **从 Chat 顶部 banner / MCP 对话框唤起 MA 小助理时，正确加载 helper 自己的工作区设置**：之前可能误用当前 Tab 的工作区，导致 helper 看不到自己的 skills / agents。
+- **从 Chat 顶部 banner / MCP 对话框唤起 Blex 小助理时，正确加载 helper 自己的工作区设置**：之前可能误用当前 Tab 的工作区，导致 helper 看不到自己的 skills / agents。
 - **删除一个内置 helper agent 时 picker 选项偶发错位**：删除项时不再误带走相邻项。
-- **`~/.myagents/skills/` 里有断链 symlink 时全局 sidecar 启动崩溃**：升级到 Node v24 后，任何残留的指向已删目录的 symlink 都会让 sidecar 反复 abort、Tauri 健康检查反复重启，陷入死循环。现在启动时会安全清理这类断链。
+- **`~/.blexagent/skills/` 里有断链 symlink 时全局 sidecar 启动崩溃**：升级到 Node v24 后，任何残留的指向已删目录的 symlink 都会让 sidecar 反复 abort、Tauri 健康检查反复重启，陷入死循环。现在启动时会安全清理这类断链。
 - **静默更新偶发卡死或失败**：静默下载和点击下载共用同一份缓存；更新流程的 UI 锁定路径修整，Tauri updater 在弱网下不再静默失败。
 
 ---
@@ -986,14 +986,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **每日定时任务卡在工具权限上（0.2.4 引入的回归）**：升级到 0.2.4 之后，原本稳跑的 cron 日报会被默认权限拦下 WebSearch / Bash / MCP 工具，AI 写"工具被拒"还被错误标成成功。修复后未主动选权限的 cron 一律给最大权限。桌面对话不受影响。老配置首次启动会自动迁移一次。
 - **删除定时任务后执行历史文件残留**：删除时会把 `cron_runs/` 里对应的 jsonl 一并清掉。
 - **`cron update` 改时区被覆盖回 UTC**：用纯表达式（如 `"30 * * * *"`）改 schedule 时不再丢失原本设的 `Asia/Shanghai`。
-- **`myagents task run` 报错指向 HTTP 路径**：错误提示改为可直接复制的 `myagents task rerun <id>`。
-- **`myagents cron start` 文档误导**：以前文案写"立即执行"实际只是恢复调度。重写说明，并新增 `run-now` 才是真的立即触发。
+- **`blexagent task run` 报错指向 HTTP 路径**：错误提示改为可直接复制的 `blexagent task rerun <id>`。
+- **`blexagent cron start` 文档误导**：以前文案写"立即执行"实际只是恢复调度。重写说明，并新增 `run-now` 才是真的立即触发。
 - **CLI 偶发 `Unexpected token...` 错误信息**：当后端返回非 JSON 响应（参数格式错、后端异常等）时，CLI 会把真实的服务端错误文本透出来，不再变成无意义的 JSON 解析错。
 - **macOS 输入框方向键 / Cmd+V 仍偶发泄露 tofu 字符（0.2.3 没修干净）**：上版本只过滤了 NSFunctionKey 一段范围，漏掉 ANSI C0 控制字符这条隐藏路径。这次连 Cmd+V 空剪贴板触发的同款问题也一并修了。
 
 ### Added
 
-- **`myagents cron run-now <id>`**：立即跑一次而不动调度 / 状态。CLI 立即返回，会话 ID 一并打出来好查。任务正在执行时拒绝重叠。
+- **`blexagent cron run-now <id>`**：立即跑一次而不动调度 / 状态。CLI 立即返回，会话 ID 一并打出来好查。任务正在执行时拒绝重叠。
 - **`cron list` 多了几列实用信息**：下次触发时间、上次成败 ✓✗、上次耗时、总执行次数。任务此刻在跑时 ID 后会出现 `*` 标记。
 - **`cron runs` 默认折行截断 + `--full` 旗标**：长输出不再撑乱表格；要看全文加 `--full`。
 - **`cron update` 立即显示下次触发时间**：改完 schedule 后 CLI 直接打 `next fire: 2026-05-01 20:33 Asia/Shanghai (in 1m 33s)`，不用再 list 自己核。
@@ -1036,7 +1036,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **任务中心「想法 → AI 讨论」体验改进**：从想法卡片直接发起讨论时，原本会出现「query 在屏幕上但没有 loading 提示，~10 秒后才进入响应中」的怪异中间态。现在新 Tab 一打开就显示「AI 启动中」直到 AI 真正开始流式输出，状态全程一致。配套优化：外部 runtime（Gemini CLI / Codex CLI）的 Tab 启动从 ~17s 缩短到 ~10s（消除了重复的 CLI 进程冷启动）。
 - **文件预览支持引用到聊天**：在文件预览面板里，可以选择整文件或某几行直接引用到当前聊天输入框。
-- **图片粘贴在不支持图像的模型下也不丢失**：以前在 DeepSeek、Kimi 文本模型等不支持图片输入的模型下粘图，sidecar 会偷偷把图片丢掉、只把文本送给 AI。现在改成自动把图片存到工作区 `myagents_files/`，输入框里出现 `@图片路径` 引用，AI 至少知道你给了它什么文件，可以用 Read / OCR 等工具自己想办法处理。Tab UI（粘贴 + 拖拽）和 IM Bot（飞书 / Telegram / 钉钉 / 微信收图）都覆盖。Toast 文案也从「会自动过滤，仅文本送达」改成「已转为文件存入工作区供模型读取」。
+- **图片粘贴在不支持图像的模型下也不丢失**：以前在 DeepSeek、Kimi 文本模型等不支持图片输入的模型下粘图，sidecar 会偷偷把图片丢掉、只把文本送给 AI。现在改成自动把图片存到工作区 `blexagent_files/`，输入框里出现 `@图片路径` 引用，AI 至少知道你给了它什么文件，可以用 Read / OCR 等工具自己想办法处理。Tab UI（粘贴 + 拖拽）和 IM Bot（飞书 / Telegram / 钉钉 / 微信收图）都覆盖。Toast 文案也从「会自动过滤，仅文本送达」改成「已转为文件存入工作区供模型读取」。
 - **右键 Skill / Agent 列表的「设置」直达详情**：以前要先点开 Skill / Agent 再切到设置，现在右键直接进入详情面板。
 
 ### Fixed
@@ -1110,12 +1110,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Windows 安装后能正常启动**：之前 Windows 用户装好 0.2.0 打开应用，会卡在「正在加载历史会话」永远进不去。现在 Windows 一键启动，和 macOS 一样开箱即用。
-- **Linux 上 `myagents` CLI 能直接执行**：之前在 Linux 装完应用后跑 `myagents --help` 会被系统拒绝（脚本头部多了一行旧时代留下的 shebang），现在恢复正常。
+- **Linux 上 `blexagent` CLI 能直接执行**：之前在 Linux 装完应用后跑 `blexagent --help` 会被系统拒绝（脚本头部多了一行旧时代留下的 shebang），现在恢复正常。
 - **Windows 上保存配置 / 项目列表 / 启动页历史不再失败**：之前在 Windows 上偶尔出现「拒绝访问」的红色错误（杀软 / OneDrive / Backblaze 在我们写完文件的瞬间扫描占用），导致刚切换的工作区下次打开应用就丢了。现在自动等开扫窗口过去再写盘，用户感知不到。
 - **Windows 上 npm 安装的 CLI 工具能正常调用**：之前从 npm 装的 `codex` / `gemini` / `npx` 等带 `.cmd` 后缀的命令在 Windows 上启动失败，现在恢复正常。
 - **Windows 大日志导出不再卡死**：之前在 Windows 上用 zip 打包大日志或者 PowerShell 命令输出大量内容时偶尔会无限挂起，已修复。
 - **IM Bot 自动启动稳定**：飞书 / 企业微信 / 微信 / QQ 等 OpenClaw 插件之前偶发「启动失败 → 自动重试 → 又失败」的循环（多个 Bot 同时启动时会互相破坏对方的依赖目录）。现在多个 Bot 并发启动彼此隔离，重启 / 切工作区不再触发这个问题。
-- **应用闪退后 `myagents` CLI 不再损坏**：极端情况下应用进程被强杀的瞬间正好在同步 CLI，会把 `~/.myagents/bin/myagents` 写到一半，下次终端调用直接报「文件损坏」。现在采用原子替换，要么旧版本要么新版本，不会卡在中间态。
+- **应用闪退后 `blexagent` CLI 不再损坏**：极端情况下应用进程被强杀的瞬间正好在同步 CLI，会把 `~/.blexagent/bin/blexagent` 写到一半，下次终端调用直接报「文件损坏」。现在采用原子替换，要么旧版本要么新版本，不会卡在中间态。
 - **任务中心「想法」输入光标位置精确**：在想法输入框打 `#标签` 时，标签的高亮位置偶尔会跟实际文字错开半个字符，长内容下越走越偏。修复后高亮、光标、文本三层永远对齐。
 - **AI 实时输出更稳**：少数情况下 AI 的实时事件（外部 Runtime 状态切换、turn 完成等）在网络抖动时会被静默丢弃，前端看到「打字打了一半就停了」。所有结构性事件现在都标记为关键优先级，背压时优先送达。
 - **OpenAI 兼容供应商在系统代理后面能正常走代理**：之前接 OpenAI 兼容供应商时系统代理 / SOCKS5 会被静默绕过，请求直连，现在严格走代理。
@@ -1134,8 +1134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **启动页「想法」模式拥有和任务中心一模一样的体验**：输入 `#` 弹候选、文本里 `#标签` 实时高亮、输入框下方有 `#` 按钮，⌘/Ctrl+Enter 提交。任务/想法模式切换时草稿和附件完整保留，不再因切换丢失。
 - **`#` 标签候选默认包含所有 Agent 工作区名字**：按下 `#` 一眼就能把想法归类到任意工作区，不需要先手动打过一次该 tag 才出现在候选里。和右侧的「Agent 工作区」面板一一对应（过滤掉诊断目录等内部工作区）。
-- **`myagents mcp show <id>`**：查看单个 MCP 服务器的完整配置、全局 / 工作区两级启用状态、传输层信息（env / headers 自动脱敏）。和 `agent show` / `runtime describe` 形态对等。
-- **`myagents cron --schedule` 支持 JSON 形式**：除了原有的 cron 表达式（`"*/30 * * * *"`），现在也直接接受与内部结构一致的 JSON —— `{"kind":"at","at":"..."}` / `{"kind":"every","minutes":30}` / `{"kind":"cron","expr":"...","tz":"..."}` / `{"kind":"loop"}`。字段校验在 CLI 边界立即报错，不再出现莫名的 "Failed to parse JSON"。`--message` 是 `--prompt` 的正式别名。
+- **`blexagent mcp show <id>`**：查看单个 MCP 服务器的完整配置、全局 / 工作区两级启用状态、传输层信息（env / headers 自动脱敏）。和 `agent show` / `runtime describe` 形态对等。
+- **`blexagent cron --schedule` 支持 JSON 形式**：除了原有的 cron 表达式（`"*/30 * * * *"`），现在也直接接受与内部结构一致的 JSON —— `{"kind":"at","at":"..."}` / `{"kind":"every","minutes":30}` / `{"kind":"cron","expr":"...","tz":"..."}` / `{"kind":"loop"}`。字段校验在 CLI 边界立即报错，不再出现莫名的 "Failed to parse JSON"。`--message` 是 `--prompt` 的正式别名。
 - **SiliconFlow 预设刷新**：Kimi K2.6、GLM 5.1、MiniMax M2.5 开箱即用。
 - **DeepSeek 预设刷新**：DeepSeek V4 Pro / V4 Flash 两个新模型已进入预设，Pro 为默认首选；子 Agent 别名对齐（sonnet/opus → Pro、haiku → Flash）。旧 `deepseek-chat` / `deepseek-reasoner` 保留在列表中，升级后老工作区的选择不会消失。
 
@@ -1143,17 +1143,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent 设置的「模型」下拉只显示可用供应商**：和 AI 对话框的模型切换器完全一致 —— 只显示已配置 API Key 或完成订阅登录的供应商。如果之前保存的供应商后来失去了凭据，会显示「⚠ 暂不可用」提示你重新选择。
 - **Cmd/Ctrl+Shift+T 快捷键在启动页真正切换任务/想法模式**：之前这个组合键和新开 Tab 撞车，按下去直接新开 Tab 而不是切换模式；现在两个快捷键各行其道。
 - **弹层遮挡优化**：嵌在 Overlay 里的下拉菜单（Runtime 选择器 / Skill 详情 / BugReport 模型选择 / Template 图标选择等）不再被自身面板遮住。
-- **SubAgent 模型 / 工具 / 提示词修改立刻生效**：编辑 `~/.myagents/agents/<agent>/<name>.md` 后执行 `myagents reload`，下一轮对话就能看到新配置，不再需要重启整个应用。
+- **SubAgent 模型 / 工具 / 提示词修改立刻生效**：编辑 `~/.blexagent/agents/<agent>/<name>.md` 后执行 `blexagent reload`，下一轮对话就能看到新配置，不再需要重启整个应用。
 
 ### Fixed
 - **Windows 首次启动卡 10 秒**：旧 Sidecar 清理移到后台，主线程不再阻塞，打开应用瞬时可见 UI。
-- **外部 Runtime（Claude Code / Gemini）会话自动恢复**：当 CLI 那边清理掉会话 ID 后，MyAgents 能检测到并自动新开对话，不再死循环报错。
+- **外部 Runtime（Claude Code / Gemini）会话自动恢复**：当 CLI 那边清理掉会话 ID 后，BlexAgent 能检测到并自动新开对话，不再死循环报错。
 - **技能稳定性**：symlink / junction 形式的技能目录现在能正确识别并展示；skill 安装后 `/health` 不再短暂阻塞；sub-agent 扫描对齐 Claude Agent SDK 最新协议，非标准布局的 Agent 目录也能正确找到。
 - **Chat Tab 切换时偶现的 UI 状态错乱**：按 PRD v0.1.69 §4.3 对齐双写策略。
-- **CLI 错误信息友好化**：`myagents mcp show` 从原来的「Unknown admin route」恢复为正常命令；`cron --schedule` 错误提示在 CLI 边界清晰给出。
+- **CLI 错误信息友好化**：`blexagent mcp show` 从原来的「Unknown admin route」恢复为正常命令；`cron --schedule` 错误提示在 CLI 边界清晰给出。
 
 ### Notes
-- GetNote MCP（社区第三方工具）的 `list_notes` 返回 tag 显示为 `[object Object]` 是**上游 MCP server 自己的序列化 bug**，与 MyAgents 无关，请到对应仓库报告。MyAgents 对 MCP 返回内容是原样透传的。
+- GetNote MCP（社区第三方工具）的 `list_notes` 返回 tag 显示为 `[object Object]` 是**上游 MCP server 自己的序列化 bug**，与 BlexAgent 无关，请到对应仓库报告。BlexAgent 对 MCP 返回内容是原样透传的。
 
 ---
 
@@ -1169,7 +1169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **任务 / 想法 模式切换器**：启动页 + Chat Tab 输入框上方都有 `任务 | 想法` 切换（`Cmd/Ctrl+Shift+T` 快捷键）。选中「想法」后回车保存为想法而非启动对话，写完自动切回「任务」。
 - **AI 讨论路径（想法 → 正式任务）**：想法卡「AI 讨论」按钮打开新 Chat Tab，自动注入 `task-alignment` Skill；对齐完成后 AI 直接把四份文档（alignment / task / verify / progress）迁入正式任务目录，登记为「AI 对齐」任务，一键就能开始执行。
 - **执行闭环：编辑即生效**：任务立即执行 / 重新派发时，每次触发都会动态从最新的 task.md 读取内容构造首条消息。你中途编辑任务描述后，下一次执行立即生效，不需要手动同步。定时任务走同一套机制。
-- **`myagents task` / `thought` CLI**：AI 和用户通过终端完整自管任务生命周期 —— `task list / get / run / rerun / update-status / update-progress / append-session / archive / delete / create-direct / create-from-alignment` + `thought list / create`。支持 per-task 运行时 / 模型 / 权限模式覆盖参数。AI 子进程、用户终端、UI 三条入口的身份自动识别，互不伪造，审计链可追溯。
+- **`blexagent task` / `thought` CLI**：AI 和用户通过终端完整自管任务生命周期 —— `task list / get / run / rerun / update-status / update-progress / append-session / archive / delete / create-direct / create-from-alignment` + `thought list / create`。支持 per-task 运行时 / 模型 / 权限模式覆盖参数。AI 子进程、用户终端、UI 三条入口的身份自动识别，互不伪造，审计链可追溯。
 - **通知系统**：每次任务状态变更自动分发 —— 桌面通知 + IM Bot 消息（`done / blocked / endCondition` 默认订阅 + per-task 自定义）。派发对话框和任务详情 Overlay 两处都能编辑通知配置。通知 Bot 选择器按「工作区 · 平台」分组展示，稳定排序。
 - **状态机 + 审计链 + 实时同步**：Task 持久化状态变更历史（谁、何时、从什么状态到什么状态、原因），每次变更原子写入 + 追加到 progress.md + 广播 SSE 事件，所有打开的任务中心 Tab 实时同步；崩溃恢复自动把遗留 running / verifying 状态迁到 blocked 并记入历史；删除也写入审计可溯。
 - **想法 ↔ 任务双向绑定**：派发想法生成的任务 ID 自动追加回想法记录；任务被删除时反向清理想法中的绑定。
@@ -1197,11 +1197,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **macOS 触摸板轻按首次点击失效**：之前在 macOS 上用触摸板 tap 某些按钮，物理按下正常但轻按首次无反应（隐蔽的焦点抢夺陷阱）。修复后所有按钮触摸板轻按稳定响应。
 - **启动页 Tab 切换按钮真的会切换**：之前 tooltip 说"点击切换模式"但点了没反应，现在 Tab 键 + 点击都能正常切换任务 / 对话模式。
 - **Bun-on-Windows 目录创建崩溃**：系统性修复 Windows 平台下 Bun 在多处零散出现的 `mkdirSync` 遇到已存在目录报 EEXIST 的问题。
-- **Claude Code 订阅登录隔离**：CC Runtime 现在完全由 CLI 自己管推理路由，MyAgents 不再尝试注入 provider，避免跨入口（Tab / 微信 / 定时任务）互相干扰订阅登录态。
+- **Claude Code 订阅登录隔离**：CC Runtime 现在完全由 CLI 自己管推理路由，BlexAgent 不再尝试注入 provider，避免跨入口（Tab / 微信 / 定时任务）互相干扰订阅登录态。
 - **验证供应商时的错误提示**：之前桥接连接失败统一显示"超时"，现在区分真正的超时和连接错误，给出具体原因。
 - **Runtime 切换防串线加固**：外部 Runtime 的会话标识以 session 为权威来源，切换 Runtime / 续接历史时不再发生 runtime 不匹配导致的状态污染。
 - **系统级 Skills 强制更新**：`task-alignment` / `task-implement` 作为系统 Skill 随版本强制更新，确保你本地的任务对齐和执行逻辑永远与产品同步。
-- **内置 MA 小助理升级**：`self-config` Skill 新增任务中心 CLI 操作说明（建任务 / 管想法 / 改配置都可以直接对小助理说），`task-alignment` Skill 补充 AI 讨论路径自动化指令。
+- **内置 Blex 小助理升级**：`self-config` Skill 新增任务中心 CLI 操作说明（建任务 / 管想法 / 改配置都可以直接对小助理说），`task-alignment` Skill 补充 AI 讨论路径自动化指令。
 
 ---
 
@@ -1211,7 +1211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Gemini / Codex 自动继承项目 CLAUDE.md 和 .claude/rules**：切到外部 Runtime 后，AI 也能读到你项目里写好的开发约束和规则文件，不再"失忆"。Codex 走原生配置发现，Gemini 写入合并后的系统提示，零额外配置。
 - **外部 Runtime 会话标题自动生成**：之前切到 Gemini / Claude Code / Codex 后，会话标题一直显示默认名。现在会用对应 Runtime 自动生成摘要标题，和内置 Runtime 体验一致。
 - **外部 Runtime 冷启动加速（Pre-warm）**：首次发消息前在后台预启动 Runtime 进程，隐藏 10-15 秒的冷启动延迟。
-- **Anthropic 模型别名锁定**：新版 SDK 移除了 `claude-sonnet-4-20250514` 等旧 ID 的内置映射，现在 MyAgents 在启动时主动注入 `sonnet → claude-sonnet-4-20250514` 等别名，子 Agent 指定 `model: "sonnet"` 不再报"模型不存在"。
+- **Anthropic 模型别名锁定**：新版 SDK 移除了 `claude-sonnet-4-20250514` 等旧 ID 的内置映射，现在 BlexAgent 在启动时主动注入 `sonnet → claude-sonnet-4-20250514` 等别名，子 Agent 指定 `model: "sonnet"` 不再报"模型不存在"。
 
 ### Fixed
 - **Gemini 长时间工具调用不再误报超时**：之前 Gemini 执行耗时工具（如网络搜索）超过 10 分钟会弹红色错误。现在取消了硬超时，改由无活动看门狗兜底，正常执行不受影响。
@@ -1227,13 +1227,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **内置 cuse 电脑操作 MCP(macOS / Windows)**:开箱即用的桌面操作工具,让 AI 能直接帮你点鼠标、打字、截屏、在应用之间切换,不再需要手动装任何命令行工具或配置 MCP。首次使用时 macOS 会弹窗申请屏幕录制、辅助功能、Apple Events 权限,授权一次以后持久生效。Linux 暂不支持(工具列表里会自动隐藏)。
-- **切到 Gemini / Claude Code / Codex 也能用定时任务、发图、生成图表卡片**:之前这三项能力是 MyAgents 内置 Runtime 专属,换到外部 Runtime 后就丢了。现在这些 Runtime 也可以创建心跳循环、让 Bot 发图片 / 视频 / 音频、生成可交互的数据图表卡片 —— 和内置 Runtime 体验一致,无缝切换。
+- **切到 Gemini / Claude Code / Codex 也能用定时任务、发图、生成图表卡片**:之前这三项能力是 BlexAgent 内置 Runtime 专属,换到外部 Runtime 后就丢了。现在这些 Runtime 也可以创建心跳循环、让 Bot 发图片 / 视频 / 音频、生成可交互的数据图表卡片 —— 和内置 Runtime 体验一致,无缝切换。
 - **AI 回答中断时显示原因和行动按钮**:之前 AI "突然停了" 只能干瞪眼。现在会显示具体原因,比如:
   - 对话轮数达上限 → 黄色提示条 + 「新开会话」按钮
   - 上下文装不下了 → 红色提示条 + 说明
   - 图片解析失败 / 模型报错 → 具体错误信息
   - 正常结束或你主动点停止 → 不打扰
-- **定时任务支持超长 prompt 从文件读入**:如果你的心跳循环 prompt 很长(几千字起跳),之前只能挤在一行参数里,现在可以写到一个文件里用 `myagents cron add --prompt-file <path>` 传入,体验参考 `git commit -F`。
+- **定时任务支持超长 prompt 从文件读入**:如果你的心跳循环 prompt 很长(几千字起跳),之前只能挤在一行参数里,现在可以写到一个文件里用 `blexagent cron add --prompt-file <path>` 传入,体验参考 `git commit -F`。
 
 ### Fixed
 - **macOS 点 X 按钮关不掉窗口**:最近几个版本在 macOS 上点窗口左上角的 X 按钮,窗口不会关闭(无论"最小化到托盘"是否开启)。有循环任务时弹出的退出确认框,点"退出"也没反应。本版本修复 —— 之前只能靠 Cmd+Q 或托盘"退出"菜单来关。
@@ -1247,7 +1247,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.66] - 2026-04-15
 
 ### Added
-- **Gemini CLI 加入 Agent Runtime 阵容**:在原有的内置、Claude Code、Codex 之外,新增 Google Gemini CLI 作为第四个可选运行环境。只要你本机装好 `gemini` 并登录过,设置里一键切过去就能用 —— MyAgents 完全不管 API Key / OAuth,你原来怎么登录的还是怎么用。
+- **Gemini CLI 加入 Agent Runtime 阵容**:在原有的内置、Claude Code、Codex 之外,新增 Google Gemini CLI 作为第四个可选运行环境。只要你本机装好 `gemini` 并登录过,设置里一键切过去就能用 —— BlexAgent 完全不管 API Key / OAuth,你原来怎么登录的还是怎么用。
   - 支持 Gemini 3.1 Pro、Gemini 3 Flash、Gemini 2.5 Pro 等**当前账户可用的全部模型**,Settings 下拉列表是实时从 Gemini CLI 读出来的,不用手动维护
   - 工具调用(Shell / Read / Edit / Grep / Glob / WebFetch / WebSearch)、思考过程、Token 用量都正常显示,和 Claude Code / Codex 一致
   - 工具 badge 展示 Gemini 的**原始工具名**(比如 `run_shell_command`、`grep_search`),点开看到命令/参数/输出的完整细节,不再是干巴巴的 "Run command"
@@ -1256,7 +1256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **聊天内文本查找 (⌘F / Ctrl+F)**:在对话里按快捷键唤起顶部查找栏,高亮所有匹配、方向键切换、回车跳转。作用域仅限当前已加载的消息,全历史搜索仍然用 ⌘K。
 
 ### Changed
-- **Agent 身份提示现在真实反映当前 Runtime**:AI 回答"你在哪运行?"时会正确说"MyAgents + Gemini CLI / Claude Code / Codex / 内置 SDK",而不是一律说"基于 Claude Agent SDK"。换 Runtime 后立刻生效。
+- **Agent 身份提示现在真实反映当前 Runtime**:AI 回答"你在哪运行?"时会正确说"BlexAgent + Gemini CLI / Claude Code / Codex / 内置 SDK",而不是一律说"基于 Claude Agent SDK"。换 Runtime 后立刻生效。
 - **Claude Agent SDK 升级至 0.2.107**:跟进上游修复与稳定性改进。
 
 ### Fixed
@@ -1352,7 +1352,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 - **AI 回复排版优化**：Markdown 渲染全面对齐设计规范 — 标题行高、段落间距、代码配色、表格样式、有序列表序号，长文阅读更舒适
-- **工作区文件目录统一**：Gemini 生成图片、TTS 音频、工具截图等所有 AI 生成的文件统一放在 `myagents_files/` 目录下，不再散落在多个顶级目录
+- **工作区文件目录统一**：Gemini 生成图片、TTS 音频、工具截图等所有 AI 生成的文件统一放在 `blexagent_files/` 目录下，不再散落在多个顶级目录
 - **错误提示优化**：API 临时异常（限流/重试）不再弹出红色错误横幅，只有真正失败时才提示
 
 ### Fixed
@@ -1532,8 +1532,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **OpenAI Bridge `maxOutputTokensParamName` 配置**：用户可选 `max_tokens`（默认，兼容 DeepSeek/Qwen 等）、`max_completion_tokens`（OpenAI o1/o3/GPT-5、vLLM）、`max_output_tokens`（Responses API），UI 改为接口格式 + key-value 联动形式
 - **Bridge `supports_edit` 能力自适应**：从 Plugin `/capabilities` 接口读取 `edit` 能力，不支持编辑的插件（如微信）自动跳过 draft+edit 流程，一次性发送完整消息
-- **单实例 PID lock file**：`~/.myagents/app.lock` 防止 macOS 自动重启导致生产版与 debug 版双实例冲突
-- **`app_dirs` 模块**：集中管理数据目录路径 `myagents_data_dir()`，预留未来 dev/prod 隔离扩展点
+- **单实例 PID lock file**：`~/.blexagent/app.lock` 防止 macOS 自动重启导致生产版与 debug 版双实例冲突
+- **`app_dirs` 模块**：集中管理数据目录路径 `blexagent_data_dir()`，预留未来 dev/prod 隔离扩展点
 
 ### Fixed
 - **OpenAI Bridge 兼容性**：不再默认转发 `max_tokens`/`temperature`/`top_p`/`stop`，解决 OpenAI 推理模型（o1/o3/GPT-5）返回 400 的问题
@@ -1550,7 +1550,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **MCP OAuth 规范完整实现**：零配置授权 + Token 生命周期管理（发现、注册、PKCE 授权、刷新、撤销），支持 OAuth 2.1 保护的远程 MCP Server
 - **浏览器并发隔离**：Playwright isolated 模式 + storage-state 持久化，多 Session 独立 cookie/登录态
-- **CLI 模式**：Tauri 二进制支持 CLI 参数（`myagents --help/status/mcp/model/cron/plugin`），修复 Issue #43 所有子命令无输出
+- **CLI 模式**：Tauri 二进制支持 CLI 参数（`blexagent --help/status/mcp/model/cron/plugin`），修复 Issue #43 所有子命令无输出
 - **Admin API 完整性补齐**：定时任务（cron）8 个路由、OpenClaw 插件管理 3 个路由、Agent 运行时状态、版本信息——CLI 管理通道与 GUI 对等覆盖
 - **SDK shim 全面补齐**：openclaw plugin-sdk 从 5 个 → 16 个 shim 模块，覆盖 lark 插件新版所有依赖
 - **浏览器模式选择器**：Playwright 设置面板支持 isolated/persistent 模式切换 + cookie 管理 UI
@@ -1590,7 +1590,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **AgentConfig 通用化架构**：每个工作区自动创建 basicAgent，AgentConfig 成为 model/provider/permissionMode/MCP 的单一数据源，Tab 输入栏与 Agent 设置面板双向同步
 - **Plugin Bridge 附件传递**：支持图片/文件/语音/视频在 IM 和 AI 之间双向传递
-- **Self-Config CLI**：内置 `myagents` CLI 让 AI Agent 通过 Bash 自主配置 MCP/Model/Agent
+- **Self-Config CLI**：内置 `blexagent` CLI 让 AI Agent 通过 Bash 自主配置 MCP/Model/Agent
 - **QR 扫码登录**：Channel 详情页支持 QR 扫码登录（微信等 OpenClaw 插件）
 - **Cron 跨 Channel 投递**：桌面端创建的定时任务可发送结果到 IM Channel
 - **Sidecar 自解析架构**：消除 IM Bot 对物化视图的依赖，Sidecar 启动时自行解析 AgentConfig
@@ -1671,7 +1671,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.44] - 2026-03-18
 
 ### Added
-- **双运行时架构**：内置 Node.js 运行 MCP Server / 社区 npm 包，Bun 运行 Agent Runtime / Sidecar。用户无需自行安装任何运行时。PATH 注入优先级：bundledBun → bundledNode → ~/.myagents/bin → 系统路径
+- **双运行时架构**：内置 Node.js 运行 MCP Server / 社区 npm 包，Bun 运行 Agent Runtime / Sidecar。用户无需自行安装任何运行时。PATH 注入优先级：bundledBun → bundledNode → ~/.blexagent/bin → 系统路径
 - **OpenClaw 插件工具动态透传**：Bridge MCP handler 动态发现插件注册的工具，通过 im-bridge-tools 创建 SDK MCP server 透传到 AI，支持工具组过滤与 ownerOnly 权限控制
 - **OpenClaw 插件斜杠命令**：Rust 层路由插件注册的 `/feishu auth`、`/feishu_diagnose` 等命令，/help 中展示并翻译为中文
 - **飞书自动 OAuth 授权**：工具返回 `need_user_authorization` 时自动触发授权卡片，用户无需手动发送 `/feishu auth`
@@ -1814,7 +1814,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.39] - 2026-03-10
 
 ### Added
-- **对话流内联 TTS 音频播放** (#14)：TTS 工具结果支持内联播放/暂停控件，音频文件存储到工作区 `myagents-generated/` 目录
+- **对话流内联 TTS 音频播放** (#14)：TTS 工具结果支持内联播放/暂停控件，音频文件存储到工作区 `blexagent-generated/` 目录
 - **思考中实时显示已用时间**：思考过程中显示 "思考中… (3s)"，完成后显示 "思考了 5s"
 - **API 响应超时 watchdog**：检测 Sidecar 响应超时并提供中止选项
 
@@ -1823,13 +1823,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Markdown 预处理破坏 GFM 表格**：含 `#` 的单元格被误判为标题
 - **CSS 变量未定义**：`--accent-hover` → `--accent-warm-hover`
 - **watchdog 空闲后误触发**：abort handler 增加 `signal.aborted` 前置检查
-- **`myagents-generated/` 目录自动创建 `.gitignore`**：防止误提交生成文件
+- **`blexagent-generated/` 目录自动创建 `.gitignore`**：防止误提交生成文件
 - **思考完成后始终显示耗时秒数**：不足 1s 时显示 1s
 - **Windows asset 协议兼容**：convertFileSrc + CSP `https://asset.localhost`
 
 ### Changed
 - **音频播放器重构**：toggleAudio 移入 singleton、AudioState 去重、watchdog 可读性改进
-- **TTS/图片生成文件存储重构**：统一存储到工作区 `myagents-generated/` 目录
+- **TTS/图片生成文件存储重构**：统一存储到工作区 `blexagent-generated/` 目录
 
 ---
 
@@ -1846,7 +1846,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **引用全局 Agent 时 Task 工具无法识别自定义 sub-agent** (#13)
 - **自动更新请求未走用户代理配置**：更新检查现通过用户配置的代理发送
 - **Plugin Bridge 进程崩溃后残留**：添加 sidecar 标记确保清理
-- **Bridge 进程因 --myagents-sidecar 参数崩溃**
+- **Bridge 进程因 --blexagent-sidecar 参数崩溃**
 - **插件安装后配置字段未预填 + 安装 toast 提示**
 - **QQ Bot npm 包名修正**：更正为 @sliverp/qqbot
 - **路径遍历、pluginId 不匹配、Popover 交互**：cross-review 修复
@@ -1975,8 +1975,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AI 智能 Bug 上报**：一键向开发者报告问题，AI 自动收集运行日志、系统环境、对话上下文，生成结构化 Bug Report
   - 支持图片上传、粘贴和拖拽附加截图
   - 模型菜单只显示可用 provider，无可用 provider 时引导跳转设置
-  - 重构为 bundled-agents 文件化架构（`bundled-agents/myagents_helper/`）
-- **内置助手 v2**：全新 `myagents_helper` Agent，增加产品定位与开发者愿景、工作区写保护约束
+  - 重构为 bundled-agents 文件化架构（`bundled-agents/blexagent_helper/`）
+- **内置助手 v2**：全新 `blexagent_helper` Agent，增加产品定位与开发者愿景、工作区写保护约束
 - **Launcher 无 Provider 引导**：未配置任何 API Key 时显示「配置模型供应商」引导入口
 
 ### Fixed
@@ -1986,11 +1986,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **统一系统提示词架构**：重构为三层 Prompt 架构（L1 基础身份 + L2 交互方式 + L3 场景指令），所有场景统一使用 append 模式
-  - AI 始终知道自己运行在 MyAgents 产品中（桌面聊天、IM Bot、Cron 任务）
+  - AI 始终知道自己运行在 BlexAgent 产品中（桌面聊天、IM Bot、Cron 任务）
   - 旧 SystemPromptConfig（preset/replace/append 三模式）替换为 InteractionScenario 类型
   - IM Bot 启动时传递 botName，AI 感知自身 Bot 名称
   - 模板内容内联为字符串常量（bun build 禁止 `__dirname`）
-- **IM Bot 文件存储重构**：运行时状态文件从 `~/.myagents/im_{botId}_*.json` 扁平散落迁移到 `~/.myagents/im_bots/{botId}/` 子目录组织
+- **IM Bot 文件存储重构**：运行时状态文件从 `~/.blexagent/im_{botId}_*.json` 扁平散落迁移到 `~/.blexagent/im_bots/{botId}/` 子目录组织
   - 三代自动迁移（v1 单 bot → v2 flat 多 bot → v3 子目录）
   - 孤儿文件启动时自动清理，删除 bot 时清理持久化数据
 - **统一日志优化**：本地化时间戳、减少噪音
@@ -2440,7 +2440,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Sub-Agent 能力管理**：为 AI 配备多种"专家角色"，模型自主判断何时委派
-  - 支持全局 Agent（`~/.myagents/agents/`）和项目 Agent（`.claude/agents/`）双层管理
+  - 支持全局 Agent（`~/.blexagent/agents/`）和项目 Agent（`.claude/agents/`）双层管理
   - Agent 定义文件与 Claude Code 格式完全兼容（Markdown + YAML Frontmatter）
   - 可配置工具限制、模型选择、权限模式、最大轮次等
   - 项目工作区支持引入全局 Agent（引用机制，实时同步）
@@ -2452,10 +2452,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 右键菜单快速跳转设置页
 - **预置内置技能**：开箱即用 6 个常用技能
   - docx（Word 文档）、pdf、pptx（PPT）、xlsx（Excel）、skill-creator（技能创建向导）、summarize（内容摘要）
-  - 首次启动自动种子到 `~/.myagents/skills/`，不覆盖用户已有内容
+  - 首次启动自动种子到 `~/.blexagent/skills/`，不覆盖用户已有内容
 - **全局技能启用/禁用**：Settings 技能列表支持 toggle 开关
   - 禁用的技能不出现在 `/` 斜杠命令和能力面板中
-  - 状态持久化到 `~/.myagents/skills-config.json`
+  - 状态持久化到 `~/.blexagent/skills-config.json`
 
 ### Changed
 - **统一 Session ID 架构**：通过 SDK 0.2.33 新特性消除双 ID 映射，新 session 在产品层和 SDK 层使用同一 ID
@@ -2521,10 +2521,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Analytics 系统**
   - 匿名使用统计，帮助改进产品体验
-  - 默认关闭，需通过环境变量 `MYAGENTS_ANALYTICS_ENABLED=true` 启用
+  - 默认关闭，需通过环境变量 `BLEXAGENT_ANALYTICS_ENABLED=true` 启用
   - 支持事件批量发送、防抖、节流（每分钟最多 200 事件）
   - 数据加密传输，不收集任何敏感信息（代码、对话内容等）
-  - device_id 持久化存储到 `~/.myagents/device_id`（跨安装保持一致）
+  - device_id 持久化存储到 `~/.blexagent/device_id`（跨安装保持一致）
 
 
 ---
@@ -2573,8 +2573,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Windows 客户端支持**
-  - NSIS 安装包 (`MyAgents_x.x.x_x64-setup.exe`)
-  - 便携版 ZIP (`MyAgents_x.x.x_x86_64-portable.zip`)
+  - NSIS 安装包 (`BlexAgent_x.x.x_x64-setup.exe`)
+  - 便携版 ZIP (`BlexAgent_x.x.x_x86_64-portable.zip`)
   - 自动更新支持（共用 Tauri 签名密钥）
 - 新增 Windows 构建脚本
   - `setup_windows.ps1` - 环境初始化
@@ -2615,7 +2615,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 为未知工具添加兜底图标 (Wrench)
 
 ### Technical
-- Windows 数据目录：`%APPDATA%\MyAgents\`
+- Windows 数据目录：`%APPDATA%\BlexAgent\`
 - 添加 `buildCrossPlatformEnv()` 统一子进程环境变量构建
 - 使用 `flushSync` 强制同步关键 UI 状态更新
 - 装饰性文本过滤使用多条件匹配，避免误伤正常内容
@@ -2644,7 +2644,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 修复全局用户指令在对话 `/` 菜单中不显示的问题
-  - `/api/commands` 端点新增扫描 `~/.myagents/commands/` 目录
+  - `/api/commands` 端点新增扫描 `~/.blexagent/commands/` 目录
 
 ### Technical
 - 代理设置提取 `PROXY_DEFAULTS` 常量，消除魔数
@@ -2703,7 +2703,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.3] - 2026-01-27
 
 ### Added
-- 支持从 Claude Code 同步 Skills 配置（`~/.claude/skills/` → `~/.myagents/skills/`）
+- 支持从 Claude Code 同步 Skills 配置（`~/.claude/skills/` → `~/.blexagent/skills/`）
 - ProcessRow 显示任务运行时间
 - 展开状态显示实时统计信息（工具调用次数、Token 消耗）
 - 新增 Trace 列表查看子代理工具调用记录
@@ -2727,7 +2727,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 - 增加文件描述符限制至 65536，防止 Bun 启动失败
-- 添加 `--myagents-sidecar` 标记精确识别进程
+- 添加 `--blexagent-sidecar` 标记精确识别进程
 - 实现两阶段清理机制（SIGTERM → SIGKILL）
 - 明确 Tab Sidecar 与 Global Sidecar 使用边界
 - Settings/Launcher 不再包裹 TabProvider
@@ -2742,7 +2742,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 实现自定义服务商完整的 CRUD 功能
-- 服务商配置持久化到 `~/.myagents/providers/`
+- 服务商配置持久化到 `~/.blexagent/providers/`
 
 ### Fixed
 - 修复 MCP 开关状态与实际请求不一致问题
@@ -2771,13 +2771,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 设置页显示验证状态（验证中/已验证/验证失败）
 - 支持拖拽文件到工作区文件夹
 - 支持 Cmd+V 粘贴文件到工作区
-- 支持拖拽/粘贴文件到对话输入框（自动复制到 `myagents_files/`）
+- 支持拖拽/粘贴文件到对话输入框（自动复制到 `blexagent_files/`）
 - AskUserQuestion 工具向导式问答 UI
 - 单选自动跳转 / 多选手动确认
 - 自定义输入框支持
 - 进度指示器和回退修改
 - Agent 日志懒加载创建
-- 日志存储到 `~/.myagents/logs/`
+- 日志存储到 `~/.blexagent/logs/`
 - React/Bun/Rust 日志统一到 UnifiedLogs 面板
 
 ### Fixed
@@ -2813,7 +2813,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tool permission management (Act/Plan/Auto modes)
 - Visual configuration editor for CLAUDE.md, Skills, and Commands
 - Keyboard shortcuts (Cmd+T, Cmd+W)
-- Local data storage in `~/.myagents/`
+- Local data storage in `~/.blexagent/`
 
 ### Technical
 - React 19 + TypeScript frontend

@@ -1,13 +1,13 @@
-# Tool Attachment 与富媒体诊断
+﻿# Tool Attachment 与富媒体诊断
 
 使用场景：图片、音频、PDF、截图等工具产物生成了但不显示；Codex `image_generation` 有结果没图；IM 没发出媒体；工具卡有路径但 gallery 空白。
 
 ## Ground truth
 
-- MyAgents 用统一 `ToolAttachment[]` 管线渲染媒体，不应该依赖单个工具的专用卡片。
+- BlexAgent 用统一 `ToolAttachment[]` 管线渲染媒体，不应该依赖单个工具的专用卡片。
 - 产物可能来自三类路径：
-  - `~/.myagents/generated/tool-attachments/<sessionId>/<toolUseId>/`：Sidecar 归档后的 tool attachment。
-  - `<workspace>/myagents_files/<tool>/`：部分工具按工作区产物目录落盘。
+  - `~/.blexagent/generated/tool-attachments/<sessionId>/<toolUseId>/`：Sidecar 归档后的 tool attachment。
+  - `<workspace>/blexagent_files/<tool>/`：部分工具按工作区产物目录落盘。
   - 外部 runtime 原始 `savedPath`：例如 Codex 生成图片后把路径交给 Sidecar registry 引用。
 - 流程可能先发 placeholder，再通过 `chat:tool-attachment-update` 替换成真实 attachment。
 - attachment endpoint/protocol 归当前 session owner sidecar 管。跨 sidecar 直接拉另一个 session 的 attachment 不是支持边界；但当前可见 session 已有 attachment 却没有注册/无法读取，是 bug 线索。
@@ -17,8 +17,8 @@
 
 ```bash
 find ./generated/tool-attachments -maxdepth 4 -type f 2>/dev/null | tail -40
-find . -path "*/myagents_files/*" -type f 2>/dev/null | tail -40
-rg -n "tool-attachment|ToolAttachment|chat:tool-attachment-update|attachment|imageGeneration|image_generation|savedPath|sourcePath|ToolAttachmentGallery|myagents://|error://|rejected_path|too_large|unsupported_url" ./logs/unified-*.log | tail -180
+find . -path "*/blexagent_files/*" -type f 2>/dev/null | tail -40
+rg -n "tool-attachment|ToolAttachment|chat:tool-attachment-update|attachment|imageGeneration|image_generation|savedPath|sourcePath|ToolAttachmentGallery|blexagent://|error://|rejected_path|too_large|unsupported_url" ./logs/unified-*.log | tail -180
 rg -n "\\[AppErrorBoundary\\]|\\[REACT\\] \\[ERROR\\]" ./logs/unified-*.log | tail -60
 ```
 

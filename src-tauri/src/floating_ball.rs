@@ -51,7 +51,7 @@ pub struct FbScreenshot {
     pub window_title: Option<String>,
 }
 
-/// Persisted ball placement — `~/.myagents/floating_ball.json`.
+/// Persisted ball placement — `~/.blexagent/floating_ball.json`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FbPlacement {
@@ -76,7 +76,7 @@ impl Default for FbPlacement {
     }
 }
 
-/// Mirror of the renderer's gate fields in `~/.myagents/config.json`.
+/// Mirror of the renderer's gate fields in `~/.blexagent/config.json`.
 /// Read directly from disk (same pattern as `global_shortcut::load_config`)
 /// so startup doesn't depend on the frontend being mounted.
 #[derive(Debug, Clone)]
@@ -95,7 +95,7 @@ impl Default for FbConfig {
 }
 
 pub fn load_fb_config() -> FbConfig {
-    let Some(dir) = crate::app_dirs::myagents_data_dir() else {
+    let Some(dir) = crate::app_dirs::blexagent_data_dir() else {
         return FbConfig::default();
     };
     let Ok(content) = std::fs::read_to_string(dir.join("config.json")) else {
@@ -538,7 +538,7 @@ mod imp {
                             (Some(m), Some(w)) => Some(mouse_in_window(w, *m)),
                             _ => comp.as_ref().map(|_| false),
                         };
-                        // Peek is intentionally nonactivating: MyAgents is
+                        // Peek is intentionally nonactivating: BlexAgent is
                         // normally inactive while the user works in another
                         // app. Therefore app_active is diagnostic context, not
                         // a hover gate; the geometry hit-test remains the
@@ -654,7 +654,7 @@ mod imp {
     }
 
     fn placement_path() -> Option<PathBuf> {
-        crate::app_dirs::myagents_data_dir().map(|d| d.join("floating_ball.json"))
+        crate::app_dirs::blexagent_data_dir().map(|d| d.join("floating_ball.json"))
     }
 
     fn load_placement() -> FbPlacement {
@@ -802,7 +802,7 @@ mod imp {
     fn ensure_windows(app: &AppHandle) -> Result<(), String> {
         if app.get_webview_window(BALL_LABEL).is_none() {
             let win = WebviewWindowBuilder::new(app, BALL_LABEL, WebviewUrl::default())
-                .title("MyAgents Ball")
+                .title("BlexAgent Ball")
                 .inner_size(BALL_WIN, BALL_WIN)
                 .resizable(false)
                 .decorations(false)
@@ -845,7 +845,7 @@ mod imp {
 
         if app.get_webview_window(SHIELD_LABEL).is_none() {
             let win = WebviewWindowBuilder::new(app, SHIELD_LABEL, WebviewUrl::default())
-                .title("MyAgents Floating Shield")
+                .title("BlexAgent Floating Shield")
                 .inner_size(1.0, 1.0)
                 .resizable(false)
                 .decorations(false)
@@ -877,7 +877,7 @@ mod imp {
 
         if app.get_webview_window(COMPANION_LABEL).is_none() {
             let win = WebviewWindowBuilder::new(app, COMPANION_LABEL, WebviewUrl::default())
-                .title("MyAgents Companion")
+                .title("BlexAgent Companion")
                 .inner_size(COMPANION_W, COMPANION_H)
                 .resizable(false) // JS-driven resize via cmd_fb_set_companion_size
                 .decorations(false)
@@ -1286,7 +1286,7 @@ mod imp {
         );
         // 渐隐到 0 后由 fade task 收尾 orderOut（hide_when_done）。
         // hide()/orderOut is sufficient for pure nonactivating panels. Pin now
-        // activates MyAgents so IME/text services attach to WKWebView, so the
+        // activates BlexAgent so IME/text services attach to WKWebView, so the
         // fade-out completion explicitly yields activation back to the app that
         // was frontmost before pin. (Do NOT call resign_key_window directly;
         // AppKit docs reserve it as a system callback.)
@@ -1390,7 +1390,7 @@ mod imp {
         match active_win_pos_rs::get_active_window() {
             // Clicking the ball can make OUR panel the "active window" in the
             // CGWindow sense even though the app never activates — the user
-            // saw "正在看 MyAgents — MyAgents Ball" in the title row. Filter
+            // saw "正在看 BlexAgent — BlexAgent Ball" in the title row. Filter
             // out our own process and fall back to NSWorkspace's frontmost
             // application (which nonactivating panels never become).
             Ok(win) if win.process_id != std::process::id() as u64 => FrontmostInfo {
@@ -1472,7 +1472,7 @@ mod imp {
         let app = ws.frontmostApplication()?;
         let name = app.localizedName()?;
         let name = name.to_string();
-        if name.is_empty() || name == "MyAgents" {
+        if name.is_empty() || name == "BlexAgent" {
             None
         } else {
             Some(name)
@@ -1502,7 +1502,7 @@ mod imp {
         // 就是用户正看的窗口）——引用条拿它当标签，中心点定位它所在的屏。
         let info = frontmost_window_info();
         let id = uuid::Uuid::new_v4();
-        let tmp = std::env::temp_dir().join(format!("myagents-fb-shot-{id}.png"));
+        let tmp = std::env::temp_dir().join(format!("blexagent-fb-shot-{id}.png"));
         let mut cmd = crate::process_cmd::new("/usr/sbin/screencapture");
         cmd.arg("-x"); // no shutter sound
                        // 多显示器：截"前台窗口所在的那块屏"，与引用条标签同源同屏。
@@ -1524,7 +1524,7 @@ mod imp {
 
         // Downsample + transcode in place. Best-effort: if sips fails we fall
         // back to the original PNG rather than losing the shot.
-        let jpg = std::env::temp_dir().join(format!("myagents-fb-shot-{id}.jpg"));
+        let jpg = std::env::temp_dir().join(format!("blexagent-fb-shot-{id}.jpg"));
         let sips_ok = crate::process_cmd::new("/usr/bin/sips")
             .args([
                 "-Z",
@@ -1843,7 +1843,7 @@ mod imp {
     }
 
     fn placement_path() -> Option<PathBuf> {
-        crate::app_dirs::myagents_data_dir().map(|d| d.join("floating_ball.json"))
+        crate::app_dirs::blexagent_data_dir().map(|d| d.join("floating_ball.json"))
     }
 
     fn load_placement() -> FbPlacement {
@@ -1937,7 +1937,7 @@ mod imp {
     fn ensure_windows(app: &AppHandle) -> Result<(), String> {
         if app.get_webview_window(BALL_LABEL).is_none() {
             let win = WebviewWindowBuilder::new(app, BALL_LABEL, WebviewUrl::default())
-                .title("MyAgents Ball")
+                .title("BlexAgent Ball")
                 .inner_size(BALL_WIN, BALL_WIN)
                 .resizable(false)
                 .decorations(false)
@@ -1961,7 +1961,7 @@ mod imp {
 
         if app.get_webview_window(COMPANION_LABEL).is_none() {
             let win = WebviewWindowBuilder::new(app, COMPANION_LABEL, WebviewUrl::default())
-                .title("MyAgents Companion")
+                .title("BlexAgent Companion")
                 .inner_size(COMPANION_W, COMPANION_H)
                 .resizable(false)
                 .decorations(false)
@@ -2495,7 +2495,7 @@ mod imp {
             let name = PathBuf::from(os)
                 .file_stem()
                 .map(|s| s.to_string_lossy().to_string());
-            name.filter(|s| !s.is_empty() && s != "MyAgents")
+            name.filter(|s| !s.is_empty() && s != "BlexAgent")
         }
     }
 
@@ -2704,7 +2704,7 @@ try {{
         let mut last_size = 0usize;
         for (idx, (max_dim, quality)) in ATTEMPTS.iter().copied().enumerate() {
             let jpg =
-                std::env::temp_dir().join(format!("myagents-fb-shot-{id}-{max_dim}-{quality}.jpg"));
+                std::env::temp_dir().join(format!("blexagent-fb-shot-{id}-{max_dim}-{quality}.jpg"));
             ulog_info!(
                 "[fb] screenshot capture attempt={} max_dim={} quality={} path={}",
                 idx + 1,

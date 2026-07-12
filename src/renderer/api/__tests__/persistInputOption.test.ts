@@ -265,7 +265,7 @@ describe('persistInputOptionChange — disk write fanout', () => {
       workspaceId: 'ws-1',
       agentId: 'agent-1',
       isExternalRuntime: false,
-      currentRuntimeConfig: { envPolicy: { proxy: 'myagents' } },
+      currentRuntimeConfig: { envPolicy: { proxy: 'blexagent' } },
       fields: {
         runtimeBackedProviderSelection: identity,
         permissionMode: 'plan',
@@ -280,7 +280,7 @@ describe('persistInputOptionChange — disk write fanout', () => {
       model: 'gpt-5.4-codex',
       runtime: 'builtin',
       runtimeConfig: {
-        envPolicy: { proxy: 'myagents' },
+        envPolicy: { proxy: 'blexagent' },
         permissionMode: 'suggest',
       },
     });

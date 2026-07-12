@@ -71,7 +71,7 @@ export const CODEX_INITIALIZE_CAPABILITIES = Object.freeze({
 
 export function buildCodexInitializeParams(): Record<string, unknown> {
   return {
-    clientInfo: { name: 'MyAgents', title: null, version: process.env.MYAGENTS_VERSION || '0.1.60' },
+    clientInfo: { name: 'BlexAgent', title: null, version: process.env.BLEXAGENT_VERSION || '0.1.60' },
     capabilities: CODEX_INITIALIZE_CAPABILITIES,
   };
 }
@@ -109,7 +109,7 @@ const CODEX_MCP_PARENT_ENV_DENY = new Set([
   'LD_PRELOAD',
   'DYLD_INSERT_LIBRARIES',
   'DYLD_LIBRARY_PATH',
-  'MYAGENTS_RUNTIME_SOURCE',
+  'BLEXAGENT_RUNTIME_SOURCE',
   'OPENAI_API_KEY',
   'OPENAI_BASE_URL',
   'OPENAI_ORG_ID',
@@ -141,7 +141,7 @@ function codexMcpServerName(id: string): string | null {
 function codexMcpEnvVarName(serverName: string, key: string): string {
   const safeServer = serverName.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
   const safeKey = key.toUpperCase().replace(/[^A-Z0-9_]/g, '_');
-  return `MYAGENTS_MCP_${safeServer}_${safeKey}`.slice(0, 180);
+  return `BLEXAGENT_MCP_${safeServer}_${safeKey}`.slice(0, 180);
 }
 
 function uniqueCodexMcpEnvVarName(
@@ -182,7 +182,7 @@ function resolveMcpTemplateValue(
 }
 
 function unsafeCodexMcpStdioValueReason(value: string): string | null {
-  if (hasCodexMcpTemplate(value)) return 'contains MyAgents env placeholder';
+  if (hasCodexMcpTemplate(value)) return 'contains BlexAgent env placeholder';
   if (CODEX_MCP_SECRET_VALUE_RE.test(value)) return 'contains inline secret-looking value';
   if (/bearer\s+\S+/i.test(value)) return 'contains inline bearer token';
   if (CODEX_MCP_INLINE_SECRET_RE.test(value)) return 'contains inline credential assignment';
@@ -206,7 +206,7 @@ function unsafeCodexMcpStdioArgsReason(args: readonly string[]): string | null {
 }
 
 function unsafeCodexMcpUrlReason(rawUrl: string): string | null {
-  if (hasCodexMcpTemplate(rawUrl)) return 'contains MyAgents env placeholder';
+  if (hasCodexMcpTemplate(rawUrl)) return 'contains BlexAgent env placeholder';
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
@@ -398,7 +398,7 @@ function buildManagedCodexMcpConfigArgs(
     }
 
     skipped += 1;
-    console.warn(`[codex] managed MCP ${server.id} skipped: Codex app-server does not support MyAgents MCP type ${server.type}`);
+    console.warn(`[codex] managed MCP ${server.id} skipped: Codex app-server does not support BlexAgent MCP type ${server.type}`);
   }
 
   if (args.length > 0 || skipped > 0) {
@@ -486,7 +486,7 @@ export function buildCodexFileChangeResultContent(changes: unknown): string {
 // ─── Temp image directory for Codex (which requires file paths, not base64) ───
 const TEMP_IMG_DIR = join(
   process.env.HOME || process.env.USERPROFILE || '/tmp',
-  '.myagents', 'tmp', 'codex-images',
+  '.blexagent', 'tmp', 'codex-images',
 );
 
 /**
@@ -984,7 +984,7 @@ export function resolveTopLevelSpawnCard(
 }
 
 /**
- * Notification methods that drive the MAIN MyAgents session and carry a
+ * Notification methods that drive the MAIN BlexAgent session and carry a
  * top-level `threadId`. When such an event comes from a spawned sub-agent
  * thread it must be ignored (see the guard in parseNotification). Two reasons a
  * method belongs here:
@@ -1446,9 +1446,9 @@ class CodexProcess implements RuntimeProcess {
    *  which is also what makes setReasoningEffort an in-place update. */
   reasoningEffort = '';
 
-  /** MyAgents sessionId (from SessionStartOptions). Used as the attachment scope key
+  /** BlexAgent sessionId (from SessionStartOptions). Used as the attachment scope key
    *  so refPath /api/attachment/tool/<sessionId>/<turnId>/<file> stays consistent
-   *  across runtime resumes within the same MyAgents session. */
+   *  across runtime resumes within the same BlexAgent session. */
   sessionId = '';
   // True when the startSession catch-handler killed the process itself (stale
   // resume, init failure, etc.). Suppresses the synthetic "Codex process
@@ -1537,7 +1537,7 @@ const CODEX_STDERR_PATTERNS: StderrPattern[] = [
   { re: /not (signed in|logged in|authenticated)|authentication required|please sign in/i, level: 'error', prefix: 'Codex authentication required' },
   { re: /(401|403)\b.*?(unauthor|forbid)/i, level: 'error', prefix: 'Codex authorization rejected' },
   // Network / proxy diagnostics.
-  { re: /proxyconnect tcp: dial tcp 127\.[0-9.]+:\d+: connect: operation not permitted/i, level: 'error', prefix: 'Codex sandbox blocks MyAgents proxy' },
+  { re: /proxyconnect tcp: dial tcp 127\.[0-9.]+:\d+: connect: operation not permitted/i, level: 'error', prefix: 'Codex sandbox blocks BlexAgent proxy' },
   { re: /(connection (refused|reset)|tls handshake|dns (failure|resolve))/i, level: 'error', prefix: 'Codex network error' },
 ];
 
@@ -1643,7 +1643,7 @@ function sanitizeProxyUrl(url: string | undefined): string | undefined {
 function buildEffectiveEnvSnapshot(
   env: Record<string, string | undefined>,
   cwd: string,
-  proxyPolicy: RuntimeProxyPolicy = 'myagents',
+  proxyPolicy: RuntimeProxyPolicy = 'blexagent',
 ): RuntimeEffectiveEnv {
   const path = env.PATH || env.Path || '';
   const pathHead = path.split(process.platform === 'win32' ? ';' : ':')
@@ -1658,11 +1658,11 @@ function buildEffectiveEnvSnapshot(
       no: env.NO_PROXY || env.no_proxy || undefined,
     },
     // Reflects the agent's runtimeConfig.envPolicy.proxy resolved at session
-    // start (issue #194). 'myagents' = MyAgents-configured proxy is injected;
+    // start (issue #194). 'blexagent' = BlexAgent-configured proxy is injected;
     // 'terminal' = inherited from user's interactive shell.
     proxyPolicy,
     pathHead,
-    myagentsProxyInjected: env.MYAGENTS_PROXY_INJECTED === '1',
+    blexagentProxyInjected: env.BLEXAGENT_PROXY_INJECTED === '1',
     hasOpenaiApiKey: !!(env.OPENAI_API_KEY && env.OPENAI_API_KEY.length > 0),
     hasAnthropicApiKey: !!(env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY.length > 0),
     hasCodexHome: !!(env.CODEX_HOME && env.CODEX_HOME.length > 0),
@@ -1774,7 +1774,7 @@ async function collectCodexDiagnostics(
    * declares this nullable. Earlier code passed `''`, which serde could reject.
    */
   threadId: string | null,
-  proxyPolicy: RuntimeProxyPolicy = 'myagents',
+  proxyPolicy: RuntimeProxyPolicy = 'blexagent',
   sandboxPolicy?: CodexSandboxPolicy,
   runtimeSource: import('../../shared/types/runtime').RuntimeSource = 'system-cli',
 ): Promise<RuntimeDiagnostics> {
@@ -1821,7 +1821,7 @@ async function collectCodexDiagnostics(
   // (apikey / chatgpt / chatgptAuthTokens / agentIdentity), so the user must
   // sign in. Earlier code derived requiresLogin from `requiresOpenaiAuth`
   // alone, which flagged every authed Codex user as needing login — surfacing
-  // a false-positive "需要登录 Codex" banner in MyAgents (cross-bugfix #1).
+  // a false-positive "需要登录 Codex" banner in BlexAgent (cross-bugfix #1).
   let auth: RuntimeAuthStatus | undefined;
   if (authR[0] === 'ok') {
     status.auth = 'ok';
@@ -1841,7 +1841,7 @@ async function collectCodexDiagnostics(
         message: 'Codex reported no active auth method for this runtime session.',
         hint: runtimeSource === 'managed-provider'
           ? 'Open Settings → Model Providers → Codex (订阅), then log in again.'
-          : 'Run `codex login` in a terminal, then retry from MyAgents.',
+          : 'Run `codex login` in a terminal, then retry from BlexAgent.',
       });
     }
   } else if (authR[0] === 'unsupported') {
@@ -1985,9 +1985,9 @@ async function collectCodexDiagnostics(
     const proxyProbe = sandboxProbe.proxyProbe;
     if (proxyProbe && !proxyProbe.reachable && (sandboxProbe.detected || sandboxProbe.networkDisabled)) {
       issues.push({
-        code: 'codex_sandbox_blocks_myagents_proxy',
+        code: 'codex_sandbox_blocks_blexagent_proxy',
         severity: 'error',
-        title: 'Codex sandbox blocks the MyAgents proxy',
+        title: 'Codex sandbox blocks the BlexAgent proxy',
         message: `Codex could not connect to loopback proxy ${proxyProbe.url}: ${proxyProbe.error ?? 'unreachable'}`,
         hint: 'Use Codex no-restrictions mode, switch runtime proxy policy to terminal shell behavior, or use a proxy reachable from the Codex sandbox.',
       });
@@ -2117,7 +2117,7 @@ export class CodexRuntime implements AgentRuntime {
   }
 
   /**
-   * Standalone diagnostic run (issue #194 — used by `myagents diagnose runtime
+   * Standalone diagnostic run (issue #194 — used by `blexagent diagnose runtime
    * codex`). Spawns a short-lived `codex app-server`, runs initialize, fans
    * out the four diagnostic RPCs, and tears down. Does NOT start a thread —
    * the three core RPCs (`getAuthStatus`, `experimentalFeature/list`,
@@ -2129,7 +2129,7 @@ export class CodexRuntime implements AgentRuntime {
    * snapshot reflects what production Codex would see. Pass `envPolicy` from
    * the same `agent.runtimeConfig.envPolicy` that the real session would
    * resolve — otherwise the diagnostic would silently report the legacy
-   * `myagents` proxy view even when the agent is set to `terminal`/`direct`
+   * `blexagent` proxy view even when the agent is set to `terminal`/`direct`
    * (Codex review #3 catch).
    */
   async runStandaloneDiagnostics(
@@ -2181,7 +2181,7 @@ export class CodexRuntime implements AgentRuntime {
         env,
         cwd,
         null,
-        envPolicy?.proxy ?? 'myagents',
+        envPolicy?.proxy ?? 'blexagent',
         buildCodexSandboxPolicy('workspace-write', cwd),
         'system-cli',
       );
@@ -2217,7 +2217,7 @@ export class CodexRuntime implements AgentRuntime {
     // consults `$PWD` (vs. the kernel-level cwd Rust's spawn passes) sees the
     // workspace, not the sidecar's launch directory. Codex review SM finding.
     codexEnv.PWD = options.workspacePath;
-    codexEnv.MYAGENTS_SESSION_ID = options.sessionId;
+    codexEnv.BLEXAGENT_SESSION_ID = options.sessionId;
     const codexArgs = buildCodexAppServerArgs({
       commandPath: context.commandPath,
       runtimeSource,
@@ -2493,7 +2493,7 @@ export class CodexRuntime implements AgentRuntime {
             codexEnv,
             options.workspacePath,
             codexProc.threadId,
-            options.envPolicy?.proxy ?? 'myagents',
+            options.envPolicy?.proxy ?? 'blexagent',
             buildCodexSandboxPolicy(sandbox, options.workspacePath),
             runtimeSource,
           );
@@ -2740,7 +2740,7 @@ export class CodexRuntime implements AgentRuntime {
     // PRD 0.2.27 — sub-agent threads run their OWN turns/lifecycle multiplexed
     // over this connection (verified live: a spawned child emits its own
     // turn/started + turn/completed with isMain=false, plus thread lifecycle).
-    // Those MUST NOT drive the MAIN MyAgents session: a child's turn/completed
+    // Those MUST NOT drive the MAIN BlexAgent session: a child's turn/completed
     // would otherwise finalize the user's turn early and resetTurnAccumulators()
     // mid-fan-out — wiping currentContentBlocks (the spawn card + its nested
     // calls) and breaking both turn integrity and the nesting itself.
@@ -3544,15 +3544,15 @@ export class CodexRuntime implements AgentRuntime {
       }
 
       case 'item/tool/call':
-        codexProc.rpc.respondError(rpcId, -32000, 'Codex dynamic tool host is not supported by MyAgents yet');
+        codexProc.rpc.respondError(rpcId, -32000, 'Codex dynamic tool host is not supported by BlexAgent yet');
         break;
 
       case 'account/chatgptAuthTokens/refresh':
-        codexProc.rpc.respondError(rpcId, -32000, 'MyAgents does not refresh Codex ChatGPT tokens; run `codex login` in a terminal');
+        codexProc.rpc.respondError(rpcId, -32000, 'BlexAgent does not refresh Codex ChatGPT tokens; run `codex login` in a terminal');
         break;
 
       case 'attestation/generate':
-        codexProc.rpc.respondError(rpcId, -32000, 'MyAgents did not request Codex attestation');
+        codexProc.rpc.respondError(rpcId, -32000, 'BlexAgent did not request Codex attestation');
         break;
 
       case 'currentTime/read':

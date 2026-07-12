@@ -1,4 +1,4 @@
----
+﻿---
 name: Bug Report
 about: Report a bug to help us improve
 title: '[Bug] '
@@ -28,7 +28,7 @@ If applicable, add screenshots to help explain your problem.
 
 - **macOS Version:** [e.g., 14.0]
 - **Chip:** [e.g., Apple M1, Intel]
-- **MyAgents Version:** [e.g., 0.1.0]
+- **BlexAgent Version:** [e.g., 0.1.0]
 
 ## Additional Context
 

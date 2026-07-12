@@ -248,7 +248,7 @@ interface ProxyHttpResponse {
 // TabProvider used to overwrite a single `activeTabId` on mount, so the
 // last-mounted tab won regardless of where the user actually was. With N
 // concurrent tabs, requests fired from tab A would carry tab B's id in
-// `X-MyAgents-Tab-Id` whenever B mounted later — breaking PRD §6.4
+// `X-BlexAgent-Tab-Id` whenever B mounted later — breaking PRD §6.4
 // "any error log can be filtered by tabId".
 //
 // New model: App.tsx owns the active tab across every surface, and
@@ -428,11 +428,11 @@ export async function proxyFetch(
     // overwrite explicit ones the caller already set. Resolver prefers
     // App-active tab > focused Chat tab > mounted fallback.
     const correlation = resolveCorrelation();
-    if (correlation.tabId && !headers['X-MyAgents-Tab-Id'] && !headers['x-myagents-tab-id']) {
-        headers['X-MyAgents-Tab-Id'] = correlation.tabId;
+    if (correlation.tabId && !headers['X-BlexAgent-Tab-Id'] && !headers['x-blexagent-tab-id']) {
+        headers['X-BlexAgent-Tab-Id'] = correlation.tabId;
     }
-    if (correlation.sessionId && !headers['X-MyAgents-Session-Id'] && !headers['x-myagents-session-id']) {
-        headers['X-MyAgents-Session-Id'] = correlation.sessionId;
+    if (correlation.sessionId && !headers['X-BlexAgent-Session-Id'] && !headers['x-blexagent-session-id']) {
+        headers['X-BlexAgent-Session-Id'] = correlation.sessionId;
     }
 
     try {

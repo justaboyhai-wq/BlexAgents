@@ -17,7 +17,7 @@ import {
   type SpaceMembersPayload,
   type SpaceSession,
 } from "@/api/spaceCloud";
-import myagentsWebLogo from "@/assets/brand/myagents-web-logo.png";
+import blexagentWebLogo from "@/assets/brand/blexagent-web-logo.png";
 import CustomSelect from "@/components/CustomSelect";
 import OverlayBackdrop from "@/components/OverlayBackdrop";
 import { useToast } from "@/components/Toast";
@@ -70,7 +70,7 @@ function planDisplay(plan?: string | null): string {
 
 function spaceAvatarUrl(space: SpaceSession["space"]): string | null {
   if (space.avatarUrl) return space.avatarUrl;
-  if (space.spaceKind === "official" || space.slug === "official") return myagentsWebLogo;
+  if (space.spaceKind === "official" || space.slug === "official") return blexagentWebLogo;
   return null;
 }
 

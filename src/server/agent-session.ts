@@ -13,7 +13,7 @@ import { registerBridge as registerBridgeInRegistry, unregisterBridge as unregis
 import { getScriptDir, getBundledNodeDir, getSystemNodeDirs, getBundledRuntimePath, getSystemNpxPaths, findExistingPath } from './utils/runtime';
 import { getCrossPlatformEnv } from './utils/platform';
 import { ensureDirSync } from './utils/fs-utils';
-import { getMyAgentsNpmGlobalBinDir, getMyAgentsNpmGlobalPrefix, scrubMyAgentsNpmPrefixEnv } from './utils/npm-prefix-env';
+import { getBlexAgentNpmGlobalBinDir, getBlexAgentNpmGlobalPrefix, scrubBlexAgentNpmPrefixEnv } from './utils/npm-prefix-env';
 import { applyContextWindowSuffix, lookupModelContextLength, lookupProviderModelContextLength, modelSupportsModality } from './utils/model-capabilities';
 import { modelAliasEnvChangesForModel, resolveSessionModelAliases } from './utils/model-aliases';
 import { resolveEffectiveResumeAt } from './utils/rewind-anchor';
@@ -128,7 +128,7 @@ import type { ImagePayload, ResolvedImagePayload } from './runtimes/types';
 import { messageAttachmentsFromImagePayloads, resolveImagePayloads } from './runtimes/image-payload';
 import { buildBuiltinMediaAttachments, saveExtractedToolResultAttachments } from './runtimes/builtin-media-attachments';
 import {
-  getMyAgentsUserDir,
+  getBlexAgentUserDir,
   trySyncProjectUserConfigFiles,
   type ProjectUserConfigSyncOptions,
 } from './utils/project-user-config-sync';
@@ -373,7 +373,7 @@ const SUPPRESS_PER_TOKEN_LOG_BROADCAST = true;
 export const SDK_RESERVED_MCP_NAMES = ['claude-in-chrome', 'computer-use'];
 
 /**
- * MyAgents-reserved MCP server ids — names used by context-injected builtins
+ * BlexAgent-reserved MCP server ids — names used by context-injected builtins
  * that are managed by the sidecar, not user-toggleable. User MCPs configured
  * with these ids are silently dropped at SDK build time so they cannot
  * (a) overwrite the legitimate builtin in `result[server.id]`, or
@@ -384,12 +384,12 @@ export const SDK_RESERVED_MCP_NAMES = ['claude-in-chrome', 'computer-use'];
  * its id here too. See issue #148 for the original drift.
  *
  * v0.2.11 — `cron-tools`, `im-cron`, and `im-media` were retired in favour of
- * `myagents` CLI commands + system prompt guidance (single CLI surface usable
+ * `blexagent` CLI commands + system prompt guidance (single CLI surface usable
  * across builtin / Codex / Gemini / Claude Code runtimes). Only `im-bridge-tools`
  * remains a context-injected MCP because its tool surface is a runtime-dynamic
  * passthrough of OpenClaw plugin tools — no fixed schema to teach via prompt.
  */
-export const MYAGENTS_CONTEXT_INJECTED_MCP_IDS = [
+export const BLEXAGENT_CONTEXT_INJECTED_MCP_IDS = [
   'im-bridge-tools',
 ] as const;
 
@@ -449,12 +449,12 @@ const DECORATIVE_TEXT_MAX_LENGTH = 5000;
  * This avoids setting CLAUDE_CONFIG_DIR (which would break Keychain credential lookup).
  *
  * Skills (directories):
- * - Creates symlinks for enabled skills: <project>/.claude/skills/<name> → ~/.myagents/skills/<name>
+ * - Creates symlinks for enabled skills: <project>/.claude/skills/<name> → ~/.blexagent/skills/<name>
  * - Removes symlinks for disabled skills (only symlinks, never real project directories)
  * - Does NOT touch real (non-symlink) skill directories in the project
  *
  * Commands (.md files):
- * - Creates symlinks for all commands: <project>/.claude/commands/<name>.md → ~/.myagents/commands/<name>.md
+ * - Creates symlinks for all commands: <project>/.claude/commands/<name>.md → ~/.blexagent/commands/<name>.md
  * - Does NOT touch real (non-symlink) command files in the project
  *
  * Called at session startup (startStreamingSession) and after skill/command CRUD operations.
@@ -1180,7 +1180,7 @@ function setCurrentSessionId(next: string): void {
 }
 
 function publishCurrentSessionEnv(): void {
-  process.env.MYAGENTS_SESSION_ID = sessionId;
+  process.env.BLEXAGENT_SESSION_ID = sessionId;
 }
 // Reset guard: prevents enqueueUserMessage from racing with async resetSession()/switchToSession()
 // Single promise — non-null means a reset is in progress; enqueueUserMessage awaits it.
@@ -1230,20 +1230,20 @@ let sidecarPort: number = 0;
 
 /** Set the sidecar port (called once from index.ts on startup).
  *
- *  Side effect: exports `MYAGENTS_PORT` to `process.env` so every subprocess
+ *  Side effect: exports `BLEXAGENT_PORT` to `process.env` so every subprocess
  *  spawned later via `augmentedProcessEnv()` (external runtimes: gemini / claude-code /
  *  codex) inherits it automatically — the AI's shell tool can then invoke
- *  `myagents` CLI without the CLI bailing with `MYAGENTS_PORT not set`. This is
+ *  `blexagent` CLI without the CLI bailing with `BLEXAGENT_PORT not set`. This is
  *  the pit-of-success alternative to editing three runtime `spawn()` call sites
  *  individually: a new runtime added tomorrow gets the same guarantee for free.
  *
- *  The builtin SDK path still sets `env.MYAGENTS_PORT` explicitly in
+ *  The builtin SDK path still sets `env.BLEXAGENT_PORT` explicitly in
  *  `buildClaudeSessionEnv()` (idempotent) because pre-warm can spawn before
  *  this function is called and the process.env write would arrive too late. */
 export function setSidecarPort(port: number): void {
   sidecarPort = port;
   if (port > 0) {
-    process.env.MYAGENTS_PORT = String(port);
+    process.env.BLEXAGENT_PORT = String(port);
   }
 }
 
@@ -1896,7 +1896,7 @@ const builtinToolTraceStarts = new Map<string, number>();
 // PRD 0.2.18 Session Inbox — per-turn binding of inbox metadata.
 //
 // Bound when the message generator yields a queued item that carries inboxMeta
-// (i.e. the message came in via /api/inbox/drain from a `myagents session send`
+// (i.e. the message came in via /api/inbox/drain from a `blexagent session send`
 // caller). Read at SDK result event handler: if replyBack=true, the turn's text
 // output is collected and pushed back to the caller via deliverInboxReply().
 //
@@ -2224,7 +2224,7 @@ export function getSessionEnabledPluginIds(): readonly string[] | null {
 }
 
 /**
- * Per-Tab override for MyAgents official CLI tools. This only changes the
+ * Per-Tab override for BlexAgent official CLI tools. This only changes the
  * next session/pre-warm system prompt; the current SDK subprocess cannot have
  * its system prompt mutated in place.
  */
@@ -2249,7 +2249,7 @@ export function getSessionEnabledOfficialToolIds(): readonly OfficialToolId[] | 
 
 /**
  * Hot-reload proxy configuration into the current process environment and
- * restart the builtin SDK only when the current provider's effective MyAgents
+ * restart the builtin SDK only when the current provider's effective BlexAgent
  * proxy state changed. Scope-only edits can matter even when the proxy URL is
  * unchanged; unrelated provider scope edits should not churn this session.
  */
@@ -2905,7 +2905,7 @@ export function setSessionProviderEnv(providerEnv: ProviderEnv | undefined): voi
  * The pre-warmed session is invisible to the frontend until the first user message.
  */
 /**
- * Force a session restart triggered by an explicit `myagents reload`.
+ * Force a session restart triggered by an explicit `blexagent reload`.
  *
  * Unlike `setMcpServers` / `setAgents` / provider / proxy paths, this bypasses
  * the `isCurrentSessionSnapshotted()` guard. The snapshot guard exists to
@@ -3022,11 +3022,11 @@ export function getAgents(): Record<string, AgentDefinition> | null {
 }
 
 /**
- * Predicate for each MyAgents-reserved context-injected builtin MCP id.
+ * Predicate for each BlexAgent-reserved context-injected builtin MCP id.
  * Returns true when the corresponding sidecar context is set, mirroring the
  * inclusion conditions in `buildSdkMcpServers()` Pattern 1.
  *
- * The `Record<typeof MYAGENTS_CONTEXT_INJECTED_MCP_IDS[number], …>` shape
+ * The `Record<typeof BLEXAGENT_CONTEXT_INJECTED_MCP_IDS[number], …>` shape
  * makes TypeScript enforce 1:1 alignment between the reserved id list and
  * the predicates: adding a new reserved id without a predicate (or vice
  * versa) is a compile error. This is the pit-of-success against the drift
@@ -3039,7 +3039,7 @@ export function getAgents(): Record<string, AgentDefinition> | null {
  * "未启用". The fix routes the permission gate through this single map.
  */
 const CONTEXT_INJECTED_BUILTIN_PREDICATES: Record<
-  typeof MYAGENTS_CONTEXT_INJECTED_MCP_IDS[number],
+  typeof BLEXAGENT_CONTEXT_INJECTED_MCP_IDS[number],
   () => boolean
 > = {
   'im-bridge-tools': () => Boolean(getImBridgeToolsContext()) && Boolean(getImBridgeToolServer()),
@@ -3047,7 +3047,7 @@ const CONTEXT_INJECTED_BUILTIN_PREDICATES: Record<
 
 function getActiveContextInjectedBuiltinIds(): Set<string> {
   const ids = new Set<string>();
-  for (const id of MYAGENTS_CONTEXT_INJECTED_MCP_IDS) {
+  for (const id of BLEXAGENT_CONTEXT_INJECTED_MCP_IDS) {
     if (CONTEXT_INJECTED_BUILTIN_PREDICATES[id]()) ids.add(id);
   }
   return ids;
@@ -3082,7 +3082,7 @@ function checkMcpToolPermission(toolName: string): { allowed: true } | { allowed
   if (activeBuiltins.has(serverId)) {
     return { allowed: true };
   }
-  // For ids in MYAGENTS_CONTEXT_INJECTED_MCP_IDS but NOT currently active,
+  // For ids in BLEXAGENT_CONTEXT_INJECTED_MCP_IDS but NOT currently active,
   // reject with a context-specific message instead of the generic "未启用".
   // Driven by the reserved-id list so it can never drift from Pattern 1.
   // Retired MCP names (`cron-tools` / `im-cron` / `im-media`) intentionally
@@ -3131,7 +3131,7 @@ function checkMcpToolPermission(toolName: string): { allowed: true } | { allowed
  *
  * We exclude 'user' because:
  * - 'user' reads from ~/.claude/ (Claude CLI's directory, not ours)
- * - Our product uses ~/.myagents/ for user-level config
+ * - Our product uses ~/.blexagent/ for user-level config
  * - Setting CLAUDE_CONFIG_DIR to redirect would break Anthropic subscription OAuth
  *   (SDK derives Keychain service names from CLAUDE_CONFIG_DIR path hash)
  */
@@ -3175,7 +3175,7 @@ export function pinMcpPackageVersions(args: string[]): string[] {
  *    OpenClaw plugin bridge which exposes a runtime-dynamic tool surface.
  *    Other historical context-injected MCPs (`cron-tools`, `im-cron`,
  *    `im-media`) were retired in v0.2.11 — the AI now reaches those
- *    capabilities through the `myagents` CLI + system prompt guidance,
+ *    capabilities through the `blexagent` CLI + system prompt guidance,
  *    so the same surface is available across builtin / Codex / Gemini /
  *    Claude Code runtimes.
  * 2. Builtin registry (command='__builtin__') — in-process servers, user-toggled via Settings,
@@ -3206,11 +3206,11 @@ async function buildSdkMcpServers(): Promise<Record<string, McpServerEntry>> {
       console.warn(`[agent] MCP "${s.id}" skipped: conflicts with SDK reserved name. Rename to avoid this.`);
       return false;
     }
-    // Reserve MyAgents context-injected builtin ids: a user MCP with the same id
+    // Reserve BlexAgent context-injected builtin ids: a user MCP with the same id
     // would otherwise overwrite the builtin in result[id] and inherit its
     // auto-trust in canUseTool — see issue #148.
-    if ((MYAGENTS_CONTEXT_INJECTED_MCP_IDS as readonly string[]).includes(normalized)) {
-      console.warn(`[agent] MCP "${s.id}" skipped: id is reserved by MyAgents (context-injected builtin). Rename to avoid this.`);
+    if ((BLEXAGENT_CONTEXT_INJECTED_MCP_IDS as readonly string[]).includes(normalized)) {
+      console.warn(`[agent] MCP "${s.id}" skipped: id is reserved by BlexAgent (context-injected builtin). Rename to avoid this.`);
       return false;
     }
     return true;
@@ -3300,7 +3300,7 @@ async function buildSdkMcpServers(): Promise<Record<string, McpServerEntry>> {
         // or when the SDK's env whitelist (RK_) didn't propagate Node.js directories.
         // Resolving to full path eliminates this class of issues (pit-of-success pattern).
         // v0.2.0+ priority: system npx → bundled Node.js npx → npx derived from runtime path.
-        // Bun fallback removed — MyAgents no longer bundles Bun, and "bun x" was an
+        // Bun fallback removed — BlexAgent no longer bundles Bun, and "bun x" was an
         // emergency escape hatch for Linux boxes with neither Node nor bundled runtime,
         // which is no longer a supported config.
         const systemNpx = findExistingPath(getSystemNpxPaths());
@@ -3372,7 +3372,7 @@ async function buildSdkMcpServers(): Promise<Record<string, McpServerEntry>> {
 
         // In isolated mode, inject --storage-state if file exists (for login state reuse)
         if (hasIsolated) {
-          const storageStatePath = join(getMyAgentsUserDir(), 'browser-storage-state.json');
+          const storageStatePath = join(getBlexAgentUserDir(), 'browser-storage-state.json');
           if (existsSync(storageStatePath) && !args.some((a: string) => a.startsWith('--storage-state'))) {
             args.push(`--storage-state=${storageStatePath}`);
             console.log(`[agent] MCP playwright: injecting storage-state from ${storageStatePath}`);
@@ -5084,12 +5084,12 @@ function sealCcAuthEnv(env: NodeJS.ProcessEnv): void {
   }
 }
 
-const WINDOWS_UTF8_BASH_ENV_SENTINEL = 'MYAGENTS_WINDOWS_UTF8';
+const WINDOWS_UTF8_BASH_ENV_SENTINEL = 'BLEXAGENT_WINDOWS_UTF8';
 const WINDOWS_UTF8_BASH_ENV_FILENAME = 'windows-utf8-bash-env.sh';
 const WINDOWS_UTF8_BASH_ENV_CONTENT = [
-  '# MyAgents-managed Bash prelude for Windows SDK tool output.',
-  `if [ -n "\${MYAGENTS_ORIGINAL_BASH_ENV:-}" ] && [ "\${MYAGENTS_ORIGINAL_BASH_ENV}" != "\${BASH_ENV:-}" ] && [ -r "\${MYAGENTS_ORIGINAL_BASH_ENV}" ]; then`,
-  '  . "${MYAGENTS_ORIGINAL_BASH_ENV}"',
+  '# BlexAgent-managed Bash prelude for Windows SDK tool output.',
+  `if [ -n "\${BLEXAGENT_ORIGINAL_BASH_ENV:-}" ] && [ "\${BLEXAGENT_ORIGINAL_BASH_ENV}" != "\${BASH_ENV:-}" ] && [ -r "\${BLEXAGENT_ORIGINAL_BASH_ENV}" ]; then`,
+  '  . "${BLEXAGENT_ORIGINAL_BASH_ENV}"',
   'fi',
   `export ${WINDOWS_UTF8_BASH_ENV_SENTINEL}=1`,
   'export LANG=C.UTF-8',
@@ -5103,7 +5103,7 @@ const WINDOWS_UTF8_BASH_ENV_CONTENT = [
 
 function ensureWindowsUtf8BashEnvScript(home: string): string | undefined {
   if (!home) return undefined;
-  const scriptDir = resolve(home, '.myagents', 'runtime');
+  const scriptDir = resolve(home, '.blexagent', 'runtime');
   const scriptPath = resolve(scriptDir, WINDOWS_UTF8_BASH_ENV_FILENAME);
   try {
     ensureDirSync(scriptDir);
@@ -5146,7 +5146,7 @@ export function applyWindowsUtf8SubprocessEnv(
   const existingBashEnv = env.BASH_ENV;
   const existingBashEnvForShell = existingBashEnv ? toGitBashEnvPath(existingBashEnv) : undefined;
   if (existingBashEnvForShell && existingBashEnvForShell !== bashEnvScriptForShell) {
-    env.MYAGENTS_ORIGINAL_BASH_ENV = existingBashEnvForShell;
+    env.BLEXAGENT_ORIGINAL_BASH_ENV = existingBashEnvForShell;
   }
   env.BASH_ENV = bashEnvScriptForShell;
 }
@@ -5191,8 +5191,8 @@ export function buildClaudeSessionEnv(
   // Detect bundled Node.js directory using shared utility from runtime.ts
   const isWindows = process.platform === 'win32';
   const bundledNodeDir = getBundledNodeDir();
-  const myAgentsNpmGlobalPrefix = getMyAgentsNpmGlobalPrefix(home);
-  const myAgentsNpmGlobalBinDir = getMyAgentsNpmGlobalBinDir(home);
+  const blexAgentNpmGlobalPrefix = getBlexAgentNpmGlobalPrefix(home);
+  const blexAgentNpmGlobalBinDir = getBlexAgentNpmGlobalBinDir(home);
 
   // Windows directory env vars — hoisted for reuse across essentialPaths + git-bash detection
   const winProgramFiles = isWindows ? (process.env.PROGRAMFILES || 'C:\\Program Files') : '';
@@ -5222,27 +5222,27 @@ export function buildClaudeSessionEnv(
     essentialPaths.push(bundledNodeDir);
   }
 
-  // MyAgents-managed npm global bin dir. It stays on PATH so tools installed
-  // by MyAgents-localized npm commands (see MYAGENTS_NPM_GLOBAL_PREFIX below)
-  // are immediately invocable. This dir comes BEFORE `~/.myagents/bin` in
+  // BlexAgent-managed npm global bin dir. It stays on PATH so tools installed
+  // by BlexAgent-localized npm commands (see BLEXAGENT_NPM_GLOBAL_PREFIX below)
+  // are immediately invocable. This dir comes BEFORE `~/.blexagent/bin` in
   // essentialPaths so:
   //   1. AI-installed tools (e.g. agent-browser) shadow any legacy
-  //      `~/.myagents/bin/<name>` wrapper from older app versions —
+  //      `~/.blexagent/bin/<name>` wrapper from older app versions —
   //      legacy wrappers naturally fall idle without explicit cleanup.
-  //   2. Existing installs made by older MyAgents versions remain discoverable
+  //   2. Existing installs made by older BlexAgent versions remain discoverable
   //      after we stopped leaking npm_config_prefix globally.
-  if (myAgentsNpmGlobalBinDir) {
-    essentialPaths.push(myAgentsNpmGlobalBinDir);
+  if (blexAgentNpmGlobalBinDir) {
+    essentialPaths.push(blexAgentNpmGlobalBinDir);
   }
 
-  // MyAgents bin directory — user-facing commands (the `myagents` CLI itself).
+  // BlexAgent bin directory — user-facing commands (the `blexagent` CLI itself).
   // Legacy `agent-browser` wrappers from older app versions may still live
   // here; they're shadowed by `npm-global/bin` above so no cleanup needed.
   if (home) {
-    const myagentsBinDir = isWindows
-      ? resolve(home, '.myagents', 'bin')
-      : `${home}/.myagents/bin`;
-    essentialPaths.push(myagentsBinDir);
+    const blexagentBinDir = isWindows
+      ? resolve(home, '.blexagent', 'bin')
+      : `${home}/.blexagent/bin`;
+    essentialPaths.push(blexagentBinDir);
   }
 
   // System bun/runtime installations (fallback)
@@ -5311,28 +5311,28 @@ export function buildClaudeSessionEnv(
   // interactive shells with nvm treat those vars as incompatible and print a
   // warning before every Bash/zsh tool run. Skills that need a predictable
   // global install target should use:
-  //   npm_config_prefix="$MYAGENTS_NPM_GLOBAL_PREFIX" npm install -g <pkg>
-  if (myAgentsNpmGlobalPrefix) {
-    env.MYAGENTS_NPM_GLOBAL_PREFIX = myAgentsNpmGlobalPrefix;
-    if (myAgentsNpmGlobalBinDir) {
-      env.MYAGENTS_NPM_GLOBAL_BIN = myAgentsNpmGlobalBinDir;
+  //   npm_config_prefix="$BLEXAGENT_NPM_GLOBAL_PREFIX" npm install -g <pkg>
+  if (blexAgentNpmGlobalPrefix) {
+    env.BLEXAGENT_NPM_GLOBAL_PREFIX = blexAgentNpmGlobalPrefix;
+    if (blexAgentNpmGlobalBinDir) {
+      env.BLEXAGENT_NPM_GLOBAL_BIN = blexAgentNpmGlobalBinDir;
     }
-    scrubMyAgentsNpmPrefixEnv(env, myAgentsNpmGlobalPrefix);
+    scrubBlexAgentNpmPrefixEnv(env, blexAgentNpmGlobalPrefix);
   }
   // Disable SDK nonessential traffic (Statsig telemetry, Sentry error reporting, surveys).
-  // MyAgents manages its own telemetry; these external connections add startup latency
+  // BlexAgent manages its own telemetry; these external connections add startup latency
   // and can timeout in restricted network environments (e.g. China).
   env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
   // Disable SDK built-in cron tools (CronCreate/CronDelete/CronList).
-  // MyAgents has its own persistent cron system (im-cron MCP tool → Rust CronTaskManager)
+  // BlexAgent has its own persistent cron system (im-cron MCP tool → Rust CronTaskManager)
   // that survives session restarts, supports IM delivery, and uses wall-clock scheduling.
   // The SDK's cron is session-scoped/in-memory, would conflict and confuse users.
   env.CLAUDE_CODE_DISABLE_CRON = '1';
   // Disable SDK auto-loading of claude.ai proxy MCP servers.
-  // MyAgents manages MCP servers through its own UI (buildSdkMcpServers).
+  // BlexAgent manages MCP servers through its own UI (buildSdkMcpServers).
   // SDK auto-loaded servers use "claude.ai <DisplayName>" format (sanitized to "claude_ai_<Name>"),
   // which mismatches our config IDs → checkMcpToolPermission blocks the tools.
-  // See: https://github.com/hAcKlyc/MyAgents/issues/73
+  // See: https://github.com/justaboyhai-wq/BlexAgents/issues/73
   env.ENABLE_CLAUDEAI_MCP_SERVERS = 'false';
   // SDK 0.2.83+: Emit session_state_changed events (idle/running/requires_action).
   // Currently used for diagnostic logging only (parallel data collection).
@@ -5350,7 +5350,7 @@ export function buildClaudeSessionEnv(
       ? getSessionProviderId() ?? SUBSCRIPTION_PROVIDER_ID
       : (!effectiveProviderEnv?.baseUrl && !effectiveProviderEnv?.apiKey ? SUBSCRIPTION_PROVIDER_ID : ''));
 
-  // Declare MyAgents as the inference-routing host for non-subscription
+  // Declare BlexAgent as the inference-routing host for non-subscription
   // providers. This tells CC's `managedEnv` layer (see claude-code
   // src/utils/managedEnv.ts withoutHostManagedProviderVars) to strip the
   // provider-routing vars (ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY /
@@ -5358,7 +5358,7 @@ export function buildClaudeSessionEnv(
   // etc.) out of settings-sourced env before they're applied.
   //
   // Effect: external tools like cc-switch / Claude Code Router that write those
-  // vars into user settings cannot silently redirect MyAgents requests to a
+  // vars into user settings cannot silently redirect BlexAgent requests to a
   // third-party endpoint. `settingSources: ['project']` already excludes
   // settings.json from the merged-settings path, but getGlobalConfig().env
   // (~/.claude.json) is merged unconditionally — this flag closes that hole.
@@ -5383,11 +5383,11 @@ export function buildClaudeSessionEnv(
   // workaround required the bundled CLI path to derive HOME, and is now
   // upstream's responsibility.
 
-  // Self-Config CLI: expose sidecar port so the `myagents` CLI can call back
+  // Self-Config CLI: expose sidecar port so the `blexagent` CLI can call back
   if (sidecarPort > 0) {
-    env.MYAGENTS_PORT = String(sidecarPort);
+    env.BLEXAGENT_PORT = String(sidecarPort);
   }
-  env.MYAGENTS_SESSION_ID = sessionId;
+  env.BLEXAGENT_SESSION_ID = sessionId;
 
   // Windows: Set CLAUDE_CODE_GIT_BASH_PATH so SDK finds git-bash directly
   // without relying on which("git") in PATH (which may be stale after NSIS install).
@@ -5436,7 +5436,7 @@ export function buildClaudeSessionEnv(
   });
 
   if (!effectiveProviderId) {
-    console.warn('[env] Provider-owned SDK env missing providerId; MyAgents proxy will not be injected for this subprocess');
+    console.warn('[env] Provider-owned SDK env missing providerId; BlexAgent proxy will not be injected for this subprocess');
   }
   applyProviderProxyPolicyToEnv(env, effectiveProviderId);
 
@@ -6578,7 +6578,7 @@ async function attachBuiltinMediaIfAny(
   }
   try {
     // workspace = agentDir → extracted images land in the unified
-    // `<workspace>/myagents_files/<tool-name>/` location (#293-followup).
+    // `<workspace>/blexagent_files/<tool-name>/` location (#293-followup).
     const ctx = { sessionId, toolUseId, workspace: agentDir };
     const attachments = [
       ...await buildBuiltinMediaAttachments(toolBlock.tool.name, contentStr, ctx),
@@ -6947,7 +6947,7 @@ export async function resetSession(): Promise<void> {
   // 4b. Keep configState.currentAgentDefinitions — agents are workspace-level config, not session state.
   // Clearing them here causes a race: pre-warm fires before frontend re-syncs agents,
   // so referenced global agents (only available via programmatic injection) are lost.
-  // See: https://github.com/hAcKlyc/MyAgents/issues/13
+  // See: https://github.com/justaboyhai-wq/BlexAgents/issues/13
 
   // 5. Clear SDK ready signal state (same as switchToSession)
   _sdkReadyResolve = null;
@@ -7080,7 +7080,7 @@ export async function initializeAgent(
     setCurrentSessionId(initialSessionId);
 
     // Metadata alone is not enough to resume the Claude Agent SDK. POST /sessions
-    // creates MyAgents metadata before the SDK has ever persisted a transcript,
+    // creates BlexAgent metadata before the SDK has ever persisted a transcript,
     // so `query({ resume })` would fail with "No conversation found". If
     // sdkSessionId is missing, only recover the rare crash-before-metadata-update
     // case when the SDK transcript probe finds real persisted transcriptState.messages.
@@ -7767,7 +7767,7 @@ export async function enqueueUserMessage(
   requestId?: string,
   // PRD 0.2.18 Session Inbox — inbox metadata for cross-session transcriptState.messages.
   // Present when message came in via /api/inbox/drain (caller sent through
-  // `myagents session send`). Carries reply-back instruction + caller identity;
+  // `blexagent session send`). Carries reply-back instruction + caller identity;
   // bound per-turn at generator yield, read at result handler for reply pushback.
   inboxMeta?: import('./inbox/types').InboxTurnMeta,
   analyticsSource?: TurnAnalyticsSource,
@@ -8304,7 +8304,7 @@ export async function enqueueUserMessage(
     }
   } else if (hasImages && filteredImageCount > 0) {
     // Modality fallback (PRD prd_0.2.3_image_modality_file_fallback.md):
-    // model lacks image support → write the images into `<agentDir>/myagents_files/`
+    // model lacks image support → write the images into `<agentDir>/blexagent_files/`
     // and append `@<relative path>` to the user text so the model can choose
     // to Read them (or hand them to other tools). Mirrors the behaviour of
     // pasting non-image files in the Tab UI input. IM Bot path inherits this
@@ -8315,7 +8315,7 @@ export async function enqueueUserMessage(
     // still sees a non-empty user turn and the message isn't silently lost.
     let fallbackPaths: string[] = [];
     if (agentDir) {
-      const targetDir = join(agentDir, 'myagents_files');
+      const targetDir = join(agentDir, 'blexagent_files');
       try {
         const written = await writeBase64FilesToAgentDir(
           resolvedImages!.map((img) => ({ name: img.name, content: img.data })),
@@ -8333,11 +8333,11 @@ export async function enqueueUserMessage(
       // Mirror the frontend non-image paste path (SimpleChatInput.tsx
       // /api/files/add-gitignore call): keep workspace-internal artifacts
       // out of git by default. PRD §6.4 explicitly calls for parity here.
-      ensureGitignorePattern(agentDir, 'myagents_files/');
+      ensureGitignorePattern(agentDir, 'blexagent_files/');
 
       const refs = fallbackPaths.map((p) => `@${p}`).join(' ');
       effectiveText = effectiveText ? `${effectiveText}\n\n${refs}` : refs;
-      console.log(`[agent] modality fallback: ${fallbackPaths.length} image(s) → myagents_files/ (model=${modelForFilter ?? '(unknown)'})`);
+      console.log(`[agent] modality fallback: ${fallbackPaths.length} image(s) → blexagent_files/ (model=${modelForFilter ?? '(unknown)'})`);
       broadcast('chat:attachments-fallback', {
         kind: 'image',
         count: fallbackPaths.length,
@@ -9138,10 +9138,10 @@ export async function rewindSession(userMessageId: string): Promise<{
     //      B. 锚点 stale 但 session 仍活跃 → 仅清 anchor，**保留 session id** (#189 修复)
     //      C. 没有锚点 / session 未注册 → 真正的 fresh start，新建 session id
     //
-    //    **注意**：这两个集合只是 MyAgents 自己的视角，**不是 SDK 持久化状态的权威 proxy**。
-    //    MyAgents 的 JSONL 与 SDK 的 JSONL (~/.claude/projects/.../*.jsonl) 是双份存储、
+    //    **注意**：这两个集合只是 BlexAgent 自己的视角，**不是 SDK 持久化状态的权威 proxy**。
+    //    BlexAgent 的 JSONL 与 SDK 的 JSONL (~/.claude/projects/.../*.jsonl) 是双份存储、
     //    异步独立写入（CLAUDE.md「双重存储」节）。SDK subprocess 在 flush 完成前被
-    //    interrupt，会留下 MyAgents 有 / SDK 没有 的 UUID。所以"UUID 不在本地集合"
+    //    interrupt，会留下 BlexAgent 有 / SDK 没有 的 UUID。所以"UUID 不在本地集合"
     //    **不能**推出"SDK session 已被重建"。
     //
     //    issue #189 修复（v0.2.15）：anchor stale 时走分支 B —— 保留 session id，仅清掉
@@ -9260,9 +9260,9 @@ async function tryEagerFork(opts: {
   };
 
   // Defensive: the SDK returns a fresh UUID, but never adopt an id that already names a
-  // MyAgents session (corrupt sessions.json / hypothetical SDK reuse) — clean up + fall back.
+  // BlexAgent session (corrupt sessions.json / hypothetical SDK reuse) — clean up + fall back.
   if (getSessionMetadata(newSid)) {
-    return fail(`fork id collides with an existing MyAgents session: ${newSid}`);
+    return fail(`fork id collides with an existing BlexAgent session: ${newSid}`);
   }
 
   let forkSdk: Awaited<ReturnType<typeof sdkGetSessionMessages>>;
@@ -9765,7 +9765,7 @@ async function startStreamingSession(preWarm = false): Promise<void> {
     // task that needs human approval. Cron creation should always default
     // to "" (sentinel for runtime max). Users who explicitly want a
     // stricter mode can pass `--permissionMode plan` via the cron tool.
-    if (process.env.MYAGENTS_MANAGEMENT_PORT && !getImCronContext()) {
+    if (process.env.BLEXAGENT_MANAGEMENT_PORT && !getImCronContext()) {
       // PRD 0.2.9 — When the session's providerEnv came from the workspace
       // agent (the common case), surface the providerId too so the cron
       // tool can build live-resolve cron tasks. The agent lookup is local
@@ -9839,11 +9839,11 @@ async function startStreamingSession(preWarm = false): Promise<void> {
         cleanupPeriodDays: claudeTranscriptCleanupPeriodDays,
         plansDirectory: getSessionPlansDirectorySetting(sessionId),
         // The Artifact tool (SDK 0.3.16x+) publishes HTML/MD to claude.ai —
-        // an outward data flow MyAgents has not product-decided to expose.
+        // an outward data flow BlexAgent has not product-decided to expose.
         // Keep the tool surface frozen; revisit as its own feature if wanted.
         disableArtifact: true,
-        // CC's own bundled skills duplicate the skill set MyAgents ships and
-        // seeds itself (bundled-skills/ → ~/.myagents/skills → <cwd>/.claude/skills
+        // CC's own bundled skills duplicate the skill set BlexAgent ships and
+        // seeds itself (bundled-skills/ → ~/.blexagent/skills → <cwd>/.claude/skills
         // symlinks): docx/pdf/pptx/xlsx/skill-creator all collide. Disabling
         // removes the duplicate listings + their per-turn context cost; our
         // seeded copies load via .claude/skills/ which this flag does NOT
@@ -9896,7 +9896,7 @@ async function startStreamingSession(preWarm = false): Promise<void> {
           runtime: 'builtin',
           // Universal CLI capability surface (cron / IM media). Was external-runtime
           // only when builtin still had `cron-tools` / `im-cron` / `im-media` MCPs;
-          // those got dropped in favour of `myagents` CLI calls so builtin needs the
+          // those got dropped in favour of `blexagent` CLI calls so builtin needs the
           // same prompt now. Single CLI, single source of truth across all runtimes.
           cliToolsEnabled: true,
           userCliToolsEnabled: cliToolRegistryEnabled,
@@ -9915,7 +9915,7 @@ async function startStreamingSession(preWarm = false): Promise<void> {
       // `plugins: [{ type: 'local', path }]`; it then scans each path for
       // .claude-plugin/plugin.json and wires up the contained
       // skills / agents / hooks / .mcp.json / .lsp.json automatically.
-      // MyAgents only hands it the enabled set — getEnabledPluginSdkConfigs
+      // BlexAgent only hands it the enabled set — getEnabledPluginSdkConfigs
       // already filters to entries that exist on disk as valid plugin roots.
       // Field omitted entirely when no plugins are enabled so empty-array
       // noise doesn't show up in SDK debug output.
@@ -10008,16 +10008,16 @@ async function startStreamingSession(preWarm = false): Promise<void> {
 
         // Trust prefix for context-injected builtin MCPs: skip user confirmation
         // entirely. These MCPs are injected by sidecar context (cron task / IM
-        // bot / bridge plugin) and are MyAgents-managed, not third-party. In IM
+        // bot / bridge plugin) and are BlexAgent-managed, not third-party. In IM
         // sessions there is no UI to confirm against anyway, so blocking on
         // confirmation would deadlock the call. The reserved id list in
-        // MYAGENTS_CONTEXT_INJECTED_MCP_IDS guarantees no user MCP can take
+        // BLEXAGENT_CONTEXT_INJECTED_MCP_IDS guarantees no user MCP can take
         // the same name (filtered out in buildSdkMcpServers), so this auto-allow
         // can't be hijacked.
         const parts = toolName.split('__');
         if (
           parts.length >= 3 &&
-          (MYAGENTS_CONTEXT_INJECTED_MCP_IDS as readonly string[]).includes(parts[1])
+          (BLEXAGENT_CONTEXT_INJECTED_MCP_IDS as readonly string[]).includes(parts[1])
         ) {
           console.log(`[permission] built-in tool auto-allowed: ${toolName}`);
           return {
@@ -10026,19 +10026,19 @@ async function startStreamingSession(preWarm = false): Promise<void> {
           };
         }
 
-        // Auto-allow read-only `myagents` CLI Bash invocations. After the v0.2.11
-        // cron / im-cron / im-media → CLI migration, the AI reaches MyAgents'
-        // own scheduling / IM / widget surface through `myagents <group> …`
+        // Auto-allow read-only `blexagent` CLI Bash invocations. After the v0.2.11
+        // cron / im-cron / im-media → CLI migration, the AI reaches BlexAgent'
+        // own scheduling / IM / widget surface through `blexagent <group> …`
         // instead of MCP tools. Read-only forms (no quoted arg, no shell-injection
         // surface) are auto-allowed so the AI doesn't burn a permission prompt
-        // on `myagents cron list` or `myagents im channels`. Mutating commands
+        // on `blexagent cron list` or `blexagent im channels`. Mutating commands
         // (`cron add`, `cron exit`, `cron remove`, `im send-media`, `im wake`)
         // are NOT in this allowlist — they go through the normal canUseTool
         // prompt in desktop mode, and through the headless fast-path below in
         // IM / cron mode.
         //
         // Whitespace separators are restricted to space + tab — `\s` would also
-        // match `\n`/`\r`, letting `myagents widget readme\nrm` slip through
+        // match `\n`/`\r`, letting `blexagent widget readme\nrm` slip through
         // (shell executes the second line as any PATH binary whose name happens
         // to fit the trailing token shape). Non-whitespace shell metachars
         // (`;`, `|`, `&&`, `>`, `$(`, backticks, …) already fail the strict
@@ -10046,10 +10046,10 @@ async function startStreamingSession(preWarm = false): Promise<void> {
         if (toolName === 'Bash') {
           const cmd = ((input as Record<string, unknown>)?.command as string | undefined)?.trim() ?? '';
 
-          // 1. Widget design contract: `myagents widget [readme|list|<module>] [<module>...]`
+          // 1. Widget design contract: `blexagent widget [readme|list|<module>] [<module>...]`
           //    — module names limited to `[a-z][a-z0-9-]*`.
-          if (/^myagents[ \t]+widget(?:[ \t]+(?:readme|list))?(?:[ \t]+[a-z][a-z0-9-]*)*[ \t]*$/.test(cmd)) {
-            console.log(`[permission] myagents widget readme auto-allowed: ${cmd}`);
+          if (/^blexagent[ \t]+widget(?:[ \t]+(?:readme|list))?(?:[ \t]+[a-z][a-z0-9-]*)*[ \t]*$/.test(cmd)) {
+            console.log(`[permission] blexagent widget readme auto-allowed: ${cmd}`);
             return {
               behavior: 'allow' as const,
               updatedInput: input as Record<string, unknown>
@@ -10057,40 +10057,40 @@ async function startStreamingSession(preWarm = false): Promise<void> {
           }
 
           // 2. Cron / IM read-only surface (zero-arg listings + readme):
-          //    `myagents cron list|status|readme [--json]`
-          //    `myagents im channels|readme [--json]`
-          if (/^myagents[ \t]+(?:cron[ \t]+(?:list|status|readme)|im[ \t]+(?:channels|readme))(?:[ \t]+--json)?[ \t]*$/.test(cmd)) {
-            console.log(`[permission] myagents readonly CLI auto-allowed: ${cmd}`);
+          //    `blexagent cron list|status|readme [--json]`
+          //    `blexagent im channels|readme [--json]`
+          if (/^blexagent[ \t]+(?:cron[ \t]+(?:list|status|readme)|im[ \t]+(?:channels|readme))(?:[ \t]+--json)?[ \t]*$/.test(cmd)) {
+            console.log(`[permission] blexagent readonly CLI auto-allowed: ${cmd}`);
             return {
               behavior: 'allow' as const,
               updatedInput: input as Record<string, unknown>
             };
           }
 
-          // 3. Cron run history: `myagents cron runs <taskId> [--limit N] [--full] [--json]`
+          // 3. Cron run history: `blexagent cron runs <taskId> [--limit N] [--full] [--json]`
           //    — taskId is an opaque slug-style id (alphanumerics + dash/underscore,
           //    bounded length); --limit takes a small integer. Order-agnostic flags.
-          if (/^myagents[ \t]+cron[ \t]+runs[ \t]+[a-zA-Z0-9_-]{1,64}(?:[ \t]+(?:--limit[ \t]+\d{1,4}|--full|--json))*[ \t]*$/.test(cmd)) {
-            console.log(`[permission] myagents cron runs auto-allowed: ${cmd}`);
+          if (/^blexagent[ \t]+cron[ \t]+runs[ \t]+[a-zA-Z0-9_-]{1,64}(?:[ \t]+(?:--limit[ \t]+\d{1,4}|--full|--json))*[ \t]*$/.test(cmd)) {
+            console.log(`[permission] blexagent cron runs auto-allowed: ${cmd}`);
             return {
               behavior: 'allow' as const,
               updatedInput: input as Record<string, unknown>
             };
           }
 
-          // 4. Thought inbox browse: `myagents thought list [--tag <slug>] [--limit N] [--json]`.
+          // 4. Thought inbox browse: `blexagent thought list [--tag <slug>] [--limit N] [--json]`.
           //    --query is intentionally NOT in the allowlist — it carries arbitrary
           //    user text (the search string) which can hold shell metachars. That
           //    form falls through to the normal user-confirm / IM fast-path.
-          if (/^myagents[ \t]+thought[ \t]+list(?:[ \t]+(?:--tag[ \t]+[a-z0-9][a-z0-9-]{0,31}|--limit[ \t]+\d{1,4}|--json))*[ \t]*$/.test(cmd)) {
-            console.log(`[permission] myagents thought list auto-allowed: ${cmd}`);
+          if (/^blexagent[ \t]+thought[ \t]+list(?:[ \t]+(?:--tag[ \t]+[a-z0-9][a-z0-9-]{0,31}|--limit[ \t]+\d{1,4}|--json))*[ \t]*$/.test(cmd)) {
+            console.log(`[permission] blexagent thought list auto-allowed: ${cmd}`);
             return {
               behavior: 'allow' as const,
               updatedInput: input as Record<string, unknown>
             };
           }
 
-          // 5. Thought capture: `myagents thought create '<content>'`
+          // 5. Thought capture: `blexagent thought create '<content>'`
           //    Mutating, but the side effect is bounded — append-only into the
           //    user's thought inbox, no filesystem / network surface, fully
           //    reversible from the inbox UI. Filing was already gated by the
@@ -10114,15 +10114,15 @@ async function startStreamingSession(preWarm = false): Promise<void> {
           //      `thought create` doesn't accept `--tag` (tags are derived
           //      from inline `#xxx` in the content), and the prompt no
           //      longer advertises it after issue-148-followup review.
-          if (/^myagents[ \t]+thought[ \t]+create[ \t]+'[^']*'[ \t]*$/.test(cmd)) {
-            console.log(`[permission] myagents thought create auto-allowed: ${cmd}`);
+          if (/^blexagent[ \t]+thought[ \t]+create[ \t]+'[^']*'[ \t]*$/.test(cmd)) {
+            console.log(`[permission] blexagent thought create auto-allowed: ${cmd}`);
             return {
               behavior: 'allow' as const,
               updatedInput: input as Record<string, unknown>
             };
           }
 
-          // 6. Thought capture via file: `myagents thought create --content-file <path>`
+          // 6. Thought capture via file: `blexagent thought create --content-file <path>`
           //    Path is shell-quote-free (a single token without metachars), so
           //    the regex constraint here is the path-token character class
           //    `[^ \t;|&<>$\`'"]` — explicitly forbid every shell metachar
@@ -10130,8 +10130,8 @@ async function startStreamingSession(preWarm = false): Promise<void> {
           //    The path doesn't have to exist or be safe content-wise; the
           //    CLI validates size, NUL bytes, and read errors before sending
           //    anything to the management API. Issue #149 follow-up.
-          if (/^myagents[ \t]+thought[ \t]+create[ \t]+--content-file[ \t]+[^ \t\n\r;|&<>$`'"]+[ \t]*$/.test(cmd)) {
-            console.log(`[permission] myagents thought create --content-file auto-allowed: ${cmd}`);
+          if (/^blexagent[ \t]+thought[ \t]+create[ \t]+--content-file[ \t]+[^ \t\n\r;|&<>$`'"]+[ \t]*$/.test(cmd)) {
+            console.log(`[permission] blexagent thought create --content-file auto-allowed: ${cmd}`);
             return {
               behavior: 'allow' as const,
               updatedInput: input as Record<string, unknown>
@@ -10514,7 +10514,7 @@ async function startStreamingSession(preWarm = false): Promise<void> {
     // (Query) constructor at sdk.mjs already kicks this off in `this.initialization
     // = this.initialize()` — calling `initializationResult()` here just awaits
     // the existing promise. Verified empirically with DEBUG_CLAUDE_AGENT_SDK=1:
-    // resolved at +337ms in a clean repro; in MyAgents production with project
+    // resolved at +337ms in a clean repro; in BlexAgent production with project
     // settings + playwright MCP the same handshake completes in ~3-5s.
     //
     // We use `lifecycleState.sdkControlReady` as the gate for the "AI 启动中" UI hint
@@ -10582,7 +10582,7 @@ async function startStreamingSession(preWarm = false): Promise<void> {
     //   Phase 1 (initial): 60s — if SDK subprocess doesn't show signs of life, fail fast.
     //   Phase 2 (extended): 600s — once session_state_changed:running arrives, the subprocess
     //     is alive and initializing. First-time workspace init can take minutes on Windows NTFS
-    //     (SDK builds internal caches for large directories like ~/.myagents with 20k+ files).
+    //     (SDK builds internal caches for large directories like ~/.blexagent with 20k+ files).
     //     After the first successful init, subsequent sessions complete in <1s.
     const STARTUP_TIMEOUT_INITIAL_MS = 60_000;
     const STARTUP_TIMEOUT_EXTENDED_MS = 600_000;

@@ -3,7 +3,7 @@ type: prd
 status: implemented
 created: 2026-07-06
 updated: 2026-07-06
-scope: "Registered Agent 的 Space Issue delivery prompt 协议重构：把当前暴露在用户气泡里的 <myagents-session-event> 外包改为现有 <system-reminder> 隐藏协议；新增 <myagents-space-issue> badge 标签和 <myagents-space-event> 业务事件结构；将处理指令抽成 <issue-instruction> 简版 skill，将每条 <issue> 收敛为纯事实数据。不改云端匹配/claim 生命周期，不改 session send/watch 通用事件协议。"
+scope: "Registered Agent 的 Space Issue delivery prompt 协议重构：把当前暴露在用户气泡里的 <blexagent-session-event> 外包改为现有 <system-reminder> 隐藏协议；新增 <blexagent-space-issue> badge 标签和 <blexagent-space-event> 业务事件结构；将处理指令抽成 <issue-instruction> 简版 skill，将每条 <issue> 收敛为纯事实数据。不改云端匹配/claim 生命周期，不改 session send/watch 通用事件协议。"
 issue: "产品需求：Team Space / Registered Agent / Space Issue delivery prompt 结构讨论收敛"
 research: "specs/ARCHITECTURE.md; specs/tech_docs/space_cloud.md; specs/tech_docs/session_architecture.md; specs/tech_docs/i18n_architecture.md; src-tauri/src/space_cloud.rs::{deliver_space_deliveries,build_delivery_prompt,build_delivery_batch_prompt,build_claim_followup_prompt}; src/server/inbox/{drain-handler.ts,session-event.ts}; src/shared/systemReminder.ts; src/renderer/components/Message.tsx"
 review: "completed(cross-review-code 三路 review 已完成；修复 workspace_id fallback、Space hidden payload malformed fallback、通用 session-event renderer 对 space.issue_delivery fail-closed、去掉 sessionEvent.payload 重复 prompt；验证 typecheck/lint/targeted tests/cargo check/build_dev 均通过)"
@@ -18,9 +18,9 @@ review: "completed(cross-review-code 三路 review 已完成；修复 workspace_
 动手前必须主动读：
 
 - `AGENTS.md` 或当前会话加载的项目指令，重点是 Space、SSE / inbox、UI i18n、Rust owner 边界。
-- `specs/ARCHITECTURE.md` 的「MyAgents Cloud Space」和「UI 国际化」：Space 不是 Sidecar / AI Runtime；Space HTTP / delivery poll/process 由 Rust 拥有；产品 UI 语言由 `AppConfig.uiLanguage` 与 Rust native mirror 共同解析。
+- `specs/ARCHITECTURE.md` 的「BlexAgent Cloud Space」和「UI 国际化」：Space 不是 Sidecar / AI Runtime；Space HTTP / delivery poll/process 由 Rust 拥有；产品 UI 语言由 `AppConfig.uiLanguage` 与 Rust native mirror 共同解析。
 - `specs/tech_docs/space_cloud.md` 的「IssueDelivery / Claim 处理」：确认 subscription、claim_followup、delivery log、claim + attached Task、complete 的既有语义。
-- `specs/tech_docs/session_architecture.md` 的「Session 间事件协议」：通用 `myagents session send/watch` 继续使用 `<myagents-session-event>`，本 PRD 不改它。
+- `specs/tech_docs/session_architecture.md` 的「Session 间事件协议」：通用 `blexagent session send/watch` 继续使用 `<blexagent-session-event>`，本 PRD 不改它。
 - `specs/tech_docs/i18n_architecture.md`：确认 Rust 可通过 `src-tauri/src/i18n.rs::current_locale` 获取当前有效 UI 语言。
 
 关键代码入口：
@@ -42,7 +42,7 @@ Registered Agent 的 Issue 分发是云端任务系统的一部分：云端根�
 
 - Rust 先把 issue 数据和处理命令拼成一段自然语言 prompt。
 - Rust 同时把这段 prompt 放进 `PendingInboxMessage.text` 和 `sessionEvent.payload`。
-- Node 侧 `renderSessionEventPrompt` 再把 Space delivery 外包成通用 `<myagents-session-event>`。
+- Node 侧 `renderSessionEventPrompt` 再把 Space delivery 外包成通用 `<blexagent-session-event>`。
 - 前端 user bubble 看到的是一整段内部事件结构，而不是产品化提示；`system-reminder` 隐藏协议没有发挥作用。
 
 用户对此的判断已经收敛：
@@ -51,7 +51,7 @@ Registered Agent 的 Issue 分发是云端任务系统的一部分：云端根�
 
 同时，隐藏区里的内容也不能继续是“每条 issue 下面塞一堆命令”的形态。它应该像一个简版 skill：
 
-- `<issue-instruction>` 统一告诉 Agent：你是谁、这是什么事件、必须使用 `myagents` CLI、处理流程是什么。
+- `<issue-instruction>` 统一告诉 Agent：你是谁、这是什么事件、必须使用 `blexagent` CLI、处理流程是什么。
 - `<runtime-context>` 只给本地 runtime 所需的 Space / workspace / registered agent 上下文。
 - `<issue>` 只放每条 Issue 的事实数据和 meta。
 - 所有下一步动作、命令模板、决策规则集中在 instruction 里，不散落在每个 Issue block 下。
@@ -96,17 +96,17 @@ Registered Agent 的 Issue 分发是云端任务系统的一部分：云端根�
 `src/server/inbox/session-event.ts::renderSessionEventPrompt` 对所有 `SessionEvent` 统一输出：
 
 ```xml
-<myagents-session-event ...>
+<blexagent-session-event ...>
 <event-summary>
 ...
 </event-summary>
 <payload>
 ...
 </payload>
-</myagents-session-event>
+</blexagent-session-event>
 ```
 
-这对 `myagents session send/watch` 是合理的，因为它们是跨 session 通用事件协议。但 Space Issue delivery 需要用户气泡隐藏和 `Space issue` badge，不能再让 `<myagents-session-event>` 成为最终 user message 的外层。
+这对 `blexagent session send/watch` 是合理的，因为它们是跨 session 通用事件协议。但 Space Issue delivery 需要用户气泡隐藏和 `Space issue` badge，不能再让 `<blexagent-session-event>` 成为最终 user message 的外层。
 
 ### 2.4 前端隐藏与 badge 机制
 
@@ -122,7 +122,7 @@ Registered Agent 的 Issue 分发是云端任务系统的一部分：云端根�
 - `CRON_TASK`
 - `FLOATING_BALL_CONTEXT`
 
-因此本期要新增 `myagents-space-issue`，显示 label 固定为 `Space issue`。
+因此本期要新增 `blexagent-space-issue`，显示 label 固定为 `Space issue`。
 
 ### 2.5 语言能力
 
@@ -135,27 +135,27 @@ Rust 侧已经有 `src-tauri/src/i18n.rs::current_locale()`，可根据 `AppConf
 ### 3.1 要做
 
 1. Space Issue delivery 的最终注入 user message 必须以 `<system-reminder>` 开头。
-2. `<system-reminder>` 内第一层业务 tag 必须是 `<myagents-space-issue>`，供前端 badge 识别。
-3. `<myagents-space-issue>` 内保留 `<myagents-space-event ...>`，承载 Space 业务事件协议。
-4. `<myagents-space-event>` 内拆成：
+2. `<system-reminder>` 内第一层业务 tag 必须是 `<blexagent-space-issue>`，供前端 badge 识别。
+3. `<blexagent-space-issue>` 内保留 `<blexagent-space-event ...>`，承载 Space 业务事件协议。
+4. `<blexagent-space-event>` 内拆成：
    - `<issue-instruction>`
    - `<runtime-context>`
    - 一个或多个 `<issue id="...">`
 5. `<issue-instruction>` 承担简版 skill 角色，统一写：
    - Registered Agent 角色
-   - 必须使用 `myagents` CLI
-   - 可用 `myagents space issue --help` 和 subcommand help 查询语法
+   - 必须使用 `blexagent` CLI
+   - 可用 `blexagent space issue --help` 和 subcommand help 查询语法
    - subscription workflow
    - batch rule
    - claim_followup workflow
 6. `<issue>` 只放事实数据和 meta，不放 read / ignore / claim / complete 命令。
 7. 用户气泡只展示 reminder 后短句：
-   - `zh-CN`：`MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。`
-   - `en-US`：`MyAgents Space delivered an issue notification. The registered Agent started processing.`
+   - `zh-CN`：`BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。`
+   - `en-US`：`BlexAgent Space delivered an issue notification. The registered Agent started processing.`
    - batch / follow-up 可按语义用对应短句，见模板章节。
 8. 前端 badge 显示 `Space issue`。
 9. 保留 registered-agent scenario / lazy session materialization 语义；去掉 prompt 外包不能影响 headless delivery。
-10. 对 issue title / updateSummary / goalPath 等用户或云端可变字段做结构标签转义，避免闭合 `<system-reminder>` / `<myagents-space-issue>` / `<myagents-space-event>` / `<issue>` 等标签。
+10. 对 issue title / updateSummary / goalPath 等用户或云端可变字段做结构标签转义，避免闭合 `<system-reminder>` / `<blexagent-space-issue>` / `<blexagent-space-event>` / `<issue>` 等标签。
 11. 更新相关 unit tests 和 docs。
 
 ### 3.2 明确不做
@@ -164,7 +164,7 @@ Rust 侧已经有 `src-tauri/src/i18n.rs::current_locale()`，可根据 `AppConf
 - 不改 Registered Agent 的 Goal / state 订阅配置 UI。
 - 不改 claim / complete / cancel-claim 生命周期。
 - 不改 CLI 命令语义，只改 prompt 中如何指导 Agent 使用 CLI。
-- 不改 `myagents session send/watch` 的通用 `<myagents-session-event>` 协议。
+- 不改 `blexagent session send/watch` 的通用 `<blexagent-session-event>` 协议。
 - 不把隐藏区 instruction 做 UI 语言本地化。
 - 不新增新的 AI runtime / Sidecar 通信模式。
 - 不把 renderer 变成 Space HTTP owner。
@@ -177,8 +177,8 @@ Rust 侧已经有 `src-tauri/src/i18n.rs::current_locale()`，可根据 `AppConf
 
 ```xml
 <system-reminder>
-<myagents-space-issue>
-<myagents-space-event version="1" type="issue-delivery" mode="subscription" delivery-count="1">
+<blexagent-space-issue>
+<blexagent-space-event version="1" type="issue-delivery" mode="subscription" delivery-count="1">
 <issue-instruction>
 ...
 </issue-instruction>
@@ -190,10 +190,10 @@ Rust 侧已经有 `src-tauri/src/i18n.rs::current_locale()`，可根据 `AppConf
 <issue id="...">
 ...
 </issue>
-</myagents-space-event>
-</myagents-space-issue>
+</blexagent-space-event>
+</blexagent-space-issue>
 </system-reminder>
-MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。
+BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。
 ```
 
 职责分层：
@@ -201,19 +201,19 @@ MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。
 | 层 | 责任 |
 |----|------|
 | `<system-reminder>` | 已有 UI 隐藏协议；必须是整条 user message 的第一个标签。 |
-| `<myagents-space-issue>` | 前端 badge tag；`systemTagLabel` 显示为 `Space issue`。 |
-| `<myagents-space-event>` | Space 自己的业务事件协议；保留 version / type / mode / delivery-count。 |
+| `<blexagent-space-issue>` | 前端 badge tag；`systemTagLabel` 显示为 `Space issue`。 |
+| `<blexagent-space-event>` | Space 自己的业务事件协议；保留 version / type / mode / delivery-count。 |
 | `<issue-instruction>` | 给 Agent 的处理规则，像简版 skill。 |
 | `<runtime-context>` | 本地执行上下文，供命令模板填参。 |
 | `<issue>` | Issue 事实数据。 |
 | reminder 后短句 | 用户可见 query 气泡文本。 |
 
-### 4.2 `<myagents-space-event>` 属性
+### 4.2 `<blexagent-space-event>` 属性
 
 建议属性：
 
 ```xml
-<myagents-space-event
+<blexagent-space-event
   version="1"
   type="issue-delivery"
   mode="subscription|claim-followup"
@@ -241,10 +241,10 @@ MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。
 
 ```xml
 <runtime-context>
-- Space ID: spc_myagents_community
+- Space ID: spc_blexagent_community
 - Registered Agent ID: rag_01JZ8
 - Workspace ID: wks_mino_local
-- Workspace path: /Users/zhihu/Documents/project/MyAgents
+- Workspace path: /Users/zhihu/Documents/project/BlexAgent
 - Workspace label: mino
 </runtime-context>
 ```
@@ -266,7 +266,7 @@ MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。
 - Title: Team tab 的 Issue 标题字号偏大
 - State: todo
 - Notification version: 5
-- Goal: MyAgents社区 / MyAgents 发现 BUG
+- Goal: BlexAgent社区 / BlexAgent 发现 BUG
 - Update: Issue created and matched this registered agent subscription.
 - Suggested task name: Space Issue #128
 </issue>
@@ -289,15 +289,15 @@ MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。
 `<issue-instruction>` 开头必须明确：
 
 ```text
-You are a MyAgents Space Registered Agent. You received one or more Space Issue deliveries.
+You are a BlexAgent Space Registered Agent. You received one or more Space Issue deliveries.
 
-Always use the `myagents` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
+Always use the `blexagent` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
 If you are unsure about command syntax, run:
-  myagents space issue --help
-  myagents space issue <subcommand> --help
+  blexagent space issue --help
+  blexagent space issue <subcommand> --help
 ```
 
-这句话很关键：Agent 不应该臆测云端 API，也不应该手写本地 Space JSON。它必须走 `myagents` CLI。
+这句话很关键：Agent 不应该臆测云端 API，也不应该手写本地 Space JSON。它必须走 `blexagent` CLI。
 
 ### 5.2 Subscription instruction
 
@@ -314,20 +314,20 @@ Decision model:
 
 Workflow for each subscription issue:
 1. Read context:
-   myagents space issue view <issue.id> --comments --json
+   blexagent space issue view <issue.id> --comments --json
 
 2. Ignore if not appropriate:
-   myagents space issue delivery ignore <issue.delivery_id>
+   blexagent space issue delivery ignore <issue.delivery_id>
 
 3. Claim if appropriate:
    Write a concrete task plan to `task.md`, then run:
-   myagents space issue claim <issue.id> --deliveryId <issue.delivery_id> --create-attached --workspaceId <runtime.workspace_id> --workspacePath <runtime.workspace_path> --sourceSpaceId <runtime.space_id> --name <issue.suggested_task_name> --taskMdContent-file task.md
+   blexagent space issue claim <issue.id> --deliveryId <issue.delivery_id> --create-attached --workspaceId <runtime.workspace_id> --workspacePath <runtime.workspace_path> --sourceSpaceId <runtime.space_id> --name <issue.suggested_task_name> --taskMdContent-file task.md
 
 4. Comment when reporting progress or asking questions:
-   myagents space issue comment <issue.id> --body-file reply.md
+   blexagent space issue comment <issue.id> --body-file reply.md
 
 5. Complete after implementation:
-   myagents space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
+   blexagent space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
 
 Batch rule:
 - Process issues independently.
@@ -351,13 +351,13 @@ Follow-up rules:
 - Do not claim this issue again.
 - Continue in this same local session so the issue context stays connected.
 - First read current context:
-  myagents space issue view <issue.id> --comments --json
+  blexagent space issue view <issue.id> --comments --json
 - If the update needs a reply, write `reply.md` and run:
-  myagents space issue comment <issue.id> --body-file reply.md
+  blexagent space issue comment <issue.id> --body-file reply.md
 - If no action is required, run:
-  myagents space issue delivery ignore <issue.delivery_id>
+  blexagent space issue delivery ignore <issue.delivery_id>
 - If additional work changes the final outcome, write `result.md` and complete:
-  myagents space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
+  blexagent space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
 ```
 
 Claim follow-up instruction 不能出现 claim workflow，避免 Agent 二次 claim。
@@ -368,15 +368,15 @@ Claim follow-up instruction 不能出现 claim workflow，避免 Agent 二次 cl
 
 ```xml
 <system-reminder>
-<myagents-space-issue>
-<myagents-space-event version="1" type="issue-delivery" mode="subscription" delivery-count="1" target-session-id="sid_abc" created-at="2026-07-06T10:30:00+08:00">
+<blexagent-space-issue>
+<blexagent-space-event version="1" type="issue-delivery" mode="subscription" delivery-count="1" target-session-id="sid_abc" created-at="2026-07-06T10:30:00+08:00">
 <issue-instruction>
-You are a MyAgents Space Registered Agent. You received one or more Space Issue deliveries.
+You are a BlexAgent Space Registered Agent. You received one or more Space Issue deliveries.
 
-Always use the `myagents` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
+Always use the `blexagent` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
 If you are unsure about command syntax, run:
-  myagents space issue --help
-  myagents space issue <subcommand> --help
+  blexagent space issue --help
+  blexagent space issue <subcommand> --help
 
 Decision model:
 - A delivery is a notification, not an assignment.
@@ -388,27 +388,27 @@ Decision model:
 
 Workflow for each subscription issue:
 1. Read context:
-   myagents space issue view <issue.id> --comments --json
+   blexagent space issue view <issue.id> --comments --json
 
 2. Ignore if not appropriate:
-   myagents space issue delivery ignore <issue.delivery_id>
+   blexagent space issue delivery ignore <issue.delivery_id>
 
 3. Claim if appropriate:
    Write a concrete task plan to `task.md`, then run:
-   myagents space issue claim <issue.id> --deliveryId <issue.delivery_id> --create-attached --workspaceId <runtime.workspace_id> --workspacePath <runtime.workspace_path> --sourceSpaceId <runtime.space_id> --name <issue.suggested_task_name> --taskMdContent-file task.md
+   blexagent space issue claim <issue.id> --deliveryId <issue.delivery_id> --create-attached --workspaceId <runtime.workspace_id> --workspacePath <runtime.workspace_path> --sourceSpaceId <runtime.space_id> --name <issue.suggested_task_name> --taskMdContent-file task.md
 
 4. Comment when reporting progress or asking questions:
-   myagents space issue comment <issue.id> --body-file reply.md
+   blexagent space issue comment <issue.id> --body-file reply.md
 
 5. Complete after implementation:
-   myagents space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
+   blexagent space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
 </issue-instruction>
 
 <runtime-context>
-- Space ID: spc_myagents_community
+- Space ID: spc_blexagent_community
 - Registered Agent ID: rag_mino
 - Workspace ID: wks_mino_local
-- Workspace path: /Users/zhihu/Documents/project/MyAgents
+- Workspace path: /Users/zhihu/Documents/project/BlexAgent
 - Workspace label: mino
 </runtime-context>
 
@@ -418,29 +418,29 @@ Workflow for each subscription issue:
 - Title: Team tab 的 Issue 标题字号偏大
 - State: todo
 - Notification version: 5
-- Goal: MyAgents社区 / MyAgents 发现 BUG
+- Goal: BlexAgent社区 / BlexAgent 发现 BUG
 - Update: Issue created and matched this registered agent subscription.
 - Suggested task name: Space Issue #128
 </issue>
-</myagents-space-event>
-</myagents-space-issue>
+</blexagent-space-event>
+</blexagent-space-issue>
 </system-reminder>
-MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。
+BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。
 ```
 
 ### 6.2 Batch subscription：一次 3 条 Issue
 
 ```xml
 <system-reminder>
-<myagents-space-issue>
-<myagents-space-event version="1" type="issue-delivery" mode="subscription" delivery-count="3" target-session-id="sid_abc" created-at="2026-07-06T10:31:00+08:00">
+<blexagent-space-issue>
+<blexagent-space-event version="1" type="issue-delivery" mode="subscription" delivery-count="3" target-session-id="sid_abc" created-at="2026-07-06T10:31:00+08:00">
 <issue-instruction>
-You are a MyAgents Space Registered Agent. You received one or more Space Issue deliveries.
+You are a BlexAgent Space Registered Agent. You received one or more Space Issue deliveries.
 
-Always use the `myagents` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
+Always use the `blexagent` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
 If you are unsure about command syntax, run:
-  myagents space issue --help
-  myagents space issue <subcommand> --help
+  blexagent space issue --help
+  blexagent space issue <subcommand> --help
 
 Decision model:
 - A delivery is a notification, not an assignment.
@@ -452,20 +452,20 @@ Decision model:
 
 Workflow for each subscription issue:
 1. Read context:
-   myagents space issue view <issue.id> --comments --json
+   blexagent space issue view <issue.id> --comments --json
 
 2. Ignore if not appropriate:
-   myagents space issue delivery ignore <issue.delivery_id>
+   blexagent space issue delivery ignore <issue.delivery_id>
 
 3. Claim if appropriate:
    Write a concrete task plan to `task.md`, then run:
-   myagents space issue claim <issue.id> --deliveryId <issue.delivery_id> --create-attached --workspaceId <runtime.workspace_id> --workspacePath <runtime.workspace_path> --sourceSpaceId <runtime.space_id> --name <issue.suggested_task_name> --taskMdContent-file task.md
+   blexagent space issue claim <issue.id> --deliveryId <issue.delivery_id> --create-attached --workspaceId <runtime.workspace_id> --workspacePath <runtime.workspace_path> --sourceSpaceId <runtime.space_id> --name <issue.suggested_task_name> --taskMdContent-file task.md
 
 4. Comment when reporting progress or asking questions:
-   myagents space issue comment <issue.id> --body-file reply.md
+   blexagent space issue comment <issue.id> --body-file reply.md
 
 5. Complete after implementation:
-   myagents space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
+   blexagent space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
 
 Batch rule:
 - Process issues independently.
@@ -474,10 +474,10 @@ Batch rule:
 </issue-instruction>
 
 <runtime-context>
-- Space ID: spc_myagents_community
+- Space ID: spc_blexagent_community
 - Registered Agent ID: rag_mino
 - Workspace ID: wks_mino_local
-- Workspace path: /Users/zhihu/Documents/project/MyAgents
+- Workspace path: /Users/zhihu/Documents/project/BlexAgent
 - Workspace label: mino
 </runtime-context>
 
@@ -487,7 +487,7 @@ Batch rule:
 - Title: Team tab 的 Issue 标题字号偏大
 - State: todo
 - Notification version: 5
-- Goal: MyAgents社区 / MyAgents 发现 BUG
+- Goal: BlexAgent社区 / BlexAgent 发现 BUG
 - Suggested task name: Space Issue #128
 </issue>
 
@@ -497,7 +497,7 @@ Batch rule:
 - Title: Registered Agent claim 后没有绑定 localTaskId
 - State: todo
 - Notification version: 2
-- Goal: MyAgents社区 / Agent 分发系统
+- Goal: BlexAgent社区 / Agent 分发系统
 - Suggested task name: Space Issue #129
 </issue>
 
@@ -507,48 +507,48 @@ Batch rule:
 - Title: Issue 新评论没有推送到原 session
 - State: todo
 - Notification version: 1
-- Goal: MyAgents社区 / Agent 分发系统
+- Goal: BlexAgent社区 / Agent 分发系统
 - Suggested task name: Space Issue #130
 </issue>
-</myagents-space-event>
-</myagents-space-issue>
+</blexagent-space-event>
+</blexagent-space-issue>
 </system-reminder>
-MyAgents Space 已投递 3 个 Issue 通知，Registered Agent 开始处理。
+BlexAgent Space 已投递 3 个 Issue 通知，Registered Agent 开始处理。
 ```
 
 ### 6.3 Claim follow-up：已 claim Issue 的评论 / 更新
 
 ```xml
 <system-reminder>
-<myagents-space-issue>
-<myagents-space-event version="1" type="issue-delivery" mode="claim-followup" delivery-count="1" target-session-id="sid_claim_local" created-at="2026-07-06T10:32:00+08:00">
+<blexagent-space-issue>
+<blexagent-space-event version="1" type="issue-delivery" mode="claim-followup" delivery-count="1" target-session-id="sid_claim_local" created-at="2026-07-06T10:32:00+08:00">
 <issue-instruction>
-You are a MyAgents Space Registered Agent. You received a follow-up delivery for a Space Issue.
+You are a BlexAgent Space Registered Agent. You received a follow-up delivery for a Space Issue.
 
-Always use the `myagents` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
+Always use the `blexagent` CLI to inspect and operate on Space Issues. Do not edit local Space storage files or call cloud APIs directly.
 If you are unsure about command syntax, run:
-  myagents space issue --help
-  myagents space issue <subcommand> --help
+  blexagent space issue --help
+  blexagent space issue <subcommand> --help
 
 Follow-up rules:
 - This delivery is for an issue already claimed by this registered agent.
 - Do not claim this issue again.
 - Continue in this same local session so the issue context stays connected.
 - First read current context:
-  myagents space issue view <issue.id> --comments --json
+  blexagent space issue view <issue.id> --comments --json
 - If the update needs a reply, write `reply.md` and run:
-  myagents space issue comment <issue.id> --body-file reply.md
+  blexagent space issue comment <issue.id> --body-file reply.md
 - If no action is required, run:
-  myagents space issue delivery ignore <issue.delivery_id>
+  blexagent space issue delivery ignore <issue.delivery_id>
 - If additional work changes the final outcome, write `result.md` and complete:
-  myagents space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
+  blexagent space issue complete <issue.id> --workspacePath <runtime.workspace_path> --taskId <taskId> --body-file result.md --message "completed Space issue"
 </issue-instruction>
 
 <runtime-context>
-- Space ID: spc_myagents_community
+- Space ID: spc_blexagent_community
 - Registered Agent ID: rag_mino
 - Workspace ID: wks_mino_local
-- Workspace path: /Users/zhihu/Documents/project/MyAgents
+- Workspace path: /Users/zhihu/Documents/project/BlexAgent
 - Workspace label: mino
 </runtime-context>
 
@@ -559,14 +559,14 @@ Follow-up rules:
 - Title: Team tab 的 Issue 标题字号偏大
 - State: in_progress
 - Notification version: 6
-- Goal: MyAgents社区 / MyAgents 发现 BUG
+- Goal: BlexAgent社区 / BlexAgent 发现 BUG
 - Update: Ethan added a new comment asking whether the title size can follow text-sm.
 - Suggested task name: Space Issue #128
 </issue>
-</myagents-space-event>
-</myagents-space-issue>
+</blexagent-space-event>
+</blexagent-space-issue>
 </system-reminder>
-MyAgents Space 已投递一个 Issue 后续更新，Registered Agent 开始处理。
+BlexAgent Space 已投递一个 Issue 后续更新，Registered Agent 开始处理。
 ```
 
 ## 7. 技术设计
@@ -590,7 +590,7 @@ Space delivery prompt 的模板 owner 应留在 Rust `src-tauri/src/space_cloud.
 
 当前三个 builder 可以保留为内部细分，但输出应改为上述协议结构，而不是旧自然语言列表。
 
-### 7.2 Node 不再给 Space delivery 套 `<myagents-session-event>`
+### 7.2 Node 不再给 Space delivery 套 `<blexagent-session-event>`
 
 本期不是删除 `sessionEvent` 元数据。`sessionEvent` 仍可作为 sidecar 内部识别：
 
@@ -598,7 +598,7 @@ Space delivery prompt 的模板 owner 应留在 Rust `src-tauri/src/space_cloud.
 - `drainBatchIntoSession` 仍需要 `allowLazySessionMaterialization`，保证离线目标 session 可 materialize。
 - turn meta 仍可保留 `inboxOrigin: registered-agent / space_issue_delivery`。
 
-要去掉的是**最终 prompt 外层的 `<myagents-session-event>`**。
+要去掉的是**最终 prompt 外层的 `<blexagent-session-event>`**。
 
 可接受实现路径：
 
@@ -611,14 +611,14 @@ Space delivery prompt 的模板 owner 应留在 Rust `src-tauri/src/space_cloud.
 或者：
 
 1. `renderSessionEventPrompt` 对 `space.issue_delivery` 分支渲染新的 `<system-reminder>` 结构。
-2. send/watch 仍使用 `<myagents-session-event>`。
+2. send/watch 仍使用 `<blexagent-session-event>`。
 
 两条路径都可以，但第一条更符合“Rust 业务注入由 Rust owner 拼好”的边界。
 
 无论选哪条，最终 user message 字符串必须满足：
 
 ```text
-startsWith("<system-reminder>\n<myagents-space-issue>")
+startsWith("<system-reminder>\n<blexagent-space-issue>")
 ```
 
 ### 7.3 结构安全
@@ -633,8 +633,8 @@ Issue title、goal path、updateSummary、workspace label 等不能直接拼进 
 需要覆盖的结构标签：
 
 - `system-reminder`
-- `myagents-space-issue`
-- `myagents-space-event`
+- `blexagent-space-issue`
+- `blexagent-space-event`
 - `issue-instruction`
 - `runtime-context`
 - `issue`
@@ -651,9 +651,9 @@ Issue title、goal path、updateSummary、workspace label 等不能直接拼进 
 
 | 场景 | zh-CN | en-US |
 |------|-------|-------|
-| single subscription | `MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。` | `MyAgents Space delivered an issue notification. The registered Agent started processing.` |
-| batch subscription | `MyAgents Space 已投递 {count} 个 Issue 通知，Registered Agent 开始处理。` | `MyAgents Space delivered {count} issue notifications. The registered Agent started processing.` |
-| claim follow-up | `MyAgents Space 已投递一个 Issue 后续更新，Registered Agent 开始处理。` | `MyAgents Space delivered an issue follow-up. The registered Agent started processing.` |
+| single subscription | `BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。` | `BlexAgent Space delivered an issue notification. The registered Agent started processing.` |
+| batch subscription | `BlexAgent Space 已投递 {count} 个 Issue 通知，Registered Agent 开始处理。` | `BlexAgent Space delivered {count} issue notifications. The registered Agent started processing.` |
+| claim follow-up | `BlexAgent Space 已投递一个 Issue 后续更新，Registered Agent 开始处理。` | `BlexAgent Space delivered an issue follow-up. The registered Agent started processing.` |
 
 Fallback：无法读取 locale 时用 `zh-CN`。
 
@@ -667,31 +667,31 @@ Fallback：无法读取 locale 时用 `zh-CN`。
 `Message.tsx::systemTagLabel` 新增：
 
 ```ts
-if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
+if (kind === 'blexagent-space-issue') return t('message.systemTags.spaceIssue');
 ```
 
 注意：
 
-- `parseLeadingSystemReminder` 的 `leadingReminderKind` 支持小写和连字符 tag，`myagents-space-issue` 合法。
+- `parseLeadingSystemReminder` 的 `leadingReminderKind` 支持小写和连字符 tag，`blexagent-space-issue` 合法。
 - Message 展示会用 reminder 后的 `visibleText`，内部结构不会出现在用户气泡。
 - QueryNavigator 使用 `getVisibleQueryText`，应只展示短句，不纳入隐藏区。
 - 标题 / preview 相关 `stripLeadingSystemReminder` 应同样得到短句。
 
 ## 8. 关键设计决策
 
-### D1. 用 `<system-reminder>` 做最终外层，而不是继续展示 `<myagents-session-event>`
+### D1. 用 `<system-reminder>` 做最终外层，而不是继续展示 `<blexagent-session-event>`
 
-原因：项目已有 `<system-reminder>` 约定，能同时满足“模型可见、用户气泡隐藏、visibleText 展示”的需求。重新在前端为 `<myagents-session-event>` 做隐藏逻辑会制造第二套隐藏协议。
+原因：项目已有 `<system-reminder>` 约定，能同时满足“模型可见、用户气泡隐藏、visibleText 展示”的需求。重新在前端为 `<blexagent-session-event>` 做隐藏逻辑会制造第二套隐藏协议。
 
 避开的坑：内部事件结构暴露在用户气泡里；QueryNavigator / session title / preview 继续被内部 prompt 污染。
 
-### D2. `<myagents-space-issue>` 是 badge tag，不承载业务版本
+### D2. `<blexagent-space-issue>` 是 badge tag，不承载业务版本
 
 原因：前端 badge 只需要识别“这是 Space issue 注入”。业务版本、mode、delivery count 不应该塞到 badge tag 上。
 
 避开的坑：UI badge 逻辑和业务协议耦合；未来 Space event 版本变化导致前端展示判断漂移。
 
-### D3. 保留 `<myagents-space-event>` 作为 Space 内部业务协议
+### D3. 保留 `<blexagent-space-event>` 作为 Space 内部业务协议
 
 原因：Space Issue delivery 仍是结构化事件，不应退化成纯自然语言。`version/type/mode/delivery-count` 能让后续协议演进有稳定落点。
 
@@ -711,7 +711,7 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
 
 ### D6. 不改 send/watch 通用 session event 协议
 
-原因：`myagents session send/watch` 是跨 session 的通用事件协议，已有 system prompt 指导模型理解 `<myagents-session-event>`。Space issue delivery 是 Registered Agent 的产品化自动注入，展示需求不同。
+原因：`blexagent session send/watch` 是跨 session 的通用事件协议，已有 system prompt 指导模型理解 `<blexagent-session-event>`。Space issue delivery 是 Registered Agent 的产品化自动注入，展示需求不同。
 
 避开的坑：为了 Space UI 展示把通用 inbox 协议一起改坏。
 
@@ -734,14 +734,14 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
 
 ### Phase 2: Node inbox 渲染边界
 
-1. 修改 `drain-handler.ts::buildSessionEventPrompt` 或 `session-event.ts::renderSessionEventPrompt`，确保 `space.issue_delivery` 不再输出 `<myagents-session-event>`。
+1. 修改 `drain-handler.ts::buildSessionEventPrompt` 或 `session-event.ts::renderSessionEventPrompt`，确保 `space.issue_delivery` 不再输出 `<blexagent-session-event>`。
 2. 保留 `scenarioForInboxMessage` 对 `space.issue_delivery` 的识别。
 3. 保留 `allowLazySessionMaterialization` 对 Space delivery 的 true 分支。
-4. 调整 `session-event.unit.test.ts`：send/watch 继续是 `<myagents-session-event>`；space issue delivery 输出或透传 `<system-reminder>`。
+4. 调整 `session-event.unit.test.ts`：send/watch 继续是 `<blexagent-session-event>`；space issue delivery 输出或透传 `<system-reminder>`。
 
 ### Phase 3: 前端 badge
 
-1. `Message.tsx::systemTagLabel` 支持 `myagents-space-issue`。
+1. `Message.tsx::systemTagLabel` 支持 `blexagent-space-issue`。
 2. `app.json` 的 `message.systemTags` 加 `spaceIssue: "Space issue"`。
 3. 补测试或至少通过现有 `systemReminder` / Message 渲染路径验证：
    - hidden content 不展示。
@@ -762,10 +762,10 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
 
 1. 单条 subscription：
    - prompt 以 `<system-reminder>` 开头。
-   - 包含 `<myagents-space-issue>` 和 `<myagents-space-event ... mode="subscription" delivery-count="1">`。
+   - 包含 `<blexagent-space-issue>` 和 `<blexagent-space-event ... mode="subscription" delivery-count="1">`。
    - 包含 `<issue-instruction>`、`<runtime-context>`、一个 `<issue id="...">`。
    - reminder 后有 localized visible text。
-   - `<issue>` block 不包含 `myagents space issue claim`、`ignore`、`complete` 具体命令。
+   - `<issue>` block 不包含 `blexagent space issue claim`、`ignore`、`complete` 具体命令。
 2. batch subscription：
    - delivery-count 为 `3`。
    - 包含 3 个 `<issue id="...">`。
@@ -778,7 +778,7 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
    - issue block 包含 Claim ID。
 4. escaping：
    - issue title 包含 `</system-reminder><script>` 时，输出不能提前关闭 reminder。
-   - updateSummary 包含 `</myagents-space-event>` 时被转义。
+   - updateSummary 包含 `</blexagent-space-event>` 时被转义。
 5. locale：
    - zh-CN visible text。
    - en-US visible text。
@@ -787,8 +787,8 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
 
 覆盖：
 
-1. `send.request` / `watch.completed` 仍渲染 `<myagents-session-event>`。
-2. `space.issue_delivery` 不再渲染通用 `<myagents-session-event>` 外包。
+1. `send.request` / `watch.completed` 仍渲染 `<blexagent-session-event>`。
+2. `space.issue_delivery` 不再渲染通用 `<blexagent-session-event>` 外包。
 3. `drain-handler` 对 `space.issue_delivery` 仍返回 registered-agent scenario。
 4. `allowLazySessionMaterialization` 对 `space.issue_delivery` 仍为 true。
 
@@ -796,7 +796,7 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
 
 覆盖：
 
-1. `parseLeadingSystemReminder` 能识别 `kind === "myagents-space-issue"`。
+1. `parseLeadingSystemReminder` 能识别 `kind === "blexagent-space-issue"`。
 2. `Message` 渲染用户消息时：
    - 不展示 `<issue-instruction>` / `<issue>` 内部内容。
    - 展示 reminder 后的短句。
@@ -813,7 +813,7 @@ if (kind === 'myagents-space-issue') return t('message.systemTags.spaceIssue');
    - 用户气泡只看到短句。
    - badge 是 `Space issue`。
    - 复制原始消息或读取 session JSON 能看到完整 hidden prompt。
-   - Agent 会先 `myagents space issue view ...`，不会直接 claim。
+   - Agent 会先 `blexagent space issue view ...`，不会直接 claim。
 4. 一轮 poll 返回 3 条 issue：
    - 同一 turn 只有一个 visible bubble。
    - hidden prompt 有 3 个 `<issue>`。
@@ -843,7 +843,7 @@ Issue title、comment summary、goal path 都可能来自用户或云端。它�
 
 ### 11.4 不要为了 badge 新建第二套隐藏协议
 
-前端已经有 `system-reminder`。新增的只有 badge tag label，不应给 `<myagents-space-event>` 再写一套显示/隐藏解析。
+前端已经有 `system-reminder`。新增的只有 badge tag label，不应给 `<blexagent-space-event>` 再写一套显示/隐藏解析。
 
 ### 11.5 不要本地化隐藏 instruction
 
@@ -856,9 +856,9 @@ Issue title、comment summary、goal path 都可能来自用户或云端。它�
 1. Space Issue delivery 注入 session 的最终 user message 以 `<system-reminder>` 开头。
 2. 前端 user bubble 不展示 hidden prompt，只展示 localized visible text。
 3. 前端 badge 显示 `Space issue`。
-4. Hidden prompt 内有 `<myagents-space-event>`、`<issue-instruction>`、`<runtime-context>`、`<issue>`。
+4. Hidden prompt 内有 `<blexagent-space-event>`、`<issue-instruction>`、`<runtime-context>`、`<issue>`。
 5. 单条 subscription、batch subscription、claim follow-up 三类模板均符合本 PRD。
-6. `myagents session send/watch` 仍使用原 `<myagents-session-event>` 协议，不被本改动影响。
+6. `blexagent session send/watch` 仍使用原 `<blexagent-session-event>` 协议，不被本改动影响。
 7. Registered Agent 的 headless delivery、lazy session materialization、scenario system prompt 均不回归。
 8. 用户可控 issue 字段无法闭合 hidden tags。
 9. 测试覆盖 prompt 结构、Node 渲染分支、前端 badge / hidden display。
@@ -875,17 +875,17 @@ Issue title、comment summary、goal path 都可能来自用户或云端。它�
 
 ### 开发契约（动第一行代码前写完）
 
-- 必赢场景：Registered Agent 收到 Space Issue delivery 后，session 里最终 user message 以 `<system-reminder><myagents-space-issue>` 开头，用户气泡只显示本地化短句并带 `Space issue` badge；hidden prompt 内按 `<myagents-space-event><issue-instruction><runtime-context><issue>` 结构表达单条订阅、批量订阅和 claim follow-up，且 Agent 仍走 registered-agent scenario / lazy materialization。
+- 必赢场景：Registered Agent 收到 Space Issue delivery 后，session 里最终 user message 以 `<system-reminder><blexagent-space-issue>` 开头，用户气泡只显示本地化短句并带 `Space issue` badge；hidden prompt 内按 `<blexagent-space-event><issue-instruction><runtime-context><issue>` 结构表达单条订阅、批量订阅和 claim follow-up，且 Agent 仍走 registered-agent scenario / lazy materialization。
 - 复用的既有抽象：`src-tauri/src/space_cloud.rs::deliver_space_deliveries` 和三个 Space prompt builder；`PendingInboxMessage.session_event` 作为内部 metadata；`src/server/inbox/drain-handler.ts::scenarioForInboxMessage` / lazy materialization 分支；`src/shared/systemReminder.ts::parseLeadingSystemReminder`；`src/renderer/components/Message.tsx::systemTagLabel`；`src-tauri/src/i18n.rs::current_locale`。
-- 反向边界：不改云端 delivery 匹配；不改 claim / complete CLI 语义；不改 `myagents session send/watch` 的通用 `<myagents-session-event>` 协议；不新增 renderer 直连 Space HTTP；隐藏 instruction 不随 UI 语言本地化。
-- 新概念清单：`myagents-space-issue` 作为 system-reminder 内第一业务 tag，用于现有 badge 机制；`myagents-space-event` 作为 Space 专属 hidden 业务事件容器；`issue-instruction` / `runtime-context` / `issue` 是 prompt 内结构标签，不是新的 runtime 状态或持久模型。
+- 反向边界：不改云端 delivery 匹配；不改 claim / complete CLI 语义；不改 `blexagent session send/watch` 的通用 `<blexagent-session-event>` 协议；不新增 renderer 直连 Space HTTP；隐藏 instruction 不随 UI 语言本地化。
+- 新概念清单：`blexagent-space-issue` 作为 system-reminder 内第一业务 tag，用于现有 badge 机制；`blexagent-space-event` 作为 Space 专属 hidden 业务事件容器；`issue-instruction` / `runtime-context` / `issue` 是 prompt 内结构标签，不是新的 runtime 状态或持久模型。
 - 触及的红线：Space 仍由 Rust owner 处理，renderer 不持有 token；新增用户可见文案必须进 i18n；Space delivery 不应破坏 session event send/watch 协议；用户可控字段必须转义，不能闭合 hidden tags；不新增通信模式或 sidecar owner。
 
 ### 行动清单
 
-- [x] Phase 1: Rust prompt builder 重构，输出 `<system-reminder><myagents-space-issue>` 协议并补 Rust 单测。
-- [x] Phase 2: Node inbox 渲染边界，Space delivery 不再套通用 `<myagents-session-event>`，但保留 registered-agent scenario / lazy materialization。
-- [x] Phase 3: 前端 badge 与 i18n，`myagents-space-issue` 显示为 `Space issue`。
+- [x] Phase 1: Rust prompt builder 重构，输出 `<system-reminder><blexagent-space-issue>` 协议并补 Rust 单测。
+- [x] Phase 2: Node inbox 渲染边界，Space delivery 不再套通用 `<blexagent-session-event>`，但保留 registered-agent scenario / lazy materialization。
+- [x] Phase 3: 前端 badge 与 i18n，`blexagent-space-issue` 显示为 `Space issue`。
 - [x] Phase 4: 文档、验证、cross-review、commit。
 
 ### 待用户决策
@@ -895,9 +895,9 @@ Issue title、comment summary、goal path 都可能来自用户或云端。它�
 ### 进展日志
 
 - 2026-07-06：读取 PRD、ARCHITECTURE、space_cloud、session_architecture、i18n_architecture、DESIGN 和相关代码入口；确认本期为 PRD 模式 `/start-dev`，开始按台账执行。
-- 2026-07-06：完成 Rust Space issue delivery prompt 重构：统一输出 `<system-reminder><myagents-space-issue><myagents-space-event ...>`；`<issue-instruction>` 集中 CLI / workflow 指令；`<runtime-context>` 放 runtime facts；每个 `<issue>` 只放事实数据；visible text 跟随 Rust 当前 UI locale。
-- 2026-07-06：完成 Node inbox 边界：`drain-handler` 对 `space.issue_delivery` 透传 Rust-rendered `PendingInboxMessage.text`，保留 registered-agent scenario 与 lazy materialization；`renderSessionEventPrompt` 对 `space.issue_delivery` fail-closed，避免未来误回到 `<myagents-session-event>` 外包。
-- 2026-07-06：完成前端隐藏展示：新增 `myagents-space-issue` system-reminder tag 与 `Space issue` badge i18n；Message / QueryNavigator / shared parser 只展示 reminder 后 visible text；纯 Space reminder malformed fallback 不泄露 hidden payload。
+- 2026-07-06：完成 Rust Space issue delivery prompt 重构：统一输出 `<system-reminder><blexagent-space-issue><blexagent-space-event ...>`；`<issue-instruction>` 集中 CLI / workflow 指令；`<runtime-context>` 放 runtime facts；每个 `<issue>` 只放事实数据；visible text 跟随 Rust 当前 UI locale。
+- 2026-07-06：完成 Node inbox 边界：`drain-handler` 对 `space.issue_delivery` 透传 Rust-rendered `PendingInboxMessage.text`，保留 registered-agent scenario 与 lazy materialization；`renderSessionEventPrompt` 对 `space.issue_delivery` fail-closed，避免未来误回到 `<blexagent-session-event>` 外包。
+- 2026-07-06：完成前端隐藏展示：新增 `blexagent-space-issue` system-reminder tag 与 `Space issue` badge i18n；Message / QueryNavigator / shared parser 只展示 reminder 后 visible text；纯 Space reminder malformed fallback 不泄露 hidden payload。
 - 2026-07-06：完成文档更新：`specs/tech_docs/space_cloud.md` 记录 Rust-rendered IssueDelivery prompt 协议；`specs/tech_docs/session_architecture.md` 记录 Space issue delivery 复用 inbox metadata 但不复用通用 prompt 外包。
 - 2026-07-06：cross-review-code 三路 review 完成。采纳并修复：`local_workspace_id` 空白时 fallback 到 `workspace_id`；Space reminder 缺失 visible tail 时不展示 hidden payload；通用 session-event renderer 移除 Space prompt 渲染职责；`sessionEvent.payload` 不再重复保存完整 prompt。
 - 2026-07-06：验证通过：`cargo fmt --manifest-path src-tauri/Cargo.toml`；`npx vitest run --project unit src/shared/systemReminder.test.ts src/server/inbox/drain-handler.unit.test.ts src/server/inbox/session-event.unit.test.ts`；`npx vitest run --project dom src/renderer/components/Message.proseContext.test.tsx src/renderer/components/chat/QueryNavigator.test.tsx`；`cargo test --manifest-path src-tauri/Cargo.toml build_space_issue_delivery_message -- --nocapture`；`cargo check --manifest-path src-tauri/Cargo.toml`；`npm run typecheck`；`npm run lint`；`./build_dev.sh`。

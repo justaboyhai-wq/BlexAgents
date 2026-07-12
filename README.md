@@ -1,10 +1,10 @@
 <div align="center">
 
-# MyAgents
+# BlexAgent
 
 **活在你的电脑里，真正能干活的个人 Agent**
 
-[中文](#chinese) · [English](#english) · [官网](https://myagents.io) · [下载](https://myagents.io) · [架构文档](specs/ARCHITECTURE.md) · [贡献指南](CONTRIBUTING.md)
+[中文](#chinese) · [English](#english) · [官网](https://blexagent.com) · [下载](https://blexagent.com) · [架构文档](specs/ARCHITECTURE.md) · [贡献指南](CONTRIBUTING.md)
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-13.0+-black.svg)](https://www.apple.com/macos/)
@@ -12,15 +12,15 @@
 [![Tauri](https://img.shields.io/badge/Tauri-v2-orange.svg)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 
-![MyAgents Launcher](specs/assets/readme/01-launcher.png)
+![BlexAgent Launcher](specs/assets/readme/01-launcher.png)
 
 </div>
 
 <a id="chinese"></a>
 
-## MyAgents 是什么
+## BlexAgent 是什么
 
-MyAgents 是一款开源桌面端个人 Agent 工作台。它不是另一个聊天窗口，而是把对话、工作区、文件、工具、模型、任务和长期记忆放进同一个桌面系统里，让 AI 真正进入你的日常工作流。
+BlexAgent 是一款开源桌面端个人 Agent 工作台。它不是另一个聊天窗口，而是把对话、工作区、文件、工具、模型、任务和长期记忆放进同一个桌面系统里，让 AI 真正进入你的日常工作流。
 
 你可以把它理解成三件事的组合：
 
@@ -38,7 +38,7 @@ MyAgents 是一款开源桌面端个人 Agent 工作台。它不是另一个聊�
 
 ![Workspace Agent](specs/assets/readme/02-workspace-agent.png)
 
-在一个会话里，MyAgents 同时提供：
+在一个会话里，BlexAgent 同时提供：
 
 - Chrome 风格多标签页，每个 Tab 独立运行一个 Agent。
 - 工作区文件树、文件预览、Git 分支、Skills 和命令入口。
@@ -47,7 +47,7 @@ MyAgents 是一款开源桌面端个人 Agent 工作台。它不是另一个聊�
 
 ### 把想法收束成任务
 
-MyAgents 内置「想法 + 任务中心」。你可以先把零散念头记下来，再和 AI 讨论、对齐目标、沉淀成可执行任务。长期任务不需要留在聊天记录里翻找，而是进入可追踪的状态机。
+BlexAgent 内置「想法 + 任务中心」。你可以先把零散念头记下来，再和 AI 讨论、对齐目标、沉淀成可执行任务。长期任务不需要留在聊天记录里翻找，而是进入可追踪的状态机。
 
 ![Thoughts and Tasks](specs/assets/readme/03-thought-task.png)
 
@@ -60,11 +60,11 @@ MyAgents 内置「想法 + 任务中心」。你可以先把零散念头记下�
 
 ### 模型、工具和能力由你选择
 
-MyAgents 不把用户锁死在单一模型或单一供应商里。你可以使用 Anthropic 订阅或 API，也可以配置 DeepSeek、Moonshot、智谱、MiniMax、Google Gemini、火山方舟、硅基流动、ZenMux、OpenRouter、小米 MiMo、阿里云百炼等供应商。实际模型列表以应用内「模型供应商」页为准。
+BlexAgent 不把用户锁死在单一模型或单一供应商里。你可以使用 Anthropic 订阅或 API，也可以配置 DeepSeek、Moonshot、智谱、MiniMax、Google Gemini、火山方舟、硅基流动、ZenMux、OpenRouter、小米 MiMo、阿里云百炼等供应商。实际模型列表以应用内「模型供应商」页为准。
 
 ![Model Providers](specs/assets/readme/04-model-providers.png)
 
-除了模型，MyAgents 还支持：
+除了模型，BlexAgent 还支持：
 
 - **MCP**：STDIO / HTTP / SSE 三种接入方式，连接外部工具和数据源。
 - **Skills**：把稳定流程沉淀成可复用能力，支持内置技能和用户自定义技能。
@@ -74,11 +74,11 @@ MyAgents 不把用户锁死在单一模型或单一供应商里。你可以使�
 
 ### AI 不只活在主窗口里
 
-桌面 AI 不应该只在你打开主应用时才存在。MyAgents 提供小助理、桌面宠物/浮窗、IM Bot 和定时任务，让 Agent 能在不同入口里承接同一个工作上下文。
+桌面 AI 不应该只在你打开主应用时才存在。BlexAgent 提供小助理、桌面宠物/浮窗、IM Bot 和定时任务，让 Agent 能在不同入口里承接同一个工作上下文。
 
 ![Floating Agent](specs/assets/readme/05-floating-agent.png)
 
-你可以在主窗口里做长对话，也可以在桌面浮窗里快速发问；可以让 Agent 在 IM 里处理消息，也可以让它按计划自动执行任务。MyAgents 关注的不是「多一个聊天入口」，而是让 AI 能进入真实的工作节奏。
+你可以在主窗口里做长对话，也可以在桌面浮窗里快速发问；可以让 Agent 在 IM 里处理消息，也可以让它按计划自动执行任务。BlexAgent 关注的不是「多一个聊天入口」，而是让 AI 能进入真实的工作节奏。
 
 ## 产品理念与思考
 
@@ -86,25 +86,25 @@ MyAgents 不把用户锁死在单一模型或单一供应商里。你可以使�
 
 过去很多 AI 产品把「对话」当成唯一形态。对话很自然，但它不适合承载长期工作：上下文会散、任务会丢、结果难复盘，最后用户又回到手工整理。
 
-我更希望 MyAgents 把 Agent 看成一个持续工作的系统。聊天只是入口，真正重要的是工作区、文件、工具、任务、状态和记忆。一个 Agent 应该能知道自己在哪个项目里、正在做什么、上次做到哪里、下一步该验证什么。
+我更希望 BlexAgent 把 Agent 看成一个持续工作的系统。聊天只是入口，真正重要的是工作区、文件、工具、任务、状态和记忆。一个 Agent 应该能知道自己在哪个项目里、正在做什么、上次做到哪里、下一步该验证什么。
 
 ### 人的注意力应该收束到判断和验收
 
 AI 最有价值的地方不是替人多生成几段文字，而是把混乱信息整理成可判断、可执行、可沉淀的东西。
 
-所以 MyAgents 里有想法和任务中心。想法用于收集不成熟的判断，任务用于承载已经确认的目标。中间的讨论、计划、执行、验证都可以交给 Agent，但最后的方向感和验收标准仍然留给人。
+所以 BlexAgent 里有想法和任务中心。想法用于收集不成熟的判断，任务用于承载已经确认的目标。中间的讨论、计划、执行、验证都可以交给 Agent，但最后的方向感和验收标准仍然留给人。
 
 ### 好的桌面 Agent 应该贴近电脑本身
 
 一个桌面 Agent 不应该只复制网页聊天体验。它应该能接触本地文件、终端、浏览器、通知、定时任务、IM 和系统环境，同时保持边界清晰、权限可控、数据本地优先。
 
-MyAgents 的很多设计都来自这个判断：本地工作区是一等公民，Sidecar 按 Session 隔离，所有文件能力走 Tauri/Rust，AI Runtime 可以切换，模型供应商可以替换，工具和 Skills 可以扩展。
+BlexAgent 的很多设计都来自这个判断：本地工作区是一等公民，Sidecar 按 Session 隔离，所有文件能力走 Tauri/Rust，AI Runtime 可以切换，模型供应商可以替换，工具和 Skills 可以扩展。
 
 ### 开放比封闭更适合 Agent 时代
 
 Agent 产品不可能预设所有人的工作流。开发者、创作者、研究者、产品经理、教育工作者和行业专家需要的能力都不一样。与其做一个「什么都内置但什么都固定」的应用，不如提供一个稳定的底座，让用户把自己的工具、模型、技能和自动化流程接进来。
 
-这也是 MyAgents 坚持开源、支持 MCP、Skills、插件和多供应商的原因。
+这也是 BlexAgent 坚持开源、支持 MCP、Skills、插件和多供应商的原因。
 
 ## 功能概览
 
@@ -125,7 +125,7 @@ Agent 产品不可能预设所有人的工作流。开发者、创作者、研�
 
 ## 研发指引
 
-MyAgents 是一个桌面端 AI Agent 产品，不是单纯的前端项目。改动前建议先判断你碰到的是 UI、Rust 桌面层、Node Sidecar、Agent Runtime、MCP、任务中心还是插件桥接。
+BlexAgent 是一个桌面端 AI Agent 产品，不是单纯的前端项目。改动前建议先判断你碰到的是 UI、Rust 桌面层、Node Sidecar、Agent Runtime、MCP、任务中心还是插件桥接。
 
 ### 技术栈
 
@@ -136,7 +136,7 @@ MyAgents 是一个桌面端 AI Agent 产品，不是单纯的前端项目。改�
 | 后端 Sidecar | Node.js v24 + Claude Agent SDK                                             |
 | 通信         | Rust HTTP/SSE Proxy，前端通过 Tauri invoke 代理到 Sidecar                  |
 | Runtime      | 内置 Claude Agent SDK，实验室支持 Claude Code CLI / Codex CLI / Gemini CLI |
-| 工具生态     | MCP、Skills、OpenClaw Plugin Bridge、`myagents` CLI                        |
+| 工具生态     | MCP、Skills、OpenClaw Plugin Bridge、`blexagent` CLI                        |
 | 搜索         | Tantivy + tantivy-jieba                                                    |
 | 终端         | portable-pty + xterm.js                                                    |
 
@@ -159,8 +159,8 @@ MyAgents 是一个桌面端 AI Agent 产品，不是单纯的前端项目。改�
 macOS / Linux：
 
 ```bash
-git clone https://github.com/hAcKlyc/MyAgents.git
-cd MyAgents
+git clone https://github.com/justaboyhai-wq/BlexAgents.git
+cd BlexAgent
 ./setup.sh
 ./start_dev.sh
 ```
@@ -168,8 +168,8 @@ cd MyAgents
 Windows：
 
 ```powershell
-git clone https://github.com/hAcKlyc/MyAgents.git
-cd MyAgents
+git clone https://github.com/justaboyhai-wq/BlexAgents.git
+cd BlexAgent
 .\setup_windows.ps1
 .\build_windows.ps1
 ```
@@ -220,7 +220,7 @@ sudo apt-get install -y \
 src/renderer/                 React 前端
 src/server/                   Node.js Sidecar
 src/server/plugin-bridge/     OpenClaw Plugin Bridge
-src/cli/                      myagents CLI
+src/cli/                      blexagent CLI
 src/shared/                   前后端共享类型
 src-tauri/                    Tauri Rust 层
 bundled-agents/               内置 Agent
@@ -278,9 +278,9 @@ chore: bump ...
 
 ## English
 
-## What Is MyAgents
+## What Is BlexAgent
 
-MyAgents is an open-source desktop workspace for personal AI Agents. It is not another chat window. It puts conversations, workspaces, files, tools, models, tasks, and long-term memory into one desktop system, so AI can become part of your real daily workflow.
+BlexAgent is an open-source desktop workspace for personal AI Agents. It is not another chat window. It puts conversations, workspaces, files, tools, models, tasks, and long-term memory into one desktop system, so AI can become part of your real daily workflow.
 
 You can think of it as three things in one:
 
@@ -298,7 +298,7 @@ Every Agent is tied to a real workspace. The conversation does not float inside 
 
 ![Workspace Agent](specs/assets/readme/02-workspace-agent.png)
 
-Inside one session, MyAgents gives you:
+Inside one session, BlexAgent gives you:
 
 - Chrome-style tabs, with each Tab running an independent Agent.
 - Workspace file tree, file preview, Git branch, Skills, and command entry points.
@@ -307,7 +307,7 @@ Inside one session, MyAgents gives you:
 
 ### Turn Ideas Into Tasks
 
-MyAgents includes an Ideas + Task Center workflow. You can first capture rough thoughts, then discuss them with AI, align on the goal, and turn them into executable tasks. Long-term work no longer has to be buried in chat history. It becomes part of a trackable state machine.
+BlexAgent includes an Ideas + Task Center workflow. You can first capture rough thoughts, then discuss them with AI, align on the goal, and turn them into executable tasks. Long-term work no longer has to be buried in chat history. It becomes part of a trackable state machine.
 
 ![Thoughts and Tasks](specs/assets/readme/03-thought-task.png)
 
@@ -320,11 +320,11 @@ Task Center supports:
 
 ### Choose Your Models, Tools, And Capabilities
 
-MyAgents does not lock users into one model or one provider. You can use Anthropic subscription or API, and you can also configure DeepSeek, Moonshot, Zhipu, MiniMax, Google Gemini, Volcengine, SiliconFlow, ZenMux, OpenRouter, Xiaomi MiMo, Alibaba Cloud Bailian, and more. The actual model list is shown inside the in-app Model Providers page.
+BlexAgent does not lock users into one model or one provider. You can use Anthropic subscription or API, and you can also configure DeepSeek, Moonshot, Zhipu, MiniMax, Google Gemini, Volcengine, SiliconFlow, ZenMux, OpenRouter, Xiaomi MiMo, Alibaba Cloud Bailian, and more. The actual model list is shown inside the in-app Model Providers page.
 
 ![Model Providers](specs/assets/readme/04-model-providers.png)
 
-Beyond models, MyAgents supports:
+Beyond models, BlexAgent supports:
 
 - **MCP**: STDIO / HTTP / SSE integrations for external tools and data sources.
 - **Skills**: reusable workflows as built-in, user-level, or workspace-level capabilities.
@@ -334,11 +334,11 @@ Beyond models, MyAgents supports:
 
 ### AI Does Not Only Live In The Main Window
 
-Desktop AI should not exist only when the main app is open. MyAgents provides the helper agent, desktop pet/floating panel, IM bots, and scheduled tasks, so the Agent can carry the same work context across different entry points.
+Desktop AI should not exist only when the main app is open. BlexAgent provides the helper agent, desktop pet/floating panel, IM bots, and scheduled tasks, so the Agent can carry the same work context across different entry points.
 
 ![Floating Agent](specs/assets/readme/05-floating-agent.png)
 
-You can have long conversations in the main window, ask quick questions from a floating desktop panel, let an Agent handle messages in IM, or have it execute tasks on a schedule. MyAgents is not trying to add one more chat surface. It is trying to put AI into the real rhythm of work.
+You can have long conversations in the main window, ask quick questions from a floating desktop panel, let an Agent handle messages in IM, or have it execute tasks on a schedule. BlexAgent is not trying to add one more chat surface. It is trying to put AI into the real rhythm of work.
 
 ## Product Philosophy
 
@@ -346,25 +346,25 @@ You can have long conversations in the main window, ask quick questions from a f
 
 Many AI products treat conversation as the only shape of interaction. Conversation is natural, but it is a poor container for long-running work: context scatters, tasks disappear, results are hard to review, and users eventually return to manual organization.
 
-I want MyAgents to treat an Agent as a continuous working system. Chat is only the entry point. What matters more is the workspace, files, tools, tasks, state, and memory. An Agent should know which project it is in, what it is doing, where it stopped last time, and what should be verified next.
+I want BlexAgent to treat an Agent as a continuous working system. Chat is only the entry point. What matters more is the workspace, files, tools, tasks, state, and memory. An Agent should know which project it is in, what it is doing, where it stopped last time, and what should be verified next.
 
 ### Human Attention Should Converge On Judgment And Acceptance
 
 The most valuable part of AI is not generating a few more paragraphs. It is turning messy information into something that can be judged, executed, and preserved.
 
-That is why MyAgents has Ideas and Task Center. Ideas capture immature thoughts. Tasks carry confirmed goals. The discussion, planning, execution, and verification can be delegated to the Agent, while direction and acceptance criteria remain with the human.
+That is why BlexAgent has Ideas and Task Center. Ideas capture immature thoughts. Tasks carry confirmed goals. The discussion, planning, execution, and verification can be delegated to the Agent, while direction and acceptance criteria remain with the human.
 
 ### A Good Desktop Agent Should Stay Close To The Computer
 
 A desktop Agent should not merely copy the web chat experience. It should be able to work with local files, terminal, browser, notifications, scheduled tasks, IM, and the system environment, while keeping clear boundaries, controllable permissions, and local-first data.
 
-Many MyAgents design choices come from this belief: local workspaces are first-class, Sidecars are isolated by Session, file operations go through Tauri/Rust, AI runtimes can be switched, model providers can be replaced, and tools and Skills can be extended.
+Many BlexAgent design choices come from this belief: local workspaces are first-class, Sidecars are isolated by Session, file operations go through Tauri/Rust, AI runtimes can be switched, model providers can be replaced, and tools and Skills can be extended.
 
 ### Openness Fits The Agent Era Better Than Lock-In
 
-No Agent product can predefine every workflow. Developers, creators, researchers, product managers, educators, and domain experts all need different capabilities. Instead of building an app where everything is built in and fixed, MyAgents provides a stable base that lets users plug in their own tools, models, skills, and automations.
+No Agent product can predefine every workflow. Developers, creators, researchers, product managers, educators, and domain experts all need different capabilities. Instead of building an app where everything is built in and fixed, BlexAgent provides a stable base that lets users plug in their own tools, models, skills, and automations.
 
-This is why MyAgents is open source and supports MCP, Skills, plugins, and multiple model providers.
+This is why BlexAgent is open source and supports MCP, Skills, plugins, and multiple model providers.
 
 ## Feature Overview
 
@@ -385,7 +385,7 @@ This is why MyAgents is open source and supports MCP, Skills, plugins, and multi
 
 ## Development Guide
 
-MyAgents is a desktop AI Agent product, not a plain frontend project. Before making changes, identify whether you are touching the UI, Rust desktop layer, Node Sidecar, Agent Runtime, MCP, Task Center, or Plugin Bridge.
+BlexAgent is a desktop AI Agent product, not a plain frontend project. Before making changes, identify whether you are touching the UI, Rust desktop layer, Node Sidecar, Agent Runtime, MCP, Task Center, or Plugin Bridge.
 
 ### Tech Stack
 
@@ -396,7 +396,7 @@ MyAgents is a desktop AI Agent product, not a plain frontend project. Before mak
 | Backend Sidecar | Node.js v24 + Claude Agent SDK                                                      |
 | Communication   | Rust HTTP/SSE Proxy, with the frontend reaching Sidecar through Tauri invoke        |
 | Runtime         | Built-in Claude Agent SDK, Lab support for Claude Code CLI / Codex CLI / Gemini CLI |
-| Tool ecosystem  | MCP, Skills, OpenClaw Plugin Bridge, `myagents` CLI                                 |
+| Tool ecosystem  | MCP, Skills, OpenClaw Plugin Bridge, `blexagent` CLI                                 |
 | Search          | Tantivy + tantivy-jieba                                                             |
 | Terminal        | portable-pty + xterm.js                                                             |
 
@@ -419,8 +419,8 @@ Developers:
 macOS / Linux:
 
 ```bash
-git clone https://github.com/hAcKlyc/MyAgents.git
-cd MyAgents
+git clone https://github.com/justaboyhai-wq/BlexAgents.git
+cd BlexAgent
 ./setup.sh
 ./start_dev.sh
 ```
@@ -428,8 +428,8 @@ cd MyAgents
 Windows:
 
 ```powershell
-git clone https://github.com/hAcKlyc/MyAgents.git
-cd MyAgents
+git clone https://github.com/justaboyhai-wq/BlexAgents.git
+cd BlexAgent
 .\setup_windows.ps1
 .\build_windows.ps1
 ```
@@ -480,7 +480,7 @@ sudo apt-get install -y \
 src/renderer/                 React frontend
 src/server/                   Node.js Sidecar
 src/server/plugin-bridge/     OpenClaw Plugin Bridge
-src/cli/                      myagents CLI
+src/cli/                      blexagent CLI
 src/shared/                   Shared frontend/backend types
 src-tauri/                    Tauri Rust layer
 bundled-agents/               Built-in Agents
@@ -536,4 +536,4 @@ chore: bump ...
 
 ## 许可证
 
-MyAgents 使用 [Apache License 2.0](LICENSE) 开源。
+BlexAgent 使用 [Apache License 2.0](LICENSE) 开源。

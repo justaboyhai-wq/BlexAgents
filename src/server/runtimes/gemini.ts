@@ -3,7 +3,7 @@
 // Communication: JSON-RPC 2.0 over stdio (gemini --acp)
 // Process lifecycle: persistent across turns, single process per session (like Codex app-server)
 // Protocol: Agent Client Protocol (ACP) — same wire format as Codex but with session/* methods
-// System prompt: merged "MyAgents 3-layer + Gemini official prompt" written to a tmp file,
+// System prompt: merged "BlexAgent 3-layer + Gemini official prompt" written to a tmp file,
 //                injected via GEMINI_SYSTEM_MD environment variable at spawn time
 // Session: session/new (fresh) / session/load (resume by sessionId)
 // Authentication: entirely delegated to the user's local gemini CLI state (we do NOT manage API keys)
@@ -46,7 +46,7 @@ import { withLogContext } from '../logger-context';
 
 const TMP_ROOT = join(
   process.env.HOME || process.env.USERPROFILE || '/tmp',
-  '.myagents', 'tmp', 'gemini-prompts',
+  '.blexagent', 'tmp', 'gemini-prompts',
 );
 
 /** Cached Gemini official system prompt path, keyed by CLI version. */
@@ -181,22 +181,22 @@ async function extractGeminiBasePrompt(version: string): Promise<string | null> 
  *
  * Layout:
  *   <header comment with session id + timestamp>
- *   <MyAgents three-layer prompt (verbatim from options.systemPromptAppend)>
+ *   <BlexAgent three-layer prompt (verbatim from options.systemPromptAppend)>
  *   <workspace instructions — cross-runtime protocol, only when GEMINI.md absent>
  *   ---
  *   # Built-in Gemini CLI Guidelines
  *   <Gemini official system prompt verbatim, if extraction succeeded>
  *
- * Returns the path, or null if no MyAgents prompt was supplied (in which case we let
+ * Returns the path, or null if no BlexAgent prompt was supplied (in which case we let
  * Gemini use its built-in default without GEMINI_SYSTEM_MD injection).
  */
 async function writeSessionSystemPrompt(
   sessionId: string,
-  myAgentsPrompt: string | undefined,
+  blexAgentPrompt: string | undefined,
   geminiVersion: string,
   workspacePath?: string,
 ): Promise<string | null> {
-  if (!myAgentsPrompt || myAgentsPrompt.trim().length === 0) return null;
+  if (!blexAgentPrompt || blexAgentPrompt.trim().length === 0) return null;
 
   ensureDirSync(TMP_ROOT);
   const path = sessionSystemPromptPath(sessionId);
@@ -204,9 +204,9 @@ async function writeSessionSystemPrompt(
   const basePrompt = await extractGeminiBasePrompt(geminiVersion);
   const timestamp = new Date().toISOString();
 
-  let content = `<!-- MyAgents Gemini runtime session prompt, generated at ${timestamp} -->\n`;
+  let content = `<!-- BlexAgent Gemini runtime session prompt, generated at ${timestamp} -->\n`;
   content += `<!-- Session: ${sessionId} -->\n\n`;
-  content += myAgentsPrompt.trim() + '\n\n';
+  content += blexAgentPrompt.trim() + '\n\n';
 
   // Cross-runtime workspace protocol: inject workspace instruction files when
   // GEMINI.md is absent. Chain: CLAUDE.md + rules → AGENTS.md → nothing.
@@ -224,8 +224,8 @@ async function writeSessionSystemPrompt(
     content += '# Built-in Gemini CLI Guidelines\n\n';
     content +=
       'The sections below are the default Gemini CLI operational guidelines. Follow them for ' +
-      'tool usage, safety, and tone unless they conflict with the MyAgents instructions above, ' +
-      'in which case the MyAgents instructions take precedence.\n\n';
+      'tool usage, safety, and tone unless they conflict with the BlexAgent instructions above, ' +
+      'in which case the BlexAgent instructions take precedence.\n\n';
     content += basePrompt.trim() + '\n';
   } else {
     // Base prompt extraction failed (first-run spawn error, gemini CLI not on PATH,
@@ -246,7 +246,7 @@ async function writeSessionSystemPrompt(
     content += '# Degraded Mode — Built-in Guidelines Unavailable\n\n';
     content +=
       'The default Gemini CLI guidelines could not be loaded for this session. ' +
-      'Follow the MyAgents instructions above strictly, and fall back to conservative ' +
+      'Follow the BlexAgent instructions above strictly, and fall back to conservative ' +
       'behavior for tool use and safety when they do not explicitly cover a case.\n';
   }
 
@@ -468,7 +468,7 @@ class GeminiProcess implements RuntimeProcess {
    * thinking chunks, tool calls, and tool results flow into external-session as
    * NEW content blocks, causing the loaded session's previous assistant message
    * to re-appear in the UI on resume (logged in
-   * ~/Downloads/myagents-logs-2026-04-14T17-28-53.txt:169-173 where
+   * ~/Downloads/blexagent-logs-2026-04-14T17-28-53.txt:169-173 where
    * user_message_chunk + tool_call arrived between session/load and set_mode).
    */
   replayMode = false;
@@ -793,10 +793,10 @@ export class GeminiRuntime implements AgentRuntime {
     );
 
     // 3. Spawn gemini --acp with the system prompt env var (if we have a file).
-    // Issue #194 — honor agent.runtimeConfig.envPolicy (proxy: myagents/terminal/direct).
+    // Issue #194 — honor agent.runtimeConfig.envPolicy (proxy: blexagent/terminal/direct).
     const spawnEnv: Record<string, string | undefined> = { ...augmentedProcessEnv(options.envPolicy) };
     spawnEnv.PWD = options.workspacePath;
-    spawnEnv.MYAGENTS_SESSION_ID = options.sessionId;
+    spawnEnv.BLEXAGENT_SESSION_ID = options.sessionId;
     if (promptFile) {
       spawnEnv.GEMINI_SYSTEM_MD = promptFile;
     }
@@ -927,7 +927,7 @@ export class GeminiRuntime implements AgentRuntime {
         // Turn on replay-drop BEFORE session/load. Gemini emits the loaded session's
         // historical content as session/update notifications (user_message_chunk,
         // agent_thought_chunk, tool_call, tool_call_update, etc.) so clients can
-        // rebuild their UI. MyAgents has its own SessionStore and does not want
+        // rebuild their UI. BlexAgent has its own SessionStore and does not want
         // these events persisted as new blocks — we drop them all until the first
         // live session/prompt fires.
         geminiProc.replayMode = true;
@@ -1307,7 +1307,7 @@ export class GeminiRuntime implements AgentRuntime {
 
     // Replay-drop: during session/load, Gemini replays the loaded session's history
     // as session/update notifications (user_message_chunk, tool_call, agent_thought_chunk,
-    // tool_call_update, etc.). MyAgents already has its own SessionStore for the loaded
+    // tool_call_update, etc.). BlexAgent already has its own SessionStore for the loaded
     // session and must not persist the replay as new content blocks. dispatchPrompt
     // flips this back to false just before sending the first live session/prompt.
     if (geminiProc.replayMode) return null;
@@ -1559,7 +1559,7 @@ interface PromptResponse {
  *
  * This is the only reliable way to identify the exact internal tool, because
  * Gemini ACP v0.37.2 does NOT populate the `rawInput` field on tool_call /
- * tool_call_update notifications (verified with /tmp/myagents-verify-gemini/
+ * tool_call_update notifications (verified with /tmp/blexagent-verify-gemini/
  * tool-input-probe.mjs across 4 tool types — all got `rawInput: undefined`).
  *
  * Returns the lowercase snake_case internal name, or empty string if the id
@@ -1572,7 +1572,7 @@ function parseGeminiToolName(toolCallId: string): string {
 }
 
 /**
- * Map Gemini internal tool name (from toolCallId prefix) to the MyAgents
+ * Map Gemini internal tool name (from toolCallId prefix) to the BlexAgent
  * frontend badge name. The frontend's `toolBadgeConfig.tsx` switch-statement
  * is the source of truth for which tool names get custom icons + colors.
  *
@@ -1650,7 +1650,7 @@ function mapGeminiInternalToolName(
 
 /**
  * Convert a Gemini tool_call / tool_call_update notification into the structured
- * `input` object that MyAgents frontend expects.
+ * `input` object that BlexAgent frontend expects.
  *
  * The returned object serves two roles:
  *   (1) It feeds `toolBadgeConfig.tsx::getToolLabel` for the collapsed row's

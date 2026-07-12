@@ -1,6 +1,6 @@
 # Claude Plugin Loading (PRD 0.2.17)
 
-> 与 Anthropic 官方的 [Claude Code Plugin 协议](https://code.claude.com/docs/en/plugins-reference) 对接的最薄一层。MyAgents 负责"目录 + 启停"，SDK 负责"加载 + 运行"。
+> 与 Anthropic 官方的 [Claude Code Plugin 协议](https://code.claude.com/docs/en/plugins-reference) 对接的最薄一层。BlexAgent 负责"目录 + 启停"，SDK 负责"加载 + 运行"。
 >
 > 关联：
 > - PRD：`specs/prd/prd_0.2.17_plugin_basic_support.md`
@@ -11,8 +11,8 @@
 
 ## 边界（最重要的三句话）
 
-1. **MyAgents 不解释插件内组件**。`SKILL.md` 的 frontmatter 字段、`hooks.json` 的 30+ 种事件、`.mcp.json` 的 server 配置、`${CLAUDE_PLUGIN_ROOT}` 替换——**全部交给 SDK**。MyAgents 只把绝对路径喂给 `Options.plugins`。
-2. **OpenClaw 的 `plugin` 和 Claude 的 `cc-plugin` 是两套独立体系**。前者是 IM 渠道 npm 包（飞书/微信适配器），存在 Rust Management API；后者是 Anthropic 协议的插件目录，存在 Node Sidecar 的 AppConfig + 磁盘。CLI 命名分别是 `myagents plugin *` vs `myagents cc-plugin *`，互不影响。HTTP 路径也分别是 `/api/plugin/*`（Rust）vs `/api/cc-plugin/*`（Node Sidecar），不会撞名。
+1. **BlexAgent 不解释插件内组件**。`SKILL.md` 的 frontmatter 字段、`hooks.json` 的 30+ 种事件、`.mcp.json` 的 server 配置、`${CLAUDE_PLUGIN_ROOT}` 替换——**全部交给 SDK**。BlexAgent 只把绝对路径喂给 `Options.plugins`。
+2. **OpenClaw 的 `plugin` 和 Claude 的 `cc-plugin` 是两套独立体系**。前者是 IM 渠道 npm 包（飞书/微信适配器），存在 Rust Management API；后者是 Anthropic 协议的插件目录，存在 Node Sidecar 的 AppConfig + 磁盘。CLI 命名分别是 `blexagent plugin *` vs `blexagent cc-plugin *`，互不影响。HTTP 路径也分别是 `/api/plugin/*`（Rust）vs `/api/cc-plugin/*`（Node Sidecar），不会撞名。
 3. **两层启用模型，镜像 MCP**（PRD 0.2.17 重构）：
    - Layer 1（全局可见性）：`AppConfig.enabledPlugins` —— Settings 面板的开关，OFF 则各工作区都看不到此 plugin（"安装但隐藏"）
    - Layer 2（工作区启用）：`Agent.enabledPluginIds` / `Project.enabledPluginIds` —— 实际在该 Agent / 工作区被选用的子集。两个 UI surface 写入同一份：Agent 设置面板的「插件」行 + Chat 输入框工具菜单的「插件」子菜单
@@ -131,7 +131,7 @@ Chat 输入框的 `/` 菜单有两类数据源：
 1. **本地静态源**：`cmd_list_slash_commands` 通过 Rust 扫描工作区 / 用户的 commands 与 skills，用于 Launcher 和 Chat 的基础菜单。
 2. **SDK 动态源**：builtin SDK 初始化后返回 `initializationResult().commands`，运行中还可能发 `commands_changed.commands`。Sidecar 将这份全量 snapshot 通过 `chat:slash-commands` SSE 发给 Tab，前端只在 Chat/builtin runtime 下把它作为补充项合并进菜单。前端每次收到同 session 的 snapshot 都用 replace 语义覆盖旧值，空数组也是有效状态（表示 runtime 当前没有 SDK commands），这样用户中途关闭 plugin 后可在下一次 SDK restart / `commands_changed` 后自然收敛。
 
-这条动态源是 plugin skills 可被手动 `/plugin:skill` 触发的唯一正确来源：MyAgents 不扫描 `~/.myagents/plugins/<id>/skills` 来重建 SDK 语义，也不解析 plugin 内组件。合并规则是本地静态源优先，SDK 只追加本地没有的命令，避免覆盖 `/loop` 这类 renderer client-action 或本地自定义命令。外部 Runtime 不消费 `chat:slash-commands`。
+这条动态源是 plugin skills 可被手动 `/plugin:skill` 触发的唯一正确来源：BlexAgent 不扫描 `~/.blexagent/plugins/<id>/skills` 来重建 SDK 语义，也不解析 plugin 内组件。合并规则是本地静态源优先，SDK 只追加本地没有的命令，避免覆盖 `/loop` 这类 renderer client-action 或本地自定义命令。外部 Runtime 不消费 `chat:slash-commands`。
 
 新会话首轮存在 `pending-* → UUID` 的 session birth upgrade：SDK snapshot 可能先于 React prop 同步到达，也可能在 SSE stream 仍标记为 pending 时携带真实 `sessionId`。前端只有在内部 state 已经由后端事件采纳该真实 `sessionId`、父级 prop 只是从 pending 补同步时，才把它视为同一个 session 的 snapshot 迁移窗口并保留/接受匹配真实 `sessionId` 的 SDK commands；真正的 session switch / reset / load / external runtime 切换仍然清空该 volatile state。特别地，空 pending tab 切到已有历史 session 不是 birth upgrade，必须立即清空旧 snapshot。
 
@@ -140,7 +140,7 @@ Chat 输入框的 `/` 菜单有两类数据源：
 ## 磁盘布局
 
 ```
-~/.myagents/
+~/.blexagent/
 ├── config.json                        # AppConfig.{plugins, enabledPlugins, pluginConfigs}
 └── plugins/
     ├── <plugin-name>/                  # 每个插件一个目录，名字与 plugin.json::name 一致
@@ -168,7 +168,7 @@ Chat 输入框的 `/` 菜单有两类数据源：
 注册位置：
 - `src/server/sse.ts::SSE_EVENT_PRIORITIES`（`critical` 优先级——结构性事件不允许 coalesce/drop）
 - `src/renderer/api/SseConnection.ts::JSON_EVENTS`
-- `src/renderer/context/TabProvider.tsx` 把这两个事件 re-broadcast 成 `myagents:plugin-install-progress` / `myagents:plugins-changed` 的 window CustomEvent，`GlobalPluginsPanel` 监听这俩。
+- `src/renderer/context/TabProvider.tsx` 把这两个事件 re-broadcast 成 `blexagent:plugin-install-progress` / `blexagent:plugins-changed` 的 window CustomEvent，`GlobalPluginsPanel` 监听这俩。
 
 ---
 

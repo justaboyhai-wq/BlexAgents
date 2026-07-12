@@ -1,5 +1,5 @@
-#!/bin/bash
-# MyAgents macOS Dev 构建脚本
+﻿#!/bin/bash
+# BlexAgent macOS Dev 构建脚本
 # 构建带 DevTools 的调试版本，启动时自动打开控制台
 # 只构建 .app 不构建 DMG (避免弹窗)
 
@@ -24,7 +24,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC}  ${GREEN}🤖 MyAgents macOS Dev 构建${NC}                           ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${GREEN}🤖 BlexAgent macOS Dev 构建${NC}                           ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${YELLOW}⚠ DevTools 启用 + 只构建 App${NC}                        ${CYAN}║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
@@ -50,22 +50,22 @@ if [ "$PKG_VERSION" != "$TAURI_VERSION" ] || [ "$PKG_VERSION" != "$CARGO_VERSION
     fi
 fi
 
-# 杀死残留 MyAgents 实例（避免生产版和 debug 版同时运行互相打架）
-# 优先使用 PID lock file 精确杀——只杀 MyAgents 主进程，不误杀其他 node 进程。
+# 杀死残留 BlexAgent 实例（避免生产版和 debug 版同时运行互相打架）
+# 优先使用 PID lock file 精确杀——只杀 BlexAgent 主进程，不误杀其他 node 进程。
 # SIGKILL(-9) 防止 macOS Automatic Termination 自动重启被杀的 .app。
 echo -e "${BLUE}[准备] 杀死残留进程...${NC}"
-LOCK_FILE="$HOME/.myagents/app.lock"
+LOCK_FILE="$HOME/.blexagent/app.lock"
 if [ -f "$LOCK_FILE" ]; then
     OLD_PID=$(cat "$LOCK_FILE" 2>/dev/null)
     # Validate PID is a positive integer before using it with kill
     if [[ "$OLD_PID" =~ ^[1-9][0-9]*$ ]] && kill -0 "$OLD_PID" 2>/dev/null; then
-        echo -e "${YELLOW}  杀死运行中的 MyAgents (PID $OLD_PID)...${NC}"
+        echo -e "${YELLOW}  杀死运行中的 BlexAgent (PID $OLD_PID)...${NC}"
         kill -9 "$OLD_PID" 2>/dev/null || true
     fi
     rm -f "$LOCK_FILE"
 fi
-# Fallback: 杀死任何漏网的 MyAgents 进程（lock file 可能不存在或 PID 已过期）
-pkill -9 -f "MyAgents.app" 2>/dev/null || true
+# Fallback: 杀死任何漏网的 BlexAgent 进程（lock file 可能不存在或 PID 已过期）
+pkill -9 -f "BlexAgent.app" 2>/dev/null || true
 pkill -9 -f "node.*src/server/index.ts" 2>/dev/null || true
 pkill -9 -f "node.*server-dist.js" 2>/dev/null || true
 sleep 1  # 等待进程完全退出
@@ -77,7 +77,7 @@ echo -e "${BLUE}[准备] 清理旧构建...${NC}"
 rm -rf "${PROJECT_DIR}/dist"
 # Tauri bundle 阶段需要 resources/ 下被引用的目录都存在（即使是空的——dev 模式
 # 下 Rust 端会 fallback 到顶层 node_modules）。文件级 resource（server-dist.js
-# / plugin-bridge-dist.mjs / cli/myagents.js）则由 tauri:build 的
+# / plugin-bridge-dist.mjs / cli/blexagent.js）则由 tauri:build 的
 # beforeBuildCommand 通过 `npm run build:server/bridge/cli` 在构建期间生成，
 # 不需要额外占位文件。
 mkdir -p "${PROJECT_DIR}/src-tauri/resources/claude-agent-sdk"
@@ -117,7 +117,7 @@ fi
 
 # 清理 debug 构建产物（确保 resources 被重新复制）
 rm -rf "${PROJECT_DIR}/src-tauri/target/debug/bundle"
-rm -rf "${PROJECT_DIR}/src-tauri/target/debug/MyAgents.app"
+rm -rf "${PROJECT_DIR}/src-tauri/target/debug/BlexAgent.app"
 rm -rf "${PROJECT_DIR}/src-tauri/target/debug/resources"
 echo -e "${GREEN}✓ 已清理并创建占位符${NC}"
 echo ""
@@ -197,9 +197,9 @@ if [ -n "$APPLE_SIGNING_IDENTITY" ]; then
 fi
 echo -e "  ${GREEN}✓ claude (${SDK_TRIPLE}) 已就绪${NC}"
 
-# myagents CLI 的打包不在这里——`npm run tauri:build` 的 beforeBuildCommand
+# blexagent CLI 的打包不在这里——`npm run tauri:build` 的 beforeBuildCommand
 # (tauri.conf.json) 已包含 `npm run build:cli`，由 `scripts/esbuild-bundle.mjs`
-# 的 post-build hook 同步把 myagents.cmd 拷贝到 resources/cli/。dev 脚本只需
+# 的 post-build hook 同步把 blexagent.cmd 拷贝到 resources/cli/。dev 脚本只需
 # 保证目录存在，避免 Tauri bundle 阶段的 resource 校验报错。
 mkdir -p "${PROJECT_DIR}/src-tauri/resources/cli"
 

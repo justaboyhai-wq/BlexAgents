@@ -36,7 +36,7 @@ function renderMenu(overrides: Partial<ComponentProps<typeof SessionMenuButton>>
       <SessionMenuButton
         sessionId={SESSION_ID}
         sessionTitle="Test session"
-        workspacePath="/Users/zhihu/Documents/project/MyAgents"
+        workspacePath="/Users/zhihu/Documents/project/BlexAgent"
         boundChannel={null}
         availableChannels={[]}
         cronProtected={false}
@@ -129,7 +129,7 @@ describe('SessionMenuButton', () => {
         agentId: groupTarget.agentId,
         channelId: groupTarget.channelId,
         sessionKey: groupTarget.sessionKey,
-        workspacePath: '/Users/zhihu/Documents/project/MyAgents',
+        workspacePath: '/Users/zhihu/Documents/project/BlexAgent',
       });
     });
   });

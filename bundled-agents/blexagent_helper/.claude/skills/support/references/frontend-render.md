@@ -1,4 +1,4 @@
-# 前端 Render 崩溃
+﻿# 前端 Render 崩溃
 
 使用场景：白屏、整页“界面渲染出错”、点某处 UI 直接跳到错误页、某个面板一打开就崩。
 
@@ -11,8 +11,8 @@
 ## 取证
 
 ```bash
-myagents status --json
-myagents version
+blexagent status --json
+blexagent version
 rg -n "\\[AppErrorBoundary\\]|\\[REACT\\] \\[ERROR\\]|Cannot read properties|Minified React error|render" ./logs/unified-*.log | tail -80
 rg '\[boot\]' ./logs/unified-*.log | tail -5
 ```

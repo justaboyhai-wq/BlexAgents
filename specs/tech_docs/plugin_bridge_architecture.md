@@ -2,9 +2,9 @@
 
 ## 概述
 
-Plugin Bridge 是 MyAgents 加载社区 OpenClaw Channel Plugin 的核心基础设施。它以**独立 Node.js 进程**的形式运行，将 OpenClaw 生态的 Channel 插件（飞书、微信、QQ 等）适配到 MyAgents 的 Agent 架构中。
+Plugin Bridge 是 BlexAgent 加载社区 OpenClaw Channel Plugin 的核心基础设施。它以**独立 Node.js 进程**的形式运行，将 OpenClaw 生态的 Channel 插件（飞书、微信、QQ 等）适配到 BlexAgent 的 Agent 架构中。
 
-**设计哲学**：MyAgents 是 OpenClaw 的**通用 Plugin 适配层**，不是各家 IM 的硬编码集成。所有功能基于 OpenClaw SDK 协议（`ChannelPlugin` 接口），禁止为单个插件硬编码逻辑。
+**设计哲学**：BlexAgent 是 OpenClaw 的**通用 Plugin 适配层**，不是各家 IM 的硬编码集成。所有功能基于 OpenClaw SDK 协议（`ChannelPlugin` 接口），禁止为单个插件硬编码逻辑。
 
 ## 架构图
 
@@ -83,7 +83,7 @@ Rust spawn_plugin_bridge()
 Bridge HTTP Server 就绪
 ```
 
-OpenClaw 插件安装目录保持共享（`~/.myagents/openclaw-plugins/<plugin_id>`），但运行时状态必须按 MyAgents Channel 隔离：Agent Channel 使用 `~/.myagents/agents/<agentId>/channels/<channelId>/openclaw-state`，legacy IM Bot 使用 `~/.myagents/im_bots/<botId>/openclaw-state`。不要让 Bridge 回落到上游默认的 `~/.openclaw`；二维码登录类插件（例如 Weixin）会把本地 token list 带给平台，如果多个工作区共享这份状态，平台会把它们识别为同一个 OpenClaw 实例。
+OpenClaw 插件安装目录保持共享（`~/.blexagent/openclaw-plugins/<plugin_id>`），但运行时状态必须按 BlexAgent Channel 隔离：Agent Channel 使用 `~/.blexagent/agents/<agentId>/channels/<channelId>/openclaw-state`，legacy IM Bot 使用 `~/.blexagent/im_bots/<botId>/openclaw-state`。不要让 Bridge 回落到上游默认的 `~/.openclaw`；二维码登录类插件（例如 Weixin）会把本地 token list 带给平台，如果多个工作区共享这份状态，平台会把它们识别为同一个 OpenClaw 实例。
 
 ### Phase 3: 插件加载与注册
 
@@ -110,7 +110,7 @@ OpenClaw 插件有三种容易混淆的身份：
 
 | 身份 | 示例 | Owner | 用途 |
 |------|------|-------|------|
-| 安装 ID / pluginId | `wecom-openclaw-plugin`、`openclaw-lark` | MyAgents Rust/Renderer | 定位 `~/.myagents/openclaw-plugins/<pluginId>`、卸载、重启相关 channel |
+| 安装 ID / pluginId | `wecom-openclaw-plugin`、`openclaw-lark` | BlexAgent Rust/Renderer | 定位 `~/.blexagent/openclaw-plugins/<pluginId>`、卸载、重启相关 channel |
 | npm 包名 | `@wecom/wecom-openclaw-plugin` | npm/OpenClaw 包 | 安装与入口解析 |
 | 协议 Channel ID | `wecom`、`feishu` | OpenClaw manifest / `registerChannel()` | `cfg.channels.<channelId>`、插件运行时配置读取 |
 
@@ -141,7 +141,7 @@ v0.2.0 起按 OpenClaw **上游规范**解析（`openclaw/src/plugins/manifest.t
 Bun 之前静默容忍，Node 不。v0.2.0 通过 `module.registerHooks()`（Node 22.15+ 同步 loader hook）**运行时改写**拦截到的 `.js` 源：
 
 ```ts
-// 触发条件：URL 在 ~/.myagents/openclaw-plugins/*/node_modules/** 且 .js 且同时含
+// 触发条件：URL 在 ~/.blexagent/openclaw-plugins/*/node_modules/** 且 .js 且同时含
 //   - "use strict"; 开头 + Object.defineProperty(exports|exports.X=|module.exports=)
 //   - import.meta 字样
 // 改写：
@@ -276,7 +276,7 @@ Shim 用 ESM 格式（`"type": "module"`），生成器输出 `export function`�
 **OpenClaw 更新时**：
 ```bash
 cd ../openclaw && git pull
-cd ../MyAgents && npm run generate:sdk-shims
+cd ../BlexAgent && npm run generate:sdk-shims
 git diff src/server/plugin-bridge/sdk-shim/  # 审查变更
 ```
 

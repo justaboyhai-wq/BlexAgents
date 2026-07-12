@@ -46,9 +46,9 @@ const runtimeDiagnostics: RuntimeDiagnostics = {
       https: 'https://token@secure-proxy.example:9443',
       no: 'localhost,127.0.0.1',
     },
-    proxyPolicy: 'myagents',
+    proxyPolicy: 'blexagent',
     pathHead: ['/usr/local/bin', '/usr/bin', '/bin'],
-    myagentsProxyInjected: true,
+    blexagentProxyInjected: true,
     codexSandbox: {
       detected: true,
       networkDisabled: false,
@@ -75,7 +75,7 @@ describe('buildSupportDiagnosticsDescription', () => {
     });
 
     expect(description).toContain('类型：Agent Error 横幅');
-    expect(description).toContain('用户在 MyAgents 对话页遇到了需要诊断的问题');
+    expect(description).toContain('用户在 BlexAgent 对话页遇到了需要诊断的问题');
     expect(description).toContain('前端自动收集的诊断上下文');
     expect(description).not.toContain('使用 /support skill 进行诊断分析');
     expect(description).toContain('Session ID：session-123');

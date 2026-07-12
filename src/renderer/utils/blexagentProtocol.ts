@@ -7,18 +7,18 @@
  * the platform WebView can actually load as an <img>/<audio> subresource.
  */
 
-const MYAGENTS_WINDOWS_ORIGIN = 'http://myagents.localhost';
-const MYAGENTS_SCHEME_PREFIX = 'myagents://';
+const BLEXAGENT_WINDOWS_ORIGIN = 'http://blexagent.localhost';
+const BLEXAGENT_SCHEME_PREFIX = 'blexagent://';
 
 export function isWindowsPlatform(): boolean {
   if (typeof navigator === 'undefined') return false;
   return /Win/i.test(navigator.platform || '') || /Windows/i.test(navigator.userAgent || '');
 }
 
-export function resolveMyAgentsProtocolUrl(pathname: string): string {
+export function resolveBlexAgentProtocolUrl(pathname: string): string {
   const path = pathname.startsWith('/') ? pathname : `/${pathname}`;
   if (isWindowsPlatform()) {
-    return `${MYAGENTS_WINDOWS_ORIGIN}${path}`;
+    return `${BLEXAGENT_WINDOWS_ORIGIN}${path}`;
   }
-  return `${MYAGENTS_SCHEME_PREFIX}${path.slice(1)}`;
+  return `${BLEXAGENT_SCHEME_PREFIX}${path.slice(1)}`;
 }

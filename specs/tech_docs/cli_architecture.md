@@ -1,8 +1,8 @@
-# MyAgents CLI 架构
+# BlexAgent CLI 架构
 
 ## 概述
 
-MyAgents 内置了一个自配置 CLI 工具（`myagents`），让 AI 和用户都能通过命令行管理应用配置。CLI 是一个轻量 TypeScript 脚本，解析命令行参数后转发为 HTTP 请求到 Sidecar 的 Admin API，所有业务逻辑都在 Sidecar 侧。
+BlexAgent 内置了一个自配置 CLI 工具（`blexagent`），让 AI 和用户都能通过命令行管理应用配置。CLI 是一个轻量 TypeScript 脚本，解析命令行参数后转发为 HTTP 请求到 Sidecar 的 Admin API，所有业务逻辑都在 Sidecar 侧。
 
 ## 设计动机
 
@@ -15,22 +15,22 @@ GUI 能做的配置操作（MCP 管理、Provider 配置、Agent Channel 管理�
 │ 场景 1：AI 内部调用（主要用途）                                       │
 │                                                                     │
 │ 用户: "帮我配个 MCP"                                                 │
-│   → AI Bash 工具 → `myagents mcp add --id xxx ...`                  │
-│   → PATH 查找 ~/.myagents/bin/myagents                              │
-│   → Node 执行 myagents.ts                                            │
-│   → fetch(127.0.0.1:${MYAGENTS_PORT}/api/admin/mcp/add)             │
+│   → AI Bash 工具 → `blexagent mcp add --id xxx ...`                  │
+│   → PATH 查找 ~/.blexagent/bin/blexagent                              │
+│   → Node 执行 blexagent.ts                                            │
+│   → fetch(127.0.0.1:${BLEXAGENT_PORT}/api/admin/mcp/add)             │
 │   → Admin API 写 config → SSE 广播 → 前端同步                        │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 场景 2：用户终端调用（次要用途）                                       │
 │                                                                     │
-│ 终端: `MyAgents mcp list` 或 `myagents mcp list`                    │
+│ 终端: `BlexAgent mcp list` 或 `blexagent mcp list`                    │
 │   → cli.rs:is_cli_mode() 检测 CLI 参数                               │
 │   → 不启动 GUI / 不杀 sidecar / 不触发单实例焦点                      │
-│   → 找到 bundled Node +  ~/.myagents/bin/myagents                      │
-│   → 读 ~/.myagents/sidecar.port 找到 Global Sidecar 端口             │
-│   → 注入 MYAGENTS_PORT → 转发到 Admin API                            │
+│   → 找到 bundled Node +  ~/.blexagent/bin/blexagent                      │
+│   → 读 ~/.blexagent/sidecar.port 找到 Global Sidecar 端口             │
+│   → 注入 BLEXAGENT_PORT → 转发到 Admin API                            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -39,20 +39,20 @@ GUI 能做的配置操作（MCP 管理、Provider 配置、Agent Channel 管理�
 | 层 | 文件 | 职责 |
 |----|------|------|
 | **Rust CLI 入口** | `src-tauri/src/cli.rs` | 检测 CLI 模式、查找 Node.js 和脚本、发现端口、spawn 子进程 |
-| **CLI 脚本** | `src/cli/myagents.ts` | 参数解析、命令路由、HTTP 调用、输出格式化（含 `recoveryHint` 渲染） |
+| **CLI 脚本** | `src/cli/blexagent.ts` | 参数解析、命令路由、HTTP 调用、输出格式化（含 `recoveryHint` 渲染） |
 | **CLI 同步** | `src-tauri/src/commands.rs` (`cmd_sync_cli`) | 版本门控拷贝脚本到用户目录 |
 | **Admin API** | `src/server/admin-api.ts` | 业务逻辑：验证 → 写 config → 更新内存状态 → SSE 广播；含跨 runtime 发现 handler |
-| **PATH 注入** | `src/server/agent-session.ts` (`buildClaudeSessionEnv`) | 将 `~/.myagents/bin` / `~/.myagents/npm-global/bin` 加入 SDK 子进程 PATH |
+| **PATH 注入** | `src/server/agent-session.ts` (`buildClaudeSessionEnv`) | 将 `~/.blexagent/bin` / `~/.blexagent/npm-global/bin` 加入 SDK 子进程 PATH |
 
 ## 文件布局
 
 ```
 源码侧（开发）                              用户侧（运行时）
 ─────────────────                          ─────────────────
-src/cli/                                   ~/.myagents/
-├── myagents.ts   ──── cmd_sync_cli ────►  ├── bin/
-└── myagents.cmd                           │   ├── myagents       (chmod 755, 去掉 .ts 后缀)
-                                           │   └── myagents.cmd   (Windows)
+src/cli/                                   ~/.blexagent/
+├── blexagent.ts   ──── cmd_sync_cli ────►  ├── bin/
+└── blexagent.cmd                           │   ├── blexagent       (chmod 755, 去掉 .ts 后缀)
+                                           │   └── blexagent.cmd   (Windows)
 src-tauri/src/                             ├── npm-global/        (AI 自装 CLI 落点,
 ├── cli.rs        (CLI 模式入口)            │   └── bin/             命令级 npm_config_prefix 落点)
 └── commands.rs   (cmd_sync_cli)           ├── .cli-version      ("9" — 版本门控)
@@ -64,26 +64,26 @@ src-tauri/src/                             ├── npm-global/        (AI 自�
 ### 执行方式
 
 ```bash
-#!/usr/bin/env bun    ← myagents.ts 第一行 shebang
+#!/usr/bin/env bun    ← blexagent.ts 第一行 shebang
 ```
 
 CLI 脚本有两种执行方式：
-1. **AI Bash 工具调用**：SDK 子进程的 PATH 包含 `~/.myagents/bin`，直接 `myagents mcp list`，shebang 找到 PATH 中的 bun 执行
-2. **Rust CLI 入口调用**：`cli.rs` 显式调用 `bun ~/.myagents/bin/myagents <args>`
+1. **AI Bash 工具调用**：SDK 子进程的 PATH 包含 `~/.blexagent/bin`，直接 `blexagent mcp list`，shebang 找到 PATH 中的 bun 执行
+2. **Rust CLI 入口调用**：`cli.rs` 显式调用 `bun ~/.blexagent/bin/blexagent <args>`
 
 ### 端口发现
 
 ```
-优先级：--port 标志 > MYAGENTS_PORT 环境变量
+优先级：--port 标志 > BLEXAGENT_PORT 环境变量
 ```
 
-- **AI 调用场景**：`buildClaudeSessionEnv()` 注入 `MYAGENTS_PORT` 环境变量（当前 Session Sidecar 端口）
-- **终端调用场景**：`cli.rs` 从 `~/.myagents/sidecar.port` 文件读取 Global Sidecar 端口，注入 `MYAGENTS_PORT`
+- **AI 调用场景**：`buildClaudeSessionEnv()` 注入 `BLEXAGENT_PORT` 环境变量（当前 Session Sidecar 端口）
+- **终端调用场景**：`cli.rs` 从 `~/.blexagent/sidecar.port` 文件读取 Global Sidecar 端口，注入 `BLEXAGENT_PORT`
 
 ### 命令体系
 
 ```
-myagents <group> <action> [args] [flags]
+blexagent <group> <action> [args] [flags]
 
 Groups:
   mcp       管理 MCP 工具服务器（list/add/remove/enable/disable/env/test/oauth）
@@ -133,7 +133,7 @@ Admin API 的响应格式统一：
   "success": false,
   "error": "error description",
   "recoveryHint": {                                 // 结构化恢复建议
-    "recoveryCommand": "myagents runtime list",     //   下一步可运行的命令
+    "recoveryCommand": "blexagent runtime list",     //   下一步可运行的命令
     "message": "See valid runtimes + install status."
   }
 }
@@ -141,17 +141,17 @@ Admin API 的响应格式统一：
 { "success": true, "dryRun": true, "preview": { ... } }
 ```
 
-**`recoveryHint` 设计**：CLI 在人类可读模式下渲染为 `→ Run: <command>   <message>` 追加在错误行下方，JSON 模式保留完整字段。目的是让 AI 调用者在验证失败时能一步恢复 —— "想知道哪些 runtime 可用？按提示跑 `myagents runtime list`" —— 不需要读源码或反复试错。
+**`recoveryHint` 设计**：CLI 在人类可读模式下渲染为 `→ Run: <command>   <message>` 追加在错误行下方，JSON 模式保留完整字段。目的是让 AI 调用者在验证失败时能一步恢复 —— "想知道哪些 runtime 可用？按提示跑 `blexagent runtime list`" —— 不需要读源码或反复试错。
 
 ### 发现型命令（Discovery）
 
 AI 在调用写操作前通常需要先「问清楚选项」。以下三条命令是纯查询，不改状态：
 
 ```bash
-myagents runtime list                             # 看哪些 runtime 装了、未装的给出安装提示
-myagents runtime describe <runtime>               # 看某 runtime 的 model + permissionMode 枚举
-myagents agent show <agent-id>                    # 看某 Agent 的 effective 默认（按 runtime 正确解析）
-myagents agent list --active|--archived           # 按工作区归档状态筛选 Agent
+blexagent runtime list                             # 看哪些 runtime 装了、未装的给出安装提示
+blexagent runtime describe <runtime>               # 看某 runtime 的 model + permissionMode 枚举
+blexagent agent show <agent-id>                    # 看某 Agent 的 effective 默认（按 runtime 正确解析）
+blexagent agent list --active|--archived           # 按工作区归档状态筛选 Agent
 ```
 
 这三条命令的存在让 `task create-direct --runtime X --model Y --permissionMode Z` 的值空间对 AI 完全自解释 —— `--help` 里只列 flag，值通过 `runtime describe` 查，避免 `--help` 文案与实际可用值漂移。
@@ -159,14 +159,14 @@ myagents agent list --active|--archived           # 按工作区归档状态筛�
 ### Runtime 自诊断（PRD 0.2.16）
 
 ```bash
-myagents runtime diagnose codex [--workspace=<path>] [--json]
-myagents diagnose runtime codex [--workspace=<path>] [--json]    # 别名糖
+blexagent runtime diagnose codex [--workspace=<path>] [--json]
+blexagent diagnose runtime codex [--workspace=<path>] [--json]    # 别名糖
 ```
 
 两条命令路由到同一个 admin endpoint（`runtime/diagnose` 与 `diagnose/runtime`，handler 一致）。Spawn 一个短命 `codex app-server` 进程，跑 `initialize` + 4 个 RPC（`getAuthStatus` / `experimentalFeature.list` / `mcpServerStatus.list` / `app.list`），结构化返回 `RuntimeDiagnostics`：
 
 - `--workspace=<path>` 让诊断按该 workspace 的 agent `runtimeConfig.envPolicy` 注入 env（共享 `env-utils.resolveAgentEnvPolicy` 做 proxy 字面量校验），结果反映真实会话会看到的状态而不是 baseline
-- `--json` 输出可直接贴 issue（issue #194 是这个能力的原始来源——用户终端能调 `@oai/artifact-tool`、MyAgents Codex Runtime 里调不到，诊断面板 + CLI 双入口让差异可见）
+- `--json` 输出可直接贴 issue（issue #194 是这个能力的原始来源——用户终端能调 `@oai/artifact-tool`、BlexAgent Codex Runtime 里调不到，诊断面板 + CLI 双入口让差异可见）
 
 详见 `tech_docs/multi_agent_runtime.md` 「Runtime 诊断 + envPolicy」。
 
@@ -177,29 +177,29 @@ myagents diagnose runtime codex [--workspace=<path>] [--json]    # 别名糖
 CLI 脚本不能直接放在 app bundle 里使用，因为：
 1. SDK 子进程的 PATH 不包含 app bundle 内部路径（各平台结构不同，且包含不应暴露给 AI 的二进制文件）
 2. macOS app bundle 内资源文件没有可执行权限（shebang 执行需要 +x）
-3. 文件名需从 `myagents.ts` → `myagents`（去掉 .ts 后缀，shebang 才能直接跑）
+3. 文件名需从 `blexagent.ts` → `blexagent`（去掉 .ts 后缀，shebang 才能直接跑）
 
 ### 方案
 
 ```
 app 启动 → ConfigProvider → invoke('cmd_sync_cli')
-  → 读 ~/.myagents/.cli-version
+  → 读 ~/.blexagent/.cli-version
   → 内容 == CLI_VERSION 常量 → 跳过（return Ok(false)）
-  → 不等 → 拷贝 Resources/cli/myagents.ts → ~/.myagents/bin/myagents
+  → 不等 → 拷贝 Resources/cli/blexagent.ts → ~/.blexagent/bin/blexagent
         → chmod 755（Unix）
-        → 拷贝 myagents.cmd（Windows）
+        → 拷贝 blexagent.cmd（Windows）
         → 写 .cli-version = CLI_VERSION
 ```
 
-**开发约束**：修改 `src/cli/myagents.ts` 或 `src/cli/myagents.cmd` 后，MUST bump `CLI_VERSION`（`src-tauri/src/commands.rs`），否则用户端 CLI 不会更新。
+**开发约束**：修改 `src/cli/blexagent.ts` 或 `src/cli/blexagent.cmd` 后，MUST bump `CLI_VERSION`（`src-tauri/src/commands.rs`），否则用户端 CLI 不会更新。
 
 ### 与 ADMIN_AGENT_VERSION 的关系
 
 | 门控 | 控制内容 | 文件 | 版本文件 |
 |------|---------|------|---------|
-| `CLI_VERSION` | CLI 脚本 (`myagents.ts`, `myagents.cmd`) | `~/.myagents/.cli-version` | `src-tauri/src/commands.rs` |
-| `ADMIN_AGENT_VERSION` | 小助理 CLAUDE.md + Skills | `~/.myagents/.admin-agent-version` | `src-tauri/src/commands.rs` |
-| `SYSTEM_SKILLS_VERSION` | 系统级 skills（task-alignment / task-implement） | `~/.myagents/.system-skills-version` | `src-tauri/src/commands.rs` |
+| `CLI_VERSION` | CLI 脚本 (`blexagent.ts`, `blexagent.cmd`) | `~/.blexagent/.cli-version` | `src-tauri/src/commands.rs` |
+| `ADMIN_AGENT_VERSION` | 小助理 CLAUDE.md + Skills | `~/.blexagent/.admin-agent-version` | `src-tauri/src/commands.rs` |
+| `SYSTEM_SKILLS_VERSION` | 系统级 skills（task-alignment / task-implement） | `~/.blexagent/.system-skills-version` | `src-tauri/src/commands.rs` |
 
 三个版本门控**独立运作**，修改各自内容只需 bump 对应版本即可。
 
@@ -209,11 +209,11 @@ app 启动 → ConfigProvider → invoke('cmd_sync_cli')
 
 ```bash
 # macOS — 直接调用 app 二进制
-/Applications/MyAgents.app/Contents/MacOS/MyAgents mcp list
+/Applications/BlexAgent.app/Contents/MacOS/BlexAgent mcp list
 
 # 或者创建 alias
-alias myagents='/Applications/MyAgents.app/Contents/MacOS/MyAgents'
-myagents status
+alias blexagent='/Applications/BlexAgent.app/Contents/MacOS/BlexAgent'
+blexagent status
 ```
 
 ### 检测逻辑
@@ -230,7 +230,7 @@ pub fn is_cli_mode(args: &[String]) -> bool {
 }
 ```
 
-**开发约束**：在 `src/cli/myagents.ts` 中新增 `myagents <group>` 顶层命令时，MUST 把 `<group>` 加入 `CLI_COMMANDS`，否则 `MyAgents <group> ...` 会进入 GUI 模式（无反馈）。
+**开发约束**：在 `src/cli/blexagent.ts` 中新增 `blexagent <group>` 顶层命令时，MUST 把 `<group>` 加入 `CLI_COMMANDS`，否则 `BlexAgent <group> ...` 会进入 GUI 模式（无反馈）。
 
 应用 `main()` 在 Tauri 初始化前检查 CLI 模式，提前分流：
 - **CLI 模式**：不启动 GUI、不杀 sidecar、不触发单实例窗口焦点
@@ -251,12 +251,12 @@ pub fn is_cli_mode(args: &[String]) -> bool {
 
 ```rust
 fn discover_sidecar_port() -> Option<String> {
-    // 读取 ~/.myagents/sidecar.port（Global Sidecar 启动时写入）
+    // 读取 ~/.blexagent/sidecar.port（Global Sidecar 启动时写入）
     // 校验是合法端口号（防止陈旧/损坏文件）
 }
 ```
 
-**前提**：MyAgents GUI 必须已经运行（Global Sidecar 存活），CLI 才能连接。如果 app 未运行，CLI 脚本会报 `ECONNREFUSED` 并提示用户。
+**前提**：BlexAgent GUI 必须已经运行（Global Sidecar 存活），CLI 才能连接。如果 app 未运行，CLI 脚本会报 `ECONNREFUSED` 并提示用户。
 
 ## Admin API
 
@@ -292,11 +292,11 @@ session 选择、结构化事件生成与投递确认。
 
 | 子命令 | 事件 | 关键不变量 |
 |--------|------|------------|
-| `myagents session send` | `send.request` / 可选 `send.result` | 目标 session 收到 `<myagents-session-event type="send.request">`；若需要回执，目标 turn terminal 后自动把 `send.result` 推回源 session |
-| `myagents session watch` | `watch.already_idle` / `watch.completed` / `watch.error` | Rust Management API 先确认目标 live state；目标忙时在目标 Sidecar 注册 pending watch，完成事件确认送达后才 ack 清理；目标已 idle 时调用方立即收到最近结果 |
+| `blexagent session send` | `send.request` / 可选 `send.result` | 目标 session 收到 `<blexagent-session-event type="send.request">`；若需要回执，目标 turn terminal 后自动把 `send.result` 推回源 session |
+| `blexagent session watch` | `watch.already_idle` / `watch.completed` / `watch.error` | Rust Management API 先确认目标 live state；目标忙时在目标 Sidecar 注册 pending watch，完成事件确认送达后才 ack 清理；目标已 idle 时调用方立即收到最近结果 |
 
 事件 prompt 统一由 `src/server/inbox/session-event.ts` 渲染，标签形态为
-`<myagents-session-event ...>`，payload 内部会 neutralize 协议结构标签。新增
+`<blexagent-session-event ...>`，payload 内部会 neutralize 协议结构标签。新增
 session event 类型时必须同时更新该渲染层、目标 Sidecar 处理路径和 CLI help 文案。
 
 ### 写入模式
@@ -315,32 +315,32 @@ CLI → Admin API → atomicModifyConfig() → 写 config.json（磁盘优先）
 
 部分能力（Task / CronTask / Plugin）在 Rust Management API 而非 Node.js。Admin handler 作为薄转发层，并通过 `wrapMgmtResponse()` / `mgmtError()` 保证：
 - 成功响应剥掉 Rust `ok` 字段、包成 Admin `{ success: true, data }`
-- 失败响应原样透传 `recoveryHint`（例如 Management API 不可达时 Admin handler 注入 `→ Run: myagents status` 指引）
+- 失败响应原样透传 `recoveryHint`（例如 Management API 不可达时 Admin handler 注入 `→ Run: blexagent status` 指引）
 
 ### 官方 CLI 工具与用户 CLI 工具
 
-MyAgents CLI 同时承载两类“工具”：
+BlexAgent CLI 同时承载两类“工具”：
 
-- 官方 CLI 工具：产品内置、稳定可用，由 MyAgents 自己实现和审核，例如 `myagents vision analyze`。它们可以出现在设置页「工具箱」和对话工具菜单中，但不属于 MCP，也不受用户 CLI 工具注册表实验开关影响。
-- 用户注册 CLI 工具：用户通过 `myagents tool add` 注册的自定义 Agent-CLI 工具，受实验室开关控制，并通过 registry 注入新 session prompt。
+- 官方 CLI 工具：产品内置、稳定可用，由 BlexAgent 自己实现和审核，例如 `blexagent vision analyze`。它们可以出现在设置页「工具箱」和对话工具菜单中，但不属于 MCP，也不受用户 CLI 工具注册表实验开关影响。
+- 用户注册 CLI 工具：用户通过 `blexagent tool add` 注册的自定义 Agent-CLI 工具，受实验室开关控制，并通过 registry 注入新 session prompt。
 
 `vision` 的开关语义与 MCP 类似：设置页全局启用后，对话内工具菜单还可以做 session 级启用；实际可用性还要求「设置 → 工具箱」中选择了支持图片输入的模型。`vision analyze` 只接受当前 workspace 内的本地图片路径；`--prompt` 用于短指令，`--prompt-file` 用于长/多行指令，但同样只按当前 workspace 解析，拒绝 URL、symlink 与逃逸路径。
 
 ### CLI 工具注册表实验门控
 
-用户注册 CLI 工具注册表（`myagents tool ...`、设置页「工具箱 / CLI 工具」、`tool-creator` skill、用户工具 prompt 注入）受 `config.cliToolRegistryEnabled` 控制。该开关位于「设置 → 关于&反馈 → 实验室」，默认关闭，且不能通过通用 `myagents config set cliToolRegistryEnabled ...` 修改，避免 AI 自行绕过人类可见的实验开关。
+用户注册 CLI 工具注册表（`blexagent tool ...`、设置页「工具箱 / CLI 工具」、`tool-creator` skill、用户工具 prompt 注入）受 `config.cliToolRegistryEnabled` 控制。该开关位于「设置 → 关于&反馈 → 实验室」，默认关闭，且不能通过通用 `blexagent config set cliToolRegistryEnabled ...` 修改，避免 AI 自行绕过人类可见的实验开关。
 
 关闭时：
 - Settings 不渲染工具箱里的 CLI 工具模块。
-- `/api/admin/tool/*` 全部返回门控错误；`myagents tool --help` 只显示开启指引。
-- `buildSystemPromptAppend(..., { userCliToolsEnabled: false })` 不读取 `~/.myagents/tools/registry.json`，因此新会话不会自动发现用户注册工具。
+- `/api/admin/tool/*` 全部返回门控错误；`blexagent tool --help` 只显示开启指引。
+- `buildSystemPromptAppend(..., { userCliToolsEnabled: false })` 不读取 `~/.blexagent/tools/registry.json`，因此新会话不会自动发现用户注册工具。
 - `syncProjectUserConfig()` 和 Rust `workspace_files::skill_sync` 不把 `tool-creator` symlink 到工作区 `.claude/skills/`；slash picker 的用户级 skill 扫描同样把它视为 disabled。
 
 不受影响：
-- 稳定内置 `myagents` CLI 能力（cron / task / thought / im / widget / runtime 等）仍然注入并可用。
-- 已经存在于 `~/.myagents/bin` 的工具 shim 不会被删除；门控的是 MyAgents 的注册、管理、自动发现和 `tool-creator` 注入，不是用户磁盘上可执行文件的生命周期。
+- 稳定内置 `blexagent` CLI 能力（cron / task / thought / im / widget / runtime 等）仍然注入并可用。
+- 已经存在于 `~/.blexagent/bin` 的工具 shim 不会被删除；门控的是 BlexAgent 的注册、管理、自动发现和 `tool-creator` 注入，不是用户磁盘上可执行文件的生命周期。
 
-由于系统提示词和 SDK skill 集合只在 session 启动 / pre-warm 时固化，开关变化对已有会话的提示内容不会 retroactive 改写；但实际 `myagents tool ...` 调用会立即被 Admin API 门控。
+由于系统提示词和 SDK skill 集合只在 session 启动 / pre-warm 时固化，开关变化对已有会话的提示内容不会 retroactive 改写；但实际 `blexagent tool ...` 调用会立即被 Admin API 门控。
 
 ## Task 创建链路（关键机制）
 
@@ -380,14 +380,14 @@ CLI → /api/admin/task/create-direct → validateTaskOverrides(payload)
 PATH 优先级（agent-session.ts::buildClaudeSessionEnv）：
   systemNodeDirs              → 用户安装的 Node.js（npm 更可靠）
   bundledNodeDir              → 内置 Node.js（fallback）
-  ~/.myagents/npm-global/bin  → MyAgents-localized npm installs / legacy AI 自装 CLI 落点
-  ~/.myagents/bin             → MyAgents 自己的 CLI（myagents）+ 升级残留
+  ~/.blexagent/npm-global/bin  → BlexAgent-localized npm installs / legacy AI 自装 CLI 落点
+  ~/.blexagent/bin             → BlexAgent 自己的 CLI（blexagent）+ 升级残留
   系统 PATH                    → 用户其他工具
 ```
 
-`~/.myagents/bin` 当前只放 `myagents` CLI。早期版本曾在这里写 `agent-browser` 等 wrapper —— 升级用户磁盘上可能仍残留这些文件，但被 `~/.myagents/npm-global/bin` 在 PATH 上抢先匹配，自然失效，无需主动清理。
+`~/.blexagent/bin` 当前只放 `blexagent` CLI。早期版本曾在这里写 `agent-browser` 等 wrapper —— 升级用户磁盘上可能仍残留这些文件，但被 `~/.blexagent/npm-global/bin` 在 PATH 上抢先匹配，自然失效，无需主动清理。
 
-`~/.myagents/npm-global/` 是 MyAgents 建议的 AI 自装 CLI 落点。`buildClaudeSessionEnv()` 只注入 `MYAGENTS_NPM_GLOBAL_PREFIX` 和 PATH，不再给整个 SDK shell env 设置 `npm_config_prefix` / `NPM_CONFIG_PREFIX` / `PREFIX`，否则 nvm 会在每次 zsh/bash 初始化时吐兼容性警告。需要固定安装落点的 skill 用命令级 env：`npm_config_prefix="$MYAGENTS_NPM_GLOBAL_PREFIX" npm install -g <pkg>`。
+`~/.blexagent/npm-global/` 是 BlexAgent 建议的 AI 自装 CLI 落点。`buildClaudeSessionEnv()` 只注入 `BLEXAGENT_NPM_GLOBAL_PREFIX` 和 PATH，不再给整个 SDK shell env 设置 `npm_config_prefix` / `NPM_CONFIG_PREFIX` / `PREFIX`，否则 nvm 会在每次 zsh/bash 初始化时吐兼容性警告。需要固定安装落点的 skill 用命令级 env：`npm_config_prefix="$BLEXAGENT_NPM_GLOBAL_PREFIX" npm install -g <pkg>`。
 
 ## 安全设计
 
@@ -396,7 +396,7 @@ PATH 优先级（agent-session.ts::buildClaudeSessionEnv）：
 | **本地绑定** | Admin API 只在 `127.0.0.1` 上监听，无外部访问 |
 | **端口隔离** | 每个 Sidecar 有独立端口，CLI 连接到对应 Session 的 Sidecar |
 | **无持久化凭据** | CLI 脚本不存储任何 API Key，配置读写全走 Sidecar |
-| **权限控制** | 脚本权限 755（owner rwx），`~/.myagents/` 目录权限遵循用户 HOME 策略 |
+| **权限控制** | 脚本权限 755（owner rwx），`~/.blexagent/` 目录权限遵循用户 HOME 策略 |
 | **文件大小上限** | `--taskMdFile` / `--taskMdContent` 硬上限 1 MB（防 binary 误传、runaway content） |
 | **发现 detect timeout** | `runtime list` / `describe` 给每个 runtime 的 `detect()` 包 2s race，防挂起 CLI 阻塞其它 runtime |
 
@@ -404,10 +404,10 @@ PATH 优先级（agent-session.ts::buildClaudeSessionEnv）：
 
 | 问题 | 排查方法 |
 |------|---------|
-| `ECONNREFUSED` | MyAgents GUI 未运行，先启动应用 |
-| `MYAGENTS_PORT not set` | 在 AI Bash 环境外直接运行了脚本（缺少环境变量注入） |
+| `ECONNREFUSED` | BlexAgent GUI 未运行，先启动应用 |
+| `BLEXAGENT_PORT not set` | 在 AI Bash 环境外直接运行了脚本（缺少环境变量注入） |
 | CLI 脚本不存在 | 应用未初始化过（`cmd_sync_cli` 未执行），启动一次 GUI |
-| CLI 版本过旧 | `~/.myagents/.cli-version` 与 `commands.rs` 的 `CLI_VERSION` 不匹配，重启应用触发同步 |
-| 终端 `myagents` 找不到 | 场景 2 需要用完整路径或创建 alias，`~/.myagents/bin` 默认不在 shell PATH |
-| `Management API not available` | Node.js Sidecar 起来了但 Rust Management API 没起 — CLI 会附带 `→ Run: myagents status` 指引 |
-| `MyAgents task list` 进了 GUI | 新命令组忘了加进 `CLI_COMMANDS`（`src-tauri/src/cli.rs`） |
+| CLI 版本过旧 | `~/.blexagent/.cli-version` 与 `commands.rs` 的 `CLI_VERSION` 不匹配，重启应用触发同步 |
+| 终端 `blexagent` 找不到 | 场景 2 需要用完整路径或创建 alias，`~/.blexagent/bin` 默认不在 shell PATH |
+| `Management API not available` | Node.js Sidecar 起来了但 Rust Management API 没起 — CLI 会附带 `→ Run: blexagent status` 指引 |
+| `BlexAgent task list` 进了 GUI | 新命令组忘了加进 `CLI_COMMANDS`（`src-tauri/src/cli.rs`） |

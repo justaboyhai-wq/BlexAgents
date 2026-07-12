@@ -14,7 +14,7 @@ vi.mock('@/components/Toast', () => ({
 }));
 
 const session: SpaceSession = {
-  baseUrl: 'https://space.myagents.test',
+  baseUrl: 'https://space.blexagent.test',
   user: { id: 'u-1', email: 'user@example.com', name: 'User' },
   space: { id: 'space-1', slug: 'official', name: 'Official Space', joinPolicy: 'open' },
   membership: { id: 'membership-1', role: 'member' },
@@ -37,7 +37,7 @@ const detail: SpaceIssueDetail = {
     items: [
       {
         id: 'comment-1',
-        author: { id: 'u-2', type: 'user', name: 'Commenter', avatarUrl: 'https://r2-public.myagents.test/commenter.png' },
+        author: { id: 'u-2', type: 'user', name: 'Commenter', avatarUrl: 'https://r2-public.blexagent.test/commenter.png' },
         body: '## Comment heading\n\nComment with `inline code`.',
         createdAt: '2026-06-30T11:30:00.000Z',
       },

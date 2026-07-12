@@ -13,13 +13,13 @@ import type { RuntimeType, RuntimeDetections } from '../../shared/types/runtime'
 const IMPLEMENTED_RUNTIMES = new Set<RuntimeType>(['builtin', 'claude-code', 'codex', 'gemini']);
 
 // ─── Runtime icon assets ───
-import myagentsIcon from '@/assets/runtime-icons/myagents.png';
+import blexagentIcon from '@/assets/runtime-icons/blexagent.png';
 import claudeCodeIcon from '@/assets/runtime-icons/claude-code.png';
 import codexIcon from '@/assets/runtime-icons/codex.png';
 import geminiIcon from '@/assets/runtime-icons/gemini.png';
 
 const RUNTIME_ICON_MAP: Record<RuntimeType, string> = {
-  builtin: myagentsIcon,
+  builtin: blexagentIcon,
   'claude-code': claudeCodeIcon,
   codex: codexIcon,
   gemini: geminiIcon,
@@ -31,7 +31,7 @@ const RUNTIME_OPTIONS: {
   type: RuntimeType;
   name: string;
 }[] = [
-    { type: 'builtin', name: 'MyAgents (Claude Agent SDK)' },
+    { type: 'builtin', name: 'BlexAgent (Claude Agent SDK)' },
     { type: 'claude-code', name: 'Claude Code CLI' },
     { type: 'codex', name: 'Codex CLI' },
     { type: 'gemini', name: 'Gemini CLI' },

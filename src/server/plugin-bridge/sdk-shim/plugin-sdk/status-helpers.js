@@ -1,4 +1,4 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./status-helpers.auto.js";
@@ -12,7 +12,7 @@ export * from "./status-helpers.auto.js";
 //
 // Source-of-truth: openclaw/src/plugin-sdk/status-helpers.ts. The adapter
 // returned here is consumed by OpenClaw's runtime to surface account-level
-// status snapshots for diagnostics. In Bridge mode MyAgents drives most
+// status snapshots for diagnostics. In Bridge mode BlexAgent drives most
 // status state from the Rust IM layer rather than reading these snapshots,
 // so the per-snapshot side effects are minimal — but the SHAPE of the returned
 // adapter object matters for plugins (and for any future Bridge code that

@@ -35,7 +35,7 @@ use crate::sidecar::{
 };
 use crate::{ulog_error, ulog_info, ulog_warn};
 
-const NETWORK_PROBE_USER_AGENT: &str = "MyAgents-Network-Probe/1.0";
+const NETWORK_PROBE_USER_AGENT: &str = "BlexAgent-Network-Probe/1.0";
 const PROXY_CONNECTIVITY_TEST_URL: &str = "https://www.google.com/generate_204";
 
 // ============= Legacy Commands (for backward compatibility) =============
@@ -324,7 +324,7 @@ pub fn cmd_get_platform() -> String {
 }
 
 /// Command: Get or create device ID
-/// Stored in ~/.myagents/device_id to persist across app reinstalls
+/// Stored in ~/.blexagent/device_id to persist across app reinstalls
 /// Only regenerates if the file is deleted by user
 #[tauri::command]
 pub fn cmd_get_device_id() -> Result<String, String> {
@@ -346,16 +346,16 @@ pub struct InitBundledWorkspaceResult {
 }
 
 /// Command: Initialize bundled workspace (mino) on first launch
-/// Copies from app resources to ~/.myagents/projects/mino/
+/// Copies from app resources to ~/.blexagent/projects/mino/
 #[tauri::command]
 pub fn cmd_initialize_bundled_workspace<R: Runtime>(
     app_handle: AppHandle<R>,
 ) -> Result<InitBundledWorkspaceResult, String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-    let mino_dest = home_dir.join(".myagents").join("projects").join("mino");
+    let mino_dest = home_dir.join(".blexagent").join("projects").join("mino");
 
     // NOTE: Path::exists() follows symlinks, so a dangling
-    // ~/.myagents/projects/mino link returns false here and we'd fall
+    // ~/.blexagent/projects/mino link returns false here and we'd fall
     // through to copy_dir_recursive — which fails on EEXIST and surfaces
     // a workspace-init error to the user every launch until they clear
     // the link by hand. Same family as the cpSync crash fixed in
@@ -411,7 +411,7 @@ pub fn cmd_create_bot_workspace<R: Runtime>(
     workspace_name: String,
 ) -> Result<InitBundledWorkspaceResult, String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-    let projects_dir = home_dir.join(".myagents").join("projects");
+    let projects_dir = home_dir.join(".blexagent").join("projects");
 
     // Sanitize name: remove @, replace non-alphanumeric (except CJK) with dash, trim
     let sanitized = sanitize_workspace_name(&workspace_name);
@@ -470,11 +470,11 @@ pub fn cmd_create_bot_workspace<R: Runtime>(
 }
 
 /// Command: Remove a workspace directory created by `cmd_create_bot_workspace`.
-/// Safety: only allows deleting directories under `~/.myagents/projects/`.
+/// Safety: only allows deleting directories under `~/.blexagent/projects/`.
 #[tauri::command]
 pub fn cmd_remove_bot_workspace(workspace_path: String) -> Result<(), String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-    let projects_dir = home_dir.join(".myagents").join("projects");
+    let projects_dir = home_dir.join(".blexagent").join("projects");
 
     let target = PathBuf::from(&workspace_path);
     // Canonicalize both paths to prevent traversal attacks
@@ -486,7 +486,7 @@ pub fn cmd_remove_bot_workspace(workspace_path: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to resolve workspace path: {}", e))?;
 
     if !canon_target.starts_with(&canon_projects) || canon_target == canon_projects {
-        return Err("Refusing to delete: path is not inside ~/.myagents/projects/".to_string());
+        return Err("Refusing to delete: path is not inside ~/.blexagent/projects/".to_string());
     }
 
     fs::remove_dir_all(&canon_target)
@@ -495,12 +495,12 @@ pub fn cmd_remove_bot_workspace(workspace_path: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Command: Remove a template directory from ~/.myagents/templates/.
-/// Safety: only allows deleting directories under ~/.myagents/templates/.
+/// Command: Remove a template directory from ~/.blexagent/templates/.
+/// Safety: only allows deleting directories under ~/.blexagent/templates/.
 #[tauri::command]
 pub fn cmd_remove_template_folder(template_path: String) -> Result<(), String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-    let templates_dir = home_dir.join(".myagents").join("templates");
+    let templates_dir = home_dir.join(".blexagent").join("templates");
 
     if !templates_dir.exists() {
         return Err("Templates directory does not exist".to_string());
@@ -522,7 +522,7 @@ pub fn cmd_remove_template_folder(template_path: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to resolve template path: {}", e))?;
 
     if !canon_target.starts_with(&canon_templates) || canon_target == canon_templates {
-        return Err("Refusing to delete: path is not inside ~/.myagents/templates/".to_string());
+        return Err("Refusing to delete: path is not inside ~/.blexagent/templates/".to_string());
     }
 
     fs::remove_dir_all(&canon_target)
@@ -620,7 +620,7 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
 
 /// Command: Create a workspace from a user template (copy source dir to dest dir).
 /// Reuses copy_dir_recursive which skips .git and node_modules.
-/// Safety: source_path must be under ~/.myagents/templates/.
+/// Safety: source_path must be under ~/.blexagent/templates/.
 /// The dest_path parent must exist; the dest_path itself must NOT exist.
 #[tauri::command]
 pub fn cmd_create_workspace_from_template(
@@ -634,9 +634,9 @@ pub fn cmd_create_workspace_from_template(
         return Err(format!("Template source not found: {}", source_path));
     }
 
-    // Validate source is under ~/.myagents/templates/
+    // Validate source is under ~/.blexagent/templates/
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-    let templates_dir = home_dir.join(".myagents").join("templates");
+    let templates_dir = home_dir.join(".blexagent").join("templates");
     if templates_dir.exists() {
         let canon_templates = templates_dir
             .canonicalize()
@@ -645,7 +645,7 @@ pub fn cmd_create_workspace_from_template(
             .canonicalize()
             .map_err(|e| format!("Failed to resolve source path: {}", e))?;
         if !canon_src.starts_with(&canon_templates) {
-            return Err("Source path must be inside ~/.myagents/templates/".to_string());
+            return Err("Source path must be inside ~/.blexagent/templates/".to_string());
         }
     } else {
         return Err("Templates directory does not exist".to_string());
@@ -667,7 +667,7 @@ pub fn cmd_create_workspace_from_template(
 
 /// Command: Create a workspace from a bundled (preset) template.
 /// Copies from app resources/<template_id> to dest_path.
-/// Falls back to local copy at ~/.myagents/projects/<template_id> if bundled is incomplete.
+/// Falls back to local copy at ~/.blexagent/projects/<template_id> if bundled is incomplete.
 /// Safety: template_id is sanitized to prevent path traversal.
 #[tauri::command]
 pub fn cmd_create_workspace_from_bundled_template<R: Runtime>(
@@ -708,7 +708,7 @@ pub fn cmd_create_workspace_from_bundled_template<R: Runtime>(
     // Fallback: copy from local projects/<template_id>
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
     let local_src = home_dir
-        .join(".myagents")
+        .join(".blexagent")
         .join("projects")
         .join(&template_id);
     if local_src.exists() && local_src.join("CLAUDE.md").exists() {
@@ -776,7 +776,7 @@ fn resolve_template_source<R: Runtime>(
                 .map_err(|e| format!("Failed to resolve bundled template path: {}", e));
         }
         let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-        let local = home_dir.join(".myagents").join("projects").join(id);
+        let local = home_dir.join(".blexagent").join("projects").join(id);
         if local.exists() && local.join("CLAUDE.md").exists() {
             return local
                 .canonicalize()
@@ -790,7 +790,7 @@ fn resolve_template_source<R: Runtime>(
             return Err(format!("Template source not found: {}", p));
         }
         let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-        let templates_dir = home_dir.join(".myagents").join("templates");
+        let templates_dir = home_dir.join(".blexagent").join("templates");
         if !templates_dir.exists() {
             return Err("Templates directory does not exist".to_string());
         }
@@ -801,7 +801,7 @@ fn resolve_template_source<R: Runtime>(
             .canonicalize()
             .map_err(|e| format!("Failed to resolve source path: {}", e))?;
         if !canon_src.starts_with(&canon_templates) {
-            return Err("Source path must be inside ~/.myagents/templates/".to_string());
+            return Err("Source path must be inside ~/.blexagent/templates/".to_string());
         }
         // Return canonical path (not the original `src`) — closes the TOCTOU between
         // validation and consumption, since the caller will read from canon_src directly.
@@ -898,7 +898,7 @@ pub fn cmd_apply_template_to_workspace<R: Runtime>(
     Ok(())
 }
 
-/// Command: Copy a local folder into the templates library (~/.myagents/templates/<name>/).
+/// Command: Copy a local folder into the templates library (~/.blexagent/templates/<name>/).
 /// Returns the destination path.
 #[tauri::command]
 pub fn cmd_copy_folder_to_templates(
@@ -911,7 +911,7 @@ pub fn cmd_copy_folder_to_templates(
     }
 
     let home_dir = dirs::home_dir().ok_or("Failed to get home dir")?;
-    let templates_dir = home_dir.join(".myagents").join("templates");
+    let templates_dir = home_dir.join(".blexagent").join("templates");
     fs::create_dir_all(&templates_dir)
         .map_err(|e| format!("Failed to create templates dir: {}", e))?;
 
@@ -948,7 +948,7 @@ pub fn cmd_copy_folder_to_templates(
 
 const ADMIN_AGENT_VERSION: &str = "22";
 
-/// Helper-bundled paths (relative to `~/.myagents/`) that previous versions
+/// Helper-bundled paths (relative to `~/.blexagent/`) that previous versions
 /// shipped but that have since been retired.
 ///
 /// `merge_dir_recursive` is overwrite-only ("never deletes"), so a file
@@ -957,15 +957,15 @@ const ADMIN_AGENT_VERSION: &str = "22";
 /// silently diverge fresh-install from upgrade behavior. Each retire
 /// MUST also append the relative path here so the next sync removes it.
 ///
-/// Once `~/.myagents/.admin-agent-version` has rolled past the version
+/// Once `~/.blexagent/.admin-agent-version` has rolled past the version
 /// that introduced the retire, the entry is harmless to keep (it just
 /// no-ops on absent paths).
 const RETIRED_ADMIN_PATHS: &[&str] = &[
-    // v16: /self-config promoted to global system skill /myagents-cli
+    // v16: /self-config promoted to global system skill /blexagent-cli
     ".claude/skills/self-config",
 ];
 
-/// Merge bundled admin agent files into ~/.myagents/
+/// Merge bundled admin agent files into ~/.blexagent/
 /// Version-gated: only runs when ADMIN_AGENT_VERSION changes.
 #[tauri::command]
 pub async fn cmd_sync_admin_agent<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String> {
@@ -976,7 +976,7 @@ pub async fn cmd_sync_admin_agent<R: Runtime>(app_handle: AppHandle<R>) -> Resul
 
 fn sync_admin_agent_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String> {
     let home = dirs::home_dir().ok_or("Home dir not found")?;
-    let dest = home.join(".myagents");
+    let dest = home.join(".blexagent");
 
     // Version gate
     let ver_file = dest.join(".admin-agent-version");
@@ -992,7 +992,7 @@ fn sync_admin_agent_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<boo
         .path()
         .resource_dir()
         .map_err(|e| format!("Resource dir: {}", e))?;
-    let src = res.join("bundled-agents").join("myagents_helper");
+    let src = res.join("bundled-agents").join("blexagent_helper");
     if !src.exists() {
         return Err(format!("Admin agent not found: {:?}", src));
     }
@@ -1032,7 +1032,7 @@ fn sync_admin_agent_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<boo
         }
     }
 
-    // Merge into ~/.myagents/
+    // Merge into ~/.blexagent/
     merge_dir_recursive(&src, &dest).map_err(|e| format!("Merge failed: {}", e))?;
 
     fs::write(&ver_file, ADMIN_AGENT_VERSION)
@@ -1046,17 +1046,17 @@ fn sync_admin_agent_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<boo
 
 const CLI_VERSION: &str = "30";
 
-/// Sync the CLI script from bundled resources to ~/.myagents/bin/.
+/// Sync the CLI script from bundled resources to ~/.blexagent/bin/.
 /// Version-gated: only runs when CLI_VERSION changes.
-/// Sources `resources/cli/myagents.js` (esbuild bundle, shebang `#!/usr/bin/env node`)
-/// and copies it to `~/.myagents/bin/myagents` with 0755 on Unix.
+/// Sources `resources/cli/blexagent.js` (esbuild bundle, shebang `#!/usr/bin/env node`)
+/// and copies it to `~/.blexagent/bin/blexagent` with 0755 on Unix.
 #[tauri::command]
 pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String> {
     let home = dirs::home_dir().ok_or("Home dir not found")?;
-    let bin_dir = home.join(".myagents").join("bin");
+    let bin_dir = home.join(".blexagent").join("bin");
 
     // Version gate
-    let ver_file = home.join(".myagents").join(".cli-version");
+    let ver_file = home.join(".blexagent").join(".cli-version");
     if ver_file.exists() {
         let ver = fs::read_to_string(&ver_file).unwrap_or_default();
         if ver.trim() == CLI_VERSION {
@@ -1074,20 +1074,20 @@ pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String
         return Err(format!("CLI source not found: {:?}", cli_src));
     }
 
-    // Ensure ~/.myagents/bin/ exists
+    // Ensure ~/.blexagent/bin/ exists
     fs::create_dir_all(&bin_dir).map_err(|e| format!("Failed to create bin dir: {}", e))?;
 
-    // Copy myagents.js → myagents (strip extension, shebang handles node invocation on Unix;
-    // Windows uses myagents.cmd wrapper below).
-    let src_script = cli_src.join("myagents.js");
-    let dst_script = bin_dir.join("myagents");
+    // Copy blexagent.js → blexagent (strip extension, shebang handles node invocation on Unix;
+    // Windows uses blexagent.cmd wrapper below).
+    let src_script = cli_src.join("blexagent.js");
+    let dst_script = bin_dir.join("blexagent");
     if !src_script.exists() {
         return Err(format!(
             "CLI script not found: {:?} (run `npm run build:cli`?)",
             src_script
         ));
     }
-    // Atomic-replace via tmp + rename, so a `myagents` process currently
+    // Atomic-replace via tmp + rename, so a `blexagent` process currently
     // executing the old binary doesn't block the upgrade. On Windows
     // `fs::copy` directly to a path held open by another process returns
     // ERROR_SHARING_VIOLATION; the tmp+rename pattern dodges this since
@@ -1098,7 +1098,7 @@ pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String
     fs::copy(&src_script, &tmp_script)
         .map_err(|e| format!("Failed to copy CLI script tmp: {}", e))?;
     if let Err(e) = fs::rename(&tmp_script, &dst_script) {
-        // Best-effort tmp cleanup so a stale `myagents.tmp.new` doesn't
+        // Best-effort tmp cleanup so a stale `blexagent.tmp.new` doesn't
         // pile up on every failed sync.
         let _ = fs::remove_file(&tmp_script);
         return Err(format!("Failed to install CLI script: {}", e));
@@ -1112,9 +1112,9 @@ pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String
             .map_err(|e| format!("Failed to set permissions: {}", e))?;
     }
 
-    // Write Windows launcher (myagents.cmd) pinned to the bundled Node.js binary.
-    // v0.2.0+: the source myagents.cmd uses `for %%b in (node.exe)` which searches
-    // the user's PATH — but when a user runs `myagents` from their own terminal, the
+    // Write Windows launcher (blexagent.cmd) pinned to the bundled Node.js binary.
+    // v0.2.0+: the source blexagent.cmd uses `for %%b in (node.exe)` which searches
+    // the user's PATH — but when a user runs `blexagent` from their own terminal, the
     // app bundle's Node directory is NOT in PATH (only injected when the app spawns
     // its own subprocesses). Result on Windows-without-system-Node: ENOENT. We fix
     // this at sync time by baking the absolute bundled node.exe path into the
@@ -1129,49 +1129,49 @@ pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String
             .filter(|p| p.exists())
             // #229: resource_dir() on Windows can return a `\\?\`-prefixed
             // extended-length path. That prefix is fine for Rust std file APIs
-            // (.exists() above accepts it), but once baked into myagents.cmd as
+            // (.exists() above accepts it), but once baked into blexagent.cmd as
             // literal text, cmd.exe cannot execute it and reports "The system
             // cannot find the path specified." Strip the prefix at this Rust→
             // cmd.exe boundary, per the red line in CLAUDE.md.
             .map(crate::sidecar::normalize_external_path);
 
-        let dst_cmd = bin_dir.join("myagents.cmd");
+        let dst_cmd = bin_dir.join("blexagent.cmd");
         let cmd_contents = if let Some(node_path) = bundled_node {
             // Absolute path: no PATH dependency; survives terminal launch.
             let node_str = node_path.to_string_lossy();
             format!(
                 "@echo off\r\n\
-                 :: myagents CLI wrapper — generated by cmd_sync_cli; invokes bundled Node.js.\r\n\
+                 :: blexagent CLI wrapper — generated by cmd_sync_cli; invokes bundled Node.js.\r\n\
                  setlocal\r\n\
-                 \"{}\" \"%~dp0myagents\" %*\r\n\
+                 \"{}\" \"%~dp0blexagent\" %*\r\n\
                  exit /b %ERRORLEVEL%\r\n",
                 node_str
             )
         } else {
             // Dev / packaging-in-progress fallback: behave like the source .cmd,
             // expecting node.exe in PATH.
-            let src_cmd = cli_src.join("myagents.cmd");
+            let src_cmd = cli_src.join("blexagent.cmd");
             match fs::read_to_string(&src_cmd) {
                 Ok(s) => s,
-                Err(e) => return Err(format!("Failed to read source myagents.cmd: {}", e)),
+                Err(e) => return Err(format!("Failed to read source blexagent.cmd: {}", e)),
             }
         };
         // Same tmp+rename atomic-replace pattern as above (an open
-        // myagents.cmd shell window would otherwise block the upgrade
+        // blexagent.cmd shell window would otherwise block the upgrade
         // with ERROR_SHARING_VIOLATION).
         let tmp_cmd = dst_cmd.with_extension("cmd.tmp.new");
         fs::write(&tmp_cmd, cmd_contents)
-            .map_err(|e| format!("Failed to write myagents.cmd tmp: {}", e))?;
+            .map_err(|e| format!("Failed to write blexagent.cmd tmp: {}", e))?;
         if let Err(e) = fs::rename(&tmp_cmd, &dst_cmd) {
             let _ = fs::remove_file(&tmp_cmd);
-            return Err(format!("Failed to install myagents.cmd: {}", e));
+            return Err(format!("Failed to install blexagent.cmd: {}", e));
         }
     }
     #[cfg(not(target_os = "windows"))]
     {
         // Non-Windows: copy the source .cmd as-is for completeness (unused at runtime).
-        let src_cmd = cli_src.join("myagents.cmd");
-        let dst_cmd = bin_dir.join("myagents.cmd");
+        let src_cmd = cli_src.join("blexagent.cmd");
+        let dst_cmd = bin_dir.join("blexagent.cmd");
         if src_cmd.exists() {
             fs::copy(&src_cmd, &dst_cmd)
                 .map_err(|e| format!("Failed to copy CLI cmd script: {}", e))?;
@@ -1194,7 +1194,7 @@ pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String
 //
 // System skills are different: they encode flow-level contracts that
 // must evolve in lockstep with Rust / CLI / shape changes. Example:
-// `/task-implement` used to call `myagents task update-progress <id>
+// `/task-implement` used to call `blexagent task update-progress <id>
 // "..."`; when we removed that CLI in v0.1.69+ the skill had to update
 // in the same release, else existing users' AI calls would fail with
 // "unknown command". The seed-once path can't deliver updates — we
@@ -1215,7 +1215,7 @@ const SYSTEM_SKILLS: &[&str] = &[
     "task-alignment",
     "task-implement",
     // v10: ultra-research removed — not generic enough to ship as system
-    // skill. Existing installs retain the dir at ~/.myagents/skills/
+    // skill. Existing installs retain the dir at ~/.blexagent/skills/
     // ultra-research/ until the user deletes it (no orphan cleanup logic).
     "download-anything",
     // v8: agent-browser promoted from utility → system skill. The CLI is
@@ -1223,29 +1223,29 @@ const SYSTEM_SKILLS: &[&str] = &[
     // on first use with a command-local npm prefix. Existing users
     // need the updated SKILL.md to land or their AI will hit `command not
     // found` after upgrading. The install uses command-local npm_config_prefix
-    // so it lands under ~/.myagents/npm-global without leaking prefix env to
+    // so it lands under ~/.blexagent/npm-global without leaking prefix env to
     // every shell. System-skill status forces the overwrite.
     "agent-browser",
-    // v9: myagents-cli promoted from helper-bundled skill (was at
-    // bundled-agents/myagents_helper/.claude/skills/self-config/) to a
-    // global system skill. Every AI session inside MyAgents — Chat / IM Bot
+    // v9: blexagent-cli promoted from helper-bundled skill (was at
+    // bundled-agents/blexagent_helper/.claude/skills/self-config/) to a
+    // global system skill. Every AI session inside BlexAgent — Chat / IM Bot
     // / Cron / Helper — should be able to drive the product's own
     // capabilities (cron, task center, MCP, Provider, channels, plugins,
     // skills, Cloud Space, widgets) through the CLI. SKILL.md changes track CLI surface
     // changes, so it must force-overwrite on version bumps.
-    "myagents-cli",
+    "blexagent-cli",
     // v18: tool-creator — meta-skill for the CLI tool registry (PRD 0.2.36
     // cli_first_tool_registry). Teaches AI to author standards-compliant
     // Agent-CLI tools (tool.json + entry + readme/--help contract) and
-    // register them via `myagents tool add`. System skill because its
+    // register them via `blexagent tool add`. System skill because its
     // contract must track the registry's server-side validation (800-char
     // description cap, reserved names) in lockstep.
     "tool-creator",
-    // v27: MyAgents Evo long-term memory maintenance skills. These are
+    // v27: BlexAgent Evo long-term memory maintenance skills. These are
     // managed task targets, so their bundled contract must stay in lockstep
     // with the Agent Settings Evo scheduler and rule-substrate templates.
-    "myagents-memory-gardener",
-    "myagents-memory-molt",
+    "blexagent-memory-gardener",
+    "blexagent-memory-molt",
     // v29: prompt-writer promoted from utility → system skill. It is pure
     // methodology (no product-surface coupling), but as a utility skill the
     // seed-once path meant existing installs never received content
@@ -1258,7 +1258,7 @@ const SYSTEM_SKILLS: &[&str] = &[
 /// MUST stay in sync with `src/server/utils/platform.ts::PLATFORM_BLOCKED_SKILLS`.
 /// Used by `cmd_sync_system_skills` to skip force-syncing skills that the
 /// Node-side runtime would later filter out anyway — prevents orphan files
-/// in `~/.myagents/skills/` that confuse users.
+/// in `~/.blexagent/skills/` that confuse users.
 fn is_skill_blocked_on_platform(skill_folder: &str) -> bool {
     match skill_folder {
         // agent-browser daemon broken on Windows: vercel-labs/agent-browser#398
@@ -1268,7 +1268,7 @@ fn is_skill_blocked_on_platform(skill_folder: &str) -> bool {
 }
 
 /// Force-sync every system skill from the app bundle to
-/// `~/.myagents/skills/<name>/`. Runs once per `SYSTEM_SKILLS_VERSION`
+/// `~/.blexagent/skills/<name>/`. Runs once per `SYSTEM_SKILLS_VERSION`
 /// bump — idempotent otherwise. User edits to these directories will
 /// be overwritten when the version changes, by design (see module
 /// comment above).
@@ -1290,20 +1290,20 @@ pub async fn cmd_sync_system_skills<R: Runtime>(app_handle: AppHandle<R>) -> Res
 
 fn sync_system_skills_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String> {
     let home = dirs::home_dir().ok_or("Home dir not found")?;
-    let myagents_dir = home.join(".myagents");
-    let skills_dir = myagents_dir.join("skills");
+    let blexagent_dir = home.join(".blexagent");
+    let skills_dir = blexagent_dir.join("skills");
 
     // Version gate — skip the whole sweep if we've already landed
     // SYSTEM_SKILLS_VERSION AND every system skill is actually present on disk.
     //
     // The version stamp alone is NOT proof the install is healthy (issue #321):
     // the old destructive sync could write the version after leaving empty
-    // `~/.myagents/skills/<name>/` dirs, freezing that broken state forever.
+    // `~/.blexagent/skills/<name>/` dirs, freezing that broken state forever.
     // Validating the on-disk result here makes the gate self-healing — a frozen
     // or incomplete install re-runs the (now non-destructive) sync regardless of
     // whether the version happened to be bumped. Healthy installs still
     // early-return after the cheap per-skill SKILL.md stat.
-    let ver_file = myagents_dir.join(".system-skills-version");
+    let ver_file = blexagent_dir.join(".system-skills-version");
     if ver_file.exists() {
         let ver = fs::read_to_string(&ver_file).unwrap_or_default();
         if ver.trim() == SYSTEM_SKILLS_VERSION && all_installed_system_skills_complete(&skills_dir)
@@ -1336,7 +1336,7 @@ fn sync_system_skills_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<b
         // (src/server/utils/platform.ts). Without this, a skill marked
         // unavailable on the current platform (e.g. agent-browser on Windows
         // due to upstream daemon bug) would be force-synced into
-        // ~/.myagents/skills/ but invisible to the SDK runtime — orphan
+        // ~/.blexagent/skills/ but invisible to the SDK runtime — orphan
         // disk files that confuse users and serve no purpose.
         if is_skill_blocked_on_platform(skill_name) {
             platform_skipped.push(*skill_name);
@@ -1373,7 +1373,7 @@ fn sync_system_skills_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<b
     // Only advance the version gate when every system skill actually landed.
     // A missing/incomplete bundled source is a packaging defect; freezing the
     // version on a partial sweep would make the broken state permanent (the
-    // old behavior that produced empty `~/.myagents/skills/<name>` dirs on
+    // old behavior that produced empty `~/.blexagent/skills/<name>` dirs on
     // Windows — issue #321). Leaving the version unwritten retries next launch
     // and keeps the warnings above visible. Platform-skipped skills are
     // intentional, not defects, so they don't block the advance.
@@ -1396,7 +1396,7 @@ fn sync_system_skills_blocking<R: Runtime>(app_handle: AppHandle<R>) -> Result<b
 }
 
 /// Outcome of syncing one system skill from the app bundle into
-/// `~/.myagents/skills/`.
+/// `~/.blexagent/skills/`.
 enum SystemSkillSync {
     /// Source was valid and copied over `dst`.
     Synced,
@@ -1411,7 +1411,7 @@ enum SystemSkillSync {
 /// one file every SKILL.md-gated scanner (Settings panel, slash picker, SDK
 /// runtime) requires to recognize a skill. An empty / SKILL.md-less directory
 /// is a packaging defect, not a skill. Applies equally to a bundled source dir
-/// and an installed `~/.myagents/skills/<name>` dir.
+/// and an installed `~/.blexagent/skills/<name>` dir.
 fn skill_dir_is_complete(dir: &Path) -> bool {
     dir.join("SKILL.md").is_file()
 }
@@ -1444,7 +1444,7 @@ fn sync_one_system_skill(src: &Path, dst: &Path) -> Result<SystemSkillSync, Stri
     // SYSTEM_SKILLS_VERSION bumps mean "the whole skill snapshot is new".
     //
     // Path::exists() follows symlinks → returns false for broken links, so a
-    // dangling `~/.myagents/skills/<name>` left by the user (e.g. pointing at
+    // dangling `~/.blexagent/skills/<name>` left by the user (e.g. pointing at
     // a moved repo) would slip past and then trip `fs::create_dir_all` in
     // `merge_dir_recursive` with EEXIST, failing the whole startup sync.
     // symlink_metadata() does NOT follow, so it's the right probe for "is
@@ -1653,7 +1653,7 @@ const CREDENTIAL_SUBDIRS: &[&str] = &[
     ".kube",
     ".docker",
     ".config/op",
-    ".myagents/codex",
+    ".blexagent/codex",
 ];
 #[cfg(target_os = "macos")]
 const MAC_SENSITIVE_SUBDIRS: &[&str] = &[
@@ -1796,7 +1796,7 @@ mod path_safety_crosscheck_tests {
 }
 
 /// Read a workspace text file. Returns content if exists, null if not.
-/// Bypasses Tauri fs plugin scope (which only covers ~/.myagents).
+/// Bypasses Tauri fs plugin scope (which only covers ~/.blexagent).
 #[tauri::command]
 pub async fn cmd_read_workspace_file(path: String) -> Result<Option<String>, String> {
     let resolved = validate_file_path(&path)?;
@@ -1808,7 +1808,7 @@ pub async fn cmd_read_workspace_file(path: String) -> Result<Option<String>, Str
 }
 
 /// Write content to a workspace text file, creating parent directories if needed.
-/// Bypasses Tauri fs plugin scope (which only covers ~/.myagents).
+/// Bypasses Tauri fs plugin scope (which only covers ~/.blexagent).
 #[tauri::command]
 pub async fn cmd_write_workspace_file(path: String, content: String) -> Result<(), String> {
     let resolved = validate_file_path(&path)?;
@@ -1823,7 +1823,7 @@ pub async fn cmd_write_workspace_file(path: String, content: String) -> Result<(
 }
 
 /// Delete a workspace file. Returns true if deleted, false if not found.
-/// Bypasses Tauri fs plugin scope (which only covers ~/.myagents).
+/// Bypasses Tauri fs plugin scope (which only covers ~/.blexagent).
 #[tauri::command]
 pub async fn cmd_delete_workspace_file(path: String) -> Result<bool, String> {
     let resolved = validate_file_path(&path)?;
@@ -1908,7 +1908,7 @@ pub async fn cmd_wecom_qr_generate() -> Result<WecomQrGenerateResult, String> {
         3
     };
     let url = format!(
-        "https://work.weixin.qq.com/ai/qc/generate?source=myagents&plat={}",
+        "https://work.weixin.qq.com/ai/qc/generate?source=blexagent&plat={}",
         plat
     );
 

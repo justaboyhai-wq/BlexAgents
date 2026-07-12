@@ -1,4 +1,4 @@
-// MyAgents Tauri Application
+// BlexAgent Tauri Application
 // Main entry point with sidecar lifecycle management
 
 pub mod app_dirs;
@@ -92,10 +92,10 @@ fn classify_navigation(url: &Url) -> NavDecision {
     // Tauri-internal schemes: always allow.
     // - tauri / ipc: Tauri 2.x core IPC bridges
     // - asset: tauri-plugin-fs asset serving
-    // - myagents / myagents-internal: app's custom protocols
+    // - blexagent / blexagent-internal: app's custom protocols
     if matches!(
         scheme,
-        "tauri" | "ipc" | "asset" | "myagents" | "myagents-internal"
+        "tauri" | "ipc" | "asset" | "blexagent" | "blexagent-internal"
     ) {
         return NavDecision::Allow;
     }
@@ -145,13 +145,13 @@ pub fn run() {
     // ── DIAGNOSTIC PANIC HOOK (April 2026 crash investigation) ─────────────
     // Install BEFORE any other init so we capture every panic, including
     // setup-time / did_finish_launching ones that don't reach the unified
-    // logger. Writes to ~/.myagents/logs/panic-{pid}-{timestamp}.log so a
+    // logger. Writes to ~/.blexagent/logs/panic-{pid}-{timestamp}.log so a
     // post-mortem has the actual panic message even when the app aborts
     // before normal log flush.
     {
         let prev = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
-            let log_dir = app_dirs::myagents_data_dir()
+            let log_dir = app_dirs::blexagent_data_dir()
                 .map(|d| d.join("logs"))
                 .unwrap_or_else(|| std::path::PathBuf::from("."));
             let _ = std::fs::create_dir_all(&log_dir);
@@ -227,7 +227,7 @@ pub fn run() {
     let browser_state_for_window = browser_state.clone();
 
     // Create Task Center state (v0.1.69 — thought & task stores)
-    let data_dir = app_dirs::myagents_data_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+    let data_dir = app_dirs::blexagent_data_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
     let thought_state: thought::ManagedThoughtStore =
         Arc::new(thought::ThoughtStore::new(data_dir.join("thoughts")));
     let task_state: task::ManagedTaskStore = Arc::new(task::TaskStore::new(data_dir.clone()));
@@ -253,7 +253,7 @@ pub fn run() {
                 }
             }
         })
-        .register_asynchronous_uri_scheme_protocol("myagents", attachment_protocol::handle)
+        .register_asynchronous_uri_scheme_protocol("blexagent", attachment_protocol::handle)
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // Another instance was launched — bring the existing window to the
             // foreground. Reuses the same routine as tray click and toast click
@@ -586,7 +586,7 @@ pub fn run() {
             task::cmd_task_open_docs_dir,
             task::cmd_task_get_run_stats,
             legacy_upgrade::cmd_task_upgrade_legacy_cron,
-            // MyAgents Cloud Space
+            // BlexAgent Cloud Space
             space_cloud::cmd_space_get_capability,
             space_cloud::cmd_space_get_session,
             space_cloud::cmd_space_set_active_space,
@@ -673,7 +673,7 @@ pub fn run() {
                 "main",
                 WebviewUrl::default(),
             )
-            .title("MyAgents")
+            .title("BlexAgent")
             .inner_size(1200.0, 800.0)
             .min_inner_size(800.0, 600.0)
             .resizable(true)
@@ -842,7 +842,7 @@ pub fn run() {
                 let build_mode = if cfg!(debug_assertions) { "debug" } else { "release" };
                 let os = std::env::consts::OS;
                 let arch = std::env::consts::ARCH;
-                let data_dir = app_dirs::myagents_data_dir();
+                let data_dir = app_dirs::blexagent_data_dir();
                 let dir_str = data_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "?".into());
 
                 // Read config.json for counts (best-effort)
@@ -1059,7 +1059,7 @@ pub fn run() {
             ulog_info!("[App] Cron task manager initialization scheduled");
 
             // Initialize SearchEngine (full-text search)
-            if let Some(data_dir) = app_dirs::myagents_data_dir() {
+            if let Some(data_dir) = app_dirs::blexagent_data_dir() {
                 match search::SearchEngine::new(data_dir) {
                     Ok(engine) => {
                         engine.start_background_indexing();
@@ -1277,7 +1277,7 @@ mod nav_guard_tests {
         assert_eq!(decide("tauri://localhost/"), NavDecision::Allow);
         assert_eq!(decide("asset://localhost/x"), NavDecision::Allow);
         assert_eq!(decide("ipc://localhost/"), NavDecision::Allow);
-        assert_eq!(decide("myagents://x/y"), NavDecision::Allow);
+        assert_eq!(decide("blexagent://x/y"), NavDecision::Allow);
         assert_eq!(decide("http://localhost:5173/"), NavDecision::Allow);
         assert_eq!(decide("https://tauri.localhost/"), NavDecision::Allow);
         assert_eq!(decide("http://127.0.0.1:1420/"), NavDecision::Allow);

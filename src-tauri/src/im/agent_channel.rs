@@ -213,7 +213,7 @@ pub(super) async fn create_bot_instance<R: Runtime>(
         .unwrap_or_else(|| {
             // Try bundled mino workspace first
             dirs::home_dir()
-                .map(|h| h.join(".myagents").join("projects").join("mino"))
+                .map(|h| h.join(".blexagent").join("projects").join("mino"))
                 .filter(|p| p.exists())
                 .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
         });
@@ -334,7 +334,7 @@ pub(super) async fn create_bot_instance<R: Runtime>(
 
             let plugin_dir = dirs::home_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
-                .join(".myagents")
+                .join(".blexagent")
                 .join("openclaw-plugins")
                 .join(plugin_id);
             let bridge_state_dir = match &agent_id {
@@ -915,9 +915,9 @@ pub(super) async fn create_bot_instance<R: Runtime>(
             for attachment in &msg.attachments {
                 match attachment.attachment_type {
                     ImAttachmentType::File => {
-                        let target_dir = workspace_path.join("myagents_files");
+                        let target_dir = workspace_path.join("blexagent_files");
                         if let Err(e) = tokio::fs::create_dir_all(&target_dir).await {
-                            ulog_error!("[im] Failed to create myagents_files dir: {}", e);
+                            ulog_error!("[im] Failed to create blexagent_files dir: {}", e);
                             continue;
                         }
                         let target_path = target_dir.join(&attachment.file_name);
@@ -927,7 +927,7 @@ pub(super) async fn create_bot_instance<R: Runtime>(
                             continue;
                         }
                         let relative = format!(
-                            "myagents_files/{}",
+                            "blexagent_files/{}",
                             final_path.file_name().unwrap().to_string_lossy()
                         );
                         file_refs.push(format!("@{}", relative));
@@ -1081,7 +1081,7 @@ pub(super) async fn create_bot_instance<R: Runtime>(
                         } else {
                             if let Err(e) = adapter_for_reply.send_message(
                                 &chat_id,
-                                "❌ 绑定码无效或已过期，请在 MyAgents 设置中重新获取二维码。",
+                                "❌ 绑定码无效或已过期，请在 BlexAgent 设置中重新获取二维码。",
                             ).await {
                                 ulog_warn!("[im-cmd] send_message (bind invalid) failed: {}", e);
                             }
@@ -1093,7 +1093,7 @@ pub(super) async fn create_bot_instance<R: Runtime>(
                     if text == "/start" {
                         if let Err(e) = adapter_for_reply.send_message(
                             &chat_id,
-                            "👋 你好！我是 MyAgents Bot。\n\n\
+                            "👋 你好！我是 BlexAgent Bot。\n\n\
                              可用命令：\n\
                              /help — 查看所有命令\n\
                              /new — 开始新对话\n\
@@ -1518,14 +1518,14 @@ pub(super) async fn create_bot_instance<R: Runtime>(
                             let runtime_name = runtime_display_name(&current_runtime);
                             let reply = if arg.is_empty() {
                                 format!(
-                                    "📡 当前 Runtime：{}\n\n供应商/账号由 {} 管理，IM Bot 不能通过 /provider 切换 MyAgents 供应商。\n如需切换模型，请使用 /model 查看 {} 可用模型。",
+                                    "📡 当前 Runtime：{}\n\n供应商/账号由 {} 管理，IM Bot 不能通过 /provider 切换 BlexAgent 供应商。\n如需切换模型，请使用 /model 查看 {} 可用模型。",
                                     runtime_name,
                                     runtime_name,
                                     runtime_name,
                                 )
                             } else {
                                 format!(
-                                    "❌ 当前 Runtime 是 {}，不能通过 /provider 切换 MyAgents 供应商。\n供应商/账号由 {} 管理。如需切换模型，请使用 /model。",
+                                    "❌ 当前 Runtime 是 {}，不能通过 /provider 切换 BlexAgent 供应商。\n供应商/账号由 {} 管理。如需切换模型，请使用 /model。",
                                     runtime_name,
                                     runtime_name,
                                 )

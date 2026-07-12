@@ -79,7 +79,7 @@ interface TerminalPanelProps {
   onTerminalExited: () => void;
   /** Whether this panel is currently the visible view (for fit-on-show) */
   isVisible?: boolean;
-  /** Session ID for this Tab — used to resolve sidecar port for MYAGENTS_PORT env var */
+  /** Session ID for this Tab — used to resolve sidecar port for BLEXAGENT_PORT env var */
   sessionId?: string | null;
 }
 

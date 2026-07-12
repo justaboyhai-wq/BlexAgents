@@ -66,7 +66,7 @@ export function createCompatApi(config: Record<string, unknown>) {
     },
 
     /**
-     * Plugin config — pass through from MyAgents config.
+     * Plugin config — pass through from BlexAgent config.
      */
     config,
 
@@ -128,7 +128,7 @@ export function createCompatApi(config: Record<string, unknown>) {
     registerAction() {},
     registerProvider() {},
     registerHttpRoute(_route: Record<string, unknown>) {
-      // No-op in Bridge mode — MyAgents doesn't run OpenClaw's HTTP server.
+      // No-op in Bridge mode — BlexAgent doesn't run OpenClaw's HTTP server.
       // Plugins register webhook routes here; silently ignore.
     },
 

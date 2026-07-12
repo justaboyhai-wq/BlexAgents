@@ -139,10 +139,10 @@ pub fn validate_external_read_path(absolute_path: &str) -> WfResult<PathBuf> {
 /// Stricter variant of `resolve_inside_workspace` for **read-side** commands:
 /// resolves any symlinks via `fs::canonicalize` and verifies the canonical
 /// path is still inside the canonical workspace root — OR inside a trusted
-/// MyAgents-managed directory (see `is_trusted_managed_target`). Blocks the
+/// BlexAgent-managed directory (see `is_trusted_managed_target`). Blocks the
 /// "malicious `evil_link → /etc/passwd` checked into a repo" attack from
 /// leaking content out of the workspace, while still allowing the
-/// junctions / symlinks we sync ourselves from `~/.myagents/skills` etc.
+/// junctions / symlinks we sync ourselves from `~/.blexagent/skills` etc.
 /// into `<workspace>/.claude/skills/` (see `agent-session.ts:syncProjectSkillSymlinks`).
 ///
 /// Behavior:
@@ -151,7 +151,7 @@ pub fn validate_external_read_path(absolute_path: &str) -> WfResult<PathBuf> {
 ///   makes the failure mode uniform regardless of whether the path is missing
 ///   or rejected for being a symlink escape).
 /// - If the path exists but resolves outside the workspace via symlink AND
-///   isn't under a trusted MyAgents-managed root, returns
+///   isn't under a trusted BlexAgent-managed root, returns
 ///   `Err("Path escapes workspace root via symlink")`.
 /// - If the workspace root itself isn't canonicalizable (rare — race with
 ///   directory deletion), returns `Err("Workspace root canonicalize failed")`
@@ -186,9 +186,9 @@ pub fn resolve_existing_inside_workspace(
     Ok(canonical)
 }
 
-/// Canonicalized roots of MyAgents-managed directories that we sync into
+/// Canonicalized roots of BlexAgent-managed directories that we sync into
 /// workspaces via junctions/symlinks. Targets under any of these roots are
-/// safe to follow from in-workspace links because MyAgents owns the source —
+/// safe to follow from in-workspace links because BlexAgent owns the source —
 /// users can edit them through the Settings UI but they're not attacker-
 /// controlled like an arbitrary file in a cloned repo.
 ///
@@ -200,10 +200,10 @@ fn trusted_managed_roots() -> Vec<PathBuf> {
     let Some(home) = dirs::home_dir() else {
         return Vec::new();
     };
-    let myagents = home.join(".myagents");
+    let blexagent = home.join(".blexagent");
     ["skills", "commands", "agents"]
         .iter()
-        .filter_map(|sub| fs::canonicalize(myagents.join(sub)).ok())
+        .filter_map(|sub| fs::canonicalize(blexagent.join(sub)).ok())
         .collect()
 }
 
@@ -325,7 +325,7 @@ fn atomic_write_file_inner(
 
     static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let tmp_name = format!(".{}.myagents-{}-{}.tmp", file_name, std::process::id(), n);
+    let tmp_name = format!(".{}.blexagent-{}-{}.tmp", file_name, std::process::id(), n);
     let tmp_path = parent.join(&tmp_name);
 
     {
@@ -600,7 +600,7 @@ mod tests {
             .unwrap()
             .filter_map(|entry| entry.ok())
             .map(|entry| entry.file_name().to_string_lossy().to_string())
-            .filter(|name| name.contains(".myagents-"))
+            .filter(|name| name.contains(".blexagent-"))
             .collect();
         assert!(leftovers.is_empty(), "tmp leftovers: {:?}", leftovers);
         let _ = fs::remove_dir_all(&ws);
@@ -716,7 +716,7 @@ mod tests {
 
     #[test]
     fn trusted_target_empty_roots_rejects_everything() {
-        // Defence: if `trusted_managed_roots()` returns empty (no `.myagents`
+        // Defence: if `trusted_managed_roots()` returns empty (no `.blexagent`
         // dir yet), the whitelist degrades closed — `is_trusted_managed_target`
         // returns false for any path so the original symlink-escape rejection
         // still fires.
@@ -734,7 +734,7 @@ mod tests {
     fn resolve_existing_allows_symlink_into_trusted_root() {
         use std::os::unix::fs::symlink;
         let ws = make_tmp_workspace();
-        // Stand in for `~/.myagents/skills/`.
+        // Stand in for `~/.blexagent/skills/`.
         let managed = std::env::temp_dir().join(format!("managed_skills_{}", std::process::id()));
         let managed_skill = managed.join("baoyu-imagine");
         fs::create_dir_all(&managed_skill).unwrap();
@@ -750,7 +750,7 @@ mod tests {
         let canonical_managed = fs::canonicalize(&managed).unwrap();
 
         // Direct: bypass `trusted_managed_roots()` (which reads real
-        // `~/.myagents/`) and inject our tmp root via the pure helper.
+        // `~/.blexagent/`) and inject our tmp root via the pure helper.
         let lexical =
             resolve_inside_workspace(&ws, ".claude/skills/baoyu-imagine/SKILL.md").unwrap();
         let canonical = fs::canonicalize(&lexical).unwrap();

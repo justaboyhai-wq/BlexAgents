@@ -357,19 +357,19 @@ pub(crate) fn resolve_peer_file_lock_freeze_outcome(
 /// metadata stays D4-shaped (runtime field only) and the reopen would pick
 /// up the agent's NEW runtime config — same bug we're trying to avoid.
 ///
-/// Uses the SAME on-disk `~/.myagents/sessions.lock` that the Node sidecar's
+/// Uses the SAME on-disk `~/.blexagent/sessions.lock` that the Node sidecar's
 /// `withSessionsLock` uses (`SessionStore.ts:32`). This is a cross-process
 /// writer pair, so the lock convention MUST match exactly.
 pub(crate) async fn freeze_via_file_lock_status(
     session_id: &str,
     snapshot: &OwnedSessionSnapshot,
 ) -> Result<FileLockFreezeOutcome, String> {
-    let myagents_dir = dirs::home_dir()
+    let blexagent_dir = dirs::home_dir()
         .ok_or_else(|| "home_dir unavailable".to_string())?
-        .join(".myagents");
-    let sessions_path = myagents_dir.join("sessions.json");
-    let tmp_path = myagents_dir.join("sessions.json.tmp");
-    let lock_path = myagents_dir.join("sessions.lock");
+        .join(".blexagent");
+    let sessions_path = blexagent_dir.join("sessions.json");
+    let tmp_path = blexagent_dir.join("sessions.json.tmp");
+    let lock_path = blexagent_dir.join("sessions.lock");
 
     // Pre-build the JSON value the snapshot would write — done OUTSIDE the
     // closure so all the borrowed `&self` fields stay on the async side.

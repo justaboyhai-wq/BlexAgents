@@ -25,7 +25,7 @@ Mino 里已经 dogfood 出一套“长期记忆进化”机制。它不是单纯
 2. **Memory Gardener**：每 72 小时左右做一次存量整理。它修剪、降级、合并长期记忆，让自动加载层保持小而准。
 3. **Molt**：每 14 天做一次更深的自我更新。它允许修改 SOUL 层，把重复出现的经验升级成底层原则，也允许拒绝旧原则。
 
-用户的核心意志是：**把 Mino 中已经实践有效的长期记忆进化机制，正式做进 MyAgents 的 Agent 设置，变成自动化行为。**
+用户的核心意志是：**把 Mino 中已经实践有效的长期记忆进化机制，正式做进 BlexAgent 的 Agent 设置，变成自动化行为。**
 
 这个需求里有一个重要纠偏：Memory Update 和 Evo 都不该假设工作区天然有 `.claude/rules/03-USER.md`、`04-MEMORY.md`、`02-SOUL.md`。只要用户打开 Memory 或 Evo，系统就应该补齐这些规则文件的轻模板，让新的 skill 机制有可依赖的记忆基座。
 
@@ -45,8 +45,8 @@ Mino 里已经 dogfood 出一套“长期记忆进化”机制。它不是单纯
    - 开关打开时立刻 ensure；后台执行前也再 ensure 一次。
 
 3. **新建两个 system bundled skills**
-   - `myagents-memory-gardener`
-   - `myagents-memory-molt`
+   - `blexagent-memory-gardener`
+   - `blexagent-memory-molt`
    - 从 Mino 原型 skill 产品化而来，去私有语境，脚本支持目标 workspace。
 
 4. **复用现有 Task / Cron 能力执行 Evo**
@@ -366,8 +366,8 @@ Rust serde 要求：
 
 | kind | interval | run mode | skill |
 |---|---:|---|---|
-| `memory_gardener` | 72h / 4320 min | `new-session` | `myagents-memory-gardener` |
-| `memory_molt` | 14d / 20160 min | `new-session` | `myagents-memory-molt` |
+| `memory_gardener` | 72h / 4320 min | `new-session` | `blexagent-memory-gardener` |
+| `memory_molt` | 14d / 20160 min | `new-session` | `blexagent-memory-molt` |
 
 开启 Evo 后不立即执行。`startAt` 应计算为下一次 Memory Update 窗口开始时间，避免刚打开开关就跑重任务。
 
@@ -395,7 +395,7 @@ Evo 是无人值守维护任务，必须使用最大权限：
 Gardener managed task prompt 只需要明确调用 skill：
 
 ```text
-Use the `myagents-memory-gardener` skill to run long-term memory gardening for this workspace.
+Use the `blexagent-memory-gardener` skill to run long-term memory gardening for this workspace.
 
 Workspace: <absolute workspace path>
 Rules:
@@ -409,7 +409,7 @@ Rules:
 Molt managed task prompt：
 
 ```text
-Use the `myagents-memory-molt` skill to run a long-term memory molt for this workspace.
+Use the `blexagent-memory-molt` skill to run a long-term memory molt for this workspace.
 
 Workspace: <absolute workspace path>
 Rules:
@@ -430,8 +430,8 @@ Rules:
 新增：
 
 ```text
-bundled-skills/myagents-memory-gardener/
-bundled-skills/myagents-memory-molt/
+bundled-skills/blexagent-memory-gardener/
+bundled-skills/blexagent-memory-molt/
 ```
 
 必须同步：
@@ -453,7 +453,7 @@ bundled-skills/myagents-memory-molt/
 
 必须产品化：
 
-1. skill 名称改为 `myagents-memory-gardener` / `myagents-memory-molt`。
+1. skill 名称改为 `blexagent-memory-gardener` / `blexagent-memory-molt`。
 2. 删除 Ethan/Mino 私有叙述，改成通用 Agent/workspace 语义。
 3. 文件路径不要假设脚本位于目标 repo 内。
 4. 脚本必须支持 `--repo <workspace>`。
@@ -613,7 +613,7 @@ Evo 状态由 Agent 设置的 Evo section 自己展示，不借普通 Task Cente
 
 ### D3：编号版优先，非编号版兼容
 
-Mino 使用 `02-SOUL.md` / `03-USER.md` / `04-MEMORY.md`，但用户工作区可能已有 `SOUL.md` / `USER.md` / `MEMORY.md`。兼容两者可以减少破坏；编号版优先可以保持 MyAgents 模板排序稳定。
+Mino 使用 `02-SOUL.md` / `03-USER.md` / `04-MEMORY.md`，但用户工作区可能已有 `SOUL.md` / `USER.md` / `MEMORY.md`。兼容两者可以减少破坏；编号版优先可以保持 BlexAgent 模板排序稳定。
 
 ### D4：已有 `UPDATE_MEMORY.md` 不改
 
@@ -669,7 +669,7 @@ Mino 原型中有 commit/push，但产品第一版采用保守策略。自动维
 8. Evo 不立即执行；等下一次调度窗口。
 9. Evo managed tasks 不出现在普通 Agent Tasks 列表，不被 Task Center legacy cron 自动升级。
 10. Gardener/Molt 执行 session 可在历史会话中看到。
-11. Gardener/Molt 使用 system bundled skills `myagents-memory-gardener` / `myagents-memory-molt`。
+11. Gardener/Molt 使用 system bundled skills `blexagent-memory-gardener` / `blexagent-memory-molt`。
 12. Molt 可以自动修改 SOUL 文件。
 13. git repo 中只 commit 本次维护产生的记忆相关文件；不 push；不 stage 用户其它改动。
 14. `npm run typecheck`、`npm run lint`、相关 Rust tests / TS unit tests 通过。
@@ -750,7 +750,7 @@ Mino 原型中有 commit/push，但产品第一版采用保守策略。自动维
 - [x] 建立 `memoryEvolution` shared/Rust 类型、Mino 默认值、config sync。
 - [x] 实现 `.claude/rules` SOUL/USER/MEMORY resolver + ensure + 轻模板，并接入开关打开与后台执行前。
 - [x] 让新建 `UPDATE_MEMORY.md` 使用实际 MEMORY 文件名；前端创建路径和 Rust runtime 创建路径一致；已有文件不改。
-- [x] 产品化并注册 `myagents-memory-gardener` / `myagents-memory-molt` system skills。
+- [x] 产品化并注册 `blexagent-memory-gardener` / `blexagent-memory-molt` system skills。
 - [x] 给 Task/Cron 增加 `managedKind` 最小字段，保证旧数据兼容并过滤普通 UI / legacy upgrade。
 - [x] 基于现有 Task/Cron provision Evo managed recurring tasks：Gardener 72h、Molt 14d、new session、最大权限、不开启即停止/不重复创建。
 - [x] 新增 Evo Agent Settings section，两个设置入口接入，i18n 文案和状态展示齐全。

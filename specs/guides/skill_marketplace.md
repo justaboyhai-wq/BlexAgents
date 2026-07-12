@@ -1,6 +1,6 @@
 # 从链接一键安装 Skill
 
-MyAgents v0.1.66 起支持从 GitHub 链接或 `npx skills add` 命令直接把社区 skill 装到本地。**不再需要** 手动 `git clone` 或 `cp -r ~/.claude/skills/...`。
+BlexAgent v0.1.66 起支持从 GitHub 链接或 `npx skills add` 命令直接把社区 skill 装到本地。**不再需要** 手动 `git clone` 或 `cp -r ~/.claude/skills/...`。
 
 ## GUI 操作
 
@@ -17,7 +17,7 @@ npx skills add foo/bar --skill baz
 https://example.com/x.zip
 ```
 
-点击 **解析并预览** — MyAgents 会：
+点击 **解析并预览** — BlexAgent 会：
 
 1. 解析链接，抽出 GitHub 仓库坐标
 2. 从 `codeload.github.com` 下载 zip（默认分支 `main` → `master` 自动回退）
@@ -35,45 +35,45 @@ https://example.com/x.zip
 
 ```bash
 # 列出已安装
-myagents skill list
+blexagent skill list
 
 # 从 GitHub 链接安装
-myagents skill add foo/bar
-myagents skill add https://github.com/vercel-labs/skills/tree/main/skills/react-best-practices
-myagents skill add foo/bar --skill baz
-myagents skill add "npx skills add foo/bar --skill baz"     # 整条 npx 命令照抄
+blexagent skill add foo/bar
+blexagent skill add https://github.com/vercel-labs/skills/tree/main/skills/react-best-practices
+blexagent skill add foo/bar --skill baz
+blexagent skill add "npx skills add foo/bar --skill baz"     # 整条 npx 命令照抄
 
 # 从 Claude Plugins 市场安装某个插件合集
-myagents skill add anthropics/skills --plugin document-skills
-myagents skill add anthropics/skills --plugin example-skills
+blexagent skill add anthropics/skills --plugin document-skills
+blexagent skill add anthropics/skills --plugin example-skills
 
 # 装到当前工作区而非全局
-myagents skill add foo/bar --scope project
+blexagent skill add foo/bar --scope project
 
 # 覆盖已存在的同名技能
-myagents skill add foo/bar --force
+blexagent skill add foo/bar --force
 
 # 只验证不落盘
-myagents skill add foo/bar --dry-run
+blexagent skill add foo/bar --dry-run
 
 # 其他管理命令
-myagents skill info my-skill
-myagents skill remove my-skill
-myagents skill enable my-skill
-myagents skill disable my-skill
+blexagent skill info my-skill
+blexagent skill remove my-skill
+blexagent skill enable my-skill
+blexagent skill disable my-skill
 
 # 从 ~/.claude/skills 把存量 skill 同步过来
-myagents skill sync
+blexagent skill sync
 ```
 
 ## 支持的市场
 
-| 市场 | 形态 | 如何在 MyAgents 使用 |
+| 市场 | 形态 | 如何在 BlexAgent 使用 |
 |------|------|---------------------|
-| [Anthropic 官方 skills 仓](https://github.com/anthropics/skills) | `.claude-plugin/marketplace.json` | `myagents skill add anthropics/skills --plugin document-skills` |
+| [Anthropic 官方 skills 仓](https://github.com/anthropics/skills) | `.claude-plugin/marketplace.json` | `blexagent skill add anthropics/skills --plugin document-skills` |
 | [Anthropic 官方 plugins 目录](https://github.com/anthropics/claude-plugins-official) | 同上 | 粘 URL，按提示选插件合集 |
 | [Vercel `skills.sh`](https://skills.sh) / [vercel-labs/skills](https://github.com/vercel-labs/skills) | 标准 GitHub 仓库 | 粘 URL 或 `owner/repo` 直接装 |
-| [SkillsMP](https://skillsmp.com) | 聚合站（底层指向 GitHub） | 在站上拿到源仓库 URL 后粘给 MyAgents |
+| [SkillsMP](https://skillsmp.com) | 聚合站（底层指向 GitHub） | 在站上拿到源仓库 URL 后粘给 BlexAgent |
 | 任意 GitHub 仓库 | 含 `SKILL.md` 即可 | 直接粘链接 |
 
 ## 安全约束
@@ -94,19 +94,19 @@ myagents skill sync
 
 我们不委托 `npx skills`，而是原生实现：
 
-| 维度 | `npx skills add -g` | `myagents skill add` |
+| 维度 | `npx skills add -g` | `blexagent skill add` |
 |------|--------------------|----------------------|
-| 安装位置 | `~/.claude/skills/` | `~/.myagents/skills/`（被 MyAgents 直接识别） |
+| 安装位置 | `~/.claude/skills/` | `~/.blexagent/skills/`（被 BlexAgent 直接识别） |
 | 外部依赖 | 需要系统 npm/npx | 零依赖（走 Bun 原生 fetch） |
 | marketplace.json 支持 | ✗ | ✓（识别插件合集并让用户选） |
 | 冲突交互 | 报错退出 | 返回预览让用户选覆盖/重命名 |
 | GUI 集成 | ✗ | ✓（设置页 + Dialog） |
 
-URL 语法完全兼容 — 用户从 skills.sh / Claude Code README 复制的任何 `npx skills add ...` 命令都能直接扔进 MyAgents。
+URL 语法完全兼容 — 用户从 skills.sh / Claude Code README 复制的任何 `npx skills add ...` 命令都能直接扔进 BlexAgent。
 
 ## 已知限制（后续迭代）
 
-- 不支持搜索（`myagents skill find <query>`）
+- 不支持搜索（`blexagent skill find <query>`）
 - 不支持市场订阅持久化与 `skill update`
 - 不支持 GitLab / 私有仓库 / git SSH URL
 - 不记录来源 URL/commit，装完就是装完（后续可能加"来源溯源"字段到 SKILL.md frontmatter）

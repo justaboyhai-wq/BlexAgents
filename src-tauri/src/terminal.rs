@@ -386,10 +386,10 @@ fn default_shell() -> String {
 /// This ensures the terminal has access to:
 /// 1. Bundled Bun and Node.js (same PATH as SDK subprocesses)
 /// 2. Proxy configuration (NO_PROXY protects localhost)
-/// 3. ~/.myagents/bin (CLI tools)
+/// 3. ~/.blexagent/bin (CLI tools)
 fn inject_terminal_env(cmd: &mut CommandBuilder, app: &AppHandle, sidecar_port: Option<u16>) {
     // 1. Build PATH with bundled runtimes
-    //    Priority: bundled bun dir → bundled node dir → ~/.myagents/bin → system PATH
+    //    Priority: bundled bun dir → bundled node dir → ~/.blexagent/bin → system PATH
     let mut extra_paths: Vec<String> = Vec::new();
 
     // Bundled Bun directory
@@ -424,9 +424,9 @@ fn inject_terminal_env(cmd: &mut CommandBuilder, app: &AppHandle, sidecar_port: 
         }
     }
 
-    // ~/.myagents/bin (CLI tools)
+    // ~/.blexagent/bin (CLI tools)
     if let Some(home) = dirs::home_dir() {
-        let cli_bin = home.join(".myagents").join("bin");
+        let cli_bin = home.join(".blexagent").join("bin");
         if cli_bin.exists() {
             extra_paths.push(cli_bin.to_string_lossy().into());
         }
@@ -471,9 +471,9 @@ fn inject_terminal_env(cmd: &mut CommandBuilder, app: &AppHandle, sidecar_port: 
     cmd.env("NO_PROXY", crate::proxy_config::LOCALHOST_NO_PROXY);
     cmd.env("no_proxy", crate::proxy_config::LOCALHOST_NO_PROXY);
 
-    // 3. Sidecar port — lets `myagents` CLI talk to the Tab's session sidecar
+    // 3. Sidecar port — lets `blexagent` CLI talk to the Tab's session sidecar
     if let Some(port) = sidecar_port {
-        cmd.env("MYAGENTS_PORT", port.to_string());
+        cmd.env("BLEXAGENT_PORT", port.to_string());
     }
 
     // 4. Suppress zsh PROMPT_EOL_MARK (%) — the partial-line indicator that appears
@@ -487,13 +487,13 @@ fn inject_terminal_env(cmd: &mut CommandBuilder, app: &AppHandle, sidecar_port: 
     //    causing broken delete key, missing colors, and broken cursor movement.
     cmd.env("TERM", "xterm-256color");
     cmd.env("COLORTERM", "truecolor");
-    cmd.env("TERM_PROGRAM", "MyAgents");
+    cmd.env("TERM_PROGRAM", "BlexAgent");
 
     // 6. Locale — preserve system locale or default to UTF-8
     if std::env::var("LANG").is_err() {
         cmd.env("LANG", "en_US.UTF-8");
     }
 
-    // 7. Terminal indicator (so scripts can detect they're in MyAgents terminal)
-    cmd.env("MYAGENTS_TERMINAL", "1");
+    // 7. Terminal indicator (so scripts can detect they're in BlexAgent terminal)
+    cmd.env("BLEXAGENT_TERMINAL", "1");
 }

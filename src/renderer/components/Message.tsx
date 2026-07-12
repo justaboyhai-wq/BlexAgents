@@ -356,7 +356,7 @@ const Message = memo(function Message({ message, isLoading = false, onRewind, on
       .replace(/<\/?MEMORY_UPDATE>/g, '')
       .replace(/<\/?CRON_TASK>/g, '')
       .replace(/<\/?FLOATING_BALL_CONTEXT>/g, '')
-      .replace(/<\/?myagents-space-issue>/g, '')
+      .replace(/<\/?blexagent-space-issue>/g, '')
       .trim();
     const hasAttachments = Boolean(message.attachments?.length);
     const attachmentItems =

@@ -23,8 +23,8 @@ const PROXY_ENV_KEYS = [
   'all_proxy',
   'NO_PROXY',
   'no_proxy',
-  'MYAGENTS_PROXY_INJECTED',
-  'MYAGENTS_PROXY_INHERITED_ENV_JSON',
+  'BLEXAGENT_PROXY_INJECTED',
+  'BLEXAGENT_PROXY_INHERITED_ENV_JSON',
 ] as const;
 
 const originalEnv = { ...process.env };
@@ -77,15 +77,15 @@ describe('proxy-state provider scope', () => {
   });
 
   it('restores the Rust pre-injection proxy baseline for providers excluded by custom scope', async () => {
-    process.env.MYAGENTS_PROXY_INJECTED = '1';
-    process.env.MYAGENTS_PROXY_INHERITED_ENV_JSON = JSON.stringify({
+    process.env.BLEXAGENT_PROXY_INJECTED = '1';
+    process.env.BLEXAGENT_PROXY_INHERITED_ENV_JSON = JSON.stringify({
       HTTPS_PROXY: 'http://system.proxy:8080',
       NO_PROXY: '.corp.local',
     });
-    process.env.HTTP_PROXY = 'http://myagents.proxy:7890';
-    process.env.HTTPS_PROXY = 'http://myagents.proxy:7890';
-    process.env.http_proxy = 'http://myagents.proxy:7890';
-    process.env.https_proxy = 'http://myagents.proxy:7890';
+    process.env.HTTP_PROXY = 'http://blexagent.proxy:7890';
+    process.env.HTTPS_PROXY = 'http://blexagent.proxy:7890';
+    process.env.http_proxy = 'http://blexagent.proxy:7890';
+    process.env.https_proxy = 'http://blexagent.proxy:7890';
     process.env.NO_PROXY = 'localhost,127.0.0.1';
     process.env.no_proxy = 'localhost,127.0.0.1';
 
@@ -98,16 +98,16 @@ describe('proxy-state provider scope', () => {
     expect(excludedEnv.HTTPS_PROXY).toBe('http://system.proxy:8080');
     expect(excludedEnv.HTTP_PROXY).toBeUndefined();
     expect(excludedEnv.NO_PROXY).toBe('.corp.local');
-    expect(excludedEnv.MYAGENTS_PROXY_INJECTED).toBeUndefined();
-    expect(excludedEnv.MYAGENTS_PROXY_INHERITED_ENV_JSON).toBeUndefined();
+    expect(excludedEnv.BLEXAGENT_PROXY_INJECTED).toBeUndefined();
+    expect(excludedEnv.BLEXAGENT_PROXY_INHERITED_ENV_JSON).toBeUndefined();
     expect(proxyState.getProxyForProviderUrl('excluded-provider', 'https://api.example.com/v1')).toBe(
       'http://system.proxy:8080',
     );
 
     const includedEnv: Record<string, string | undefined> = {};
     proxyState.applyProviderProxyPolicyToEnv(includedEnv, 'included-provider');
-    expect(includedEnv.HTTP_PROXY).toBe('http://myagents.proxy:7890');
-    expect(includedEnv.HTTPS_PROXY).toBe('http://myagents.proxy:7890');
+    expect(includedEnv.HTTP_PROXY).toBe('http://blexagent.proxy:7890');
+    expect(includedEnv.HTTPS_PROXY).toBe('http://blexagent.proxy:7890');
   });
 
   it('stops a SOCKS bridge started by a superseded proxy transition', async () => {

@@ -21,7 +21,7 @@ interface FeedbackPopoverProps {
     triggerRef: React.RefObject<HTMLElement | null>;
 }
 
-const QR_CDN_URL = 'https://download.myagents.io/assets/feedback_qr_code.png';
+const QR_CDN_URL = 'https://download.blexagent.com/assets/feedback_qr_code.png';
 
 export default function FeedbackPopover({ open, onClose, onOpenBugReport, triggerRef }: FeedbackPopoverProps) {
     const { t } = useTranslation('app');

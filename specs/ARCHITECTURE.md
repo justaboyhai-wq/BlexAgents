@@ -1,10 +1,10 @@
-# MyAgents 架构总览
+# BlexAgent 架构总览
 
 > 全景认知地图。每个模块只给"是什么 / 关键约束 / 跳转"。代码细节、踩坑案例、API surface 见 `tech_docs/`。
 
 ## 项目定位
 
-MyAgents 是基于 Tauri v2 的桌面 AI Agent 客户端，提供 Claude Agent SDK 的图形界面。
+BlexAgent 是基于 Tauri v2 的桌面 AI Agent 客户端，提供 Claude Agent SDK 的图形界面。
 
 支持：
 - 多 Tab 对话
@@ -24,9 +24,9 @@ MyAgents 是基于 Tauri v2 的桌面 AI Agent 客户端，提供 Claude Agent S
 | 通信 | Rust HTTP/SSE Proxy (reqwest via `local_http` 模块) |
 | 拖拽 | @dnd-kit/sortable |
 
-> **单一 runtime 原则**：所有 MyAgents 自己的代码（Sidecar / Bridge / CLI）跑在内置 Node.js v24 上。
+> **单一 runtime 原则**：所有 BlexAgent 自己的代码（Sidecar / Bridge / CLI）跑在内置 Node.js v24 上。
 > SDK native binary 子进程内部静态链接的 Bun 是 SDK 团队的实现细节，通过 stdio NDJSON 与我们通信，
-> 不共享 MyAgents Node 进程内状态；但 builtin Anthropic 订阅会按 Claude Code native 默认规则读取本机官方 OAuth credential store。详见 `tech_docs/bundled_node.md`。
+> 不共享 BlexAgent Node 进程内状态；但 builtin Anthropic 订阅会按 Claude Code native 默认规则读取本机官方 OAuth credential store。详见 `tech_docs/bundled_node.md`。
 
 ## 全景架构图
 
@@ -202,7 +202,7 @@ Tab2 apiPost() ──► getSessionPort(session_456) ──► Rust proxy ──
 
 ### Management API（Node→Rust 反向通道）
 
-`src-tauri/src/management_api.rs` 在 app 启动时监听 `127.0.0.1:${随机端口}`（axum），直接暴露 HTTP 路由给 Node 内部工具调用。端口通过 `MYAGENTS_MANAGEMENT_PORT` 注入到 Sidecar 进程。
+`src-tauri/src/management_api.rs` 在 app 启动时监听 `127.0.0.1:${随机端口}`（axum），直接暴露 HTTP 路由给 Node 内部工具调用。端口通过 `BLEXAGENT_MANAGEMENT_PORT` 注入到 Sidecar 进程。
 
 | 前缀 | 职责 | 调用方 |
 |------|------|--------|
@@ -278,7 +278,7 @@ Phase4 后，几个历史大型 UI 入口保留原路径作为兼容 facade，�
 
 | 层 | 用途 | 何时包含 |
 |----|------|---------|
-| **L1** 基础身份 | 告诉 AI 运行在 MyAgents 产品中 | 始终 |
+| **L1** 基础身份 | 告诉 AI 运行在 BlexAgent 产品中 | 始终 |
 | **L2** 交互方式 | 桌面客户端 / IM Bot / Agent Channel | 互斥选一 |
 | **L3** 场景指令 | Cron 定时任务上下文 / IM 心跳 / 浮球小窗 / Browser Storage | 按需叠加 |
 
@@ -294,16 +294,16 @@ type InteractionScenario =
 
 ### 4. 自配置 CLI (`src/cli/` + `src-tauri/src/cli.rs`)
 
-内置命令行 `myagents`，让 AI 和用户都能通过 Bash 管理应用配置（MCP / Provider / Agent / Cron / Plugin），能力与 GUI 对等。
+内置命令行 `blexagent`，让 AI 和用户都能通过 Bash 管理应用配置（MCP / Provider / Agent / Cron / Plugin），能力与 GUI 对等。
 
 **两个使用场景：**
 
 | 场景 | 调用方式 | 端口来源 |
 |------|---------|---------|
-| AI 内部调用（主要） | SDK Bash 工具 → `myagents mcp add ...` | `MYAGENTS_PORT` 环境变量 |
-| 用户终端调用 | `MyAgents mcp list` | `~/.myagents/sidecar.port` 文件 |
+| AI 内部调用（主要） | SDK Bash 工具 → `blexagent mcp add ...` | `BLEXAGENT_PORT` 环境变量 |
+| 用户终端调用 | `BlexAgent mcp list` | `~/.blexagent/sidecar.port` 文件 |
 
-为什么 CLI 放在 `~/.myagents/bin/` 而非 app bundle：SDK 子进程 PATH 不含 app bundle 内部路径；shebang 执行需要可执行权限和去掉 `.ts` 后缀；`~/.myagents/bin/` 是跨平台稳定的工具投放点。
+为什么 CLI 放在 `~/.blexagent/bin/` 而非 app bundle：SDK 子进程 PATH 不含 app bundle 内部路径；shebang 执行需要可执行权限和去掉 `.ts` 后缀；`~/.blexagent/bin/` 是跨平台稳定的工具投放点。
 
 详见 `tech_docs/cli_architecture.md`。
 
@@ -314,8 +314,8 @@ type InteractionScenario =
 - `types.rs` 定义 `CronTask` / `CronSchedule` / run mode / delivery / provider intent
 - `execution.rs` 拥有 `execute_task_directly`，负责 ensure sidecar、构造执行 payload、结束条件与 stop
 - `commands.rs` 是 Tauri command glue
-- `store.rs` 原子写入 `~/.myagents/cron_tasks.json`
-- `run_records.rs` 管理 `~/.myagents/cron_runs/<taskId>.jsonl`
+- `store.rs` 原子写入 `~/.blexagent/cron_tasks.json`
+- `run_records.rs` 管理 `~/.blexagent/cron_runs/<taskId>.jsonl`
 - `schedule.rs` 提供 wall-clock polling（`sleep_until_wallclock`），系统休眠后能正确唤醒
 - `delivery.rs` / `init_recovery.rs` / `validation.rs` 分别拥有 IM delivery、启动恢复、字段与路径校验
 
@@ -334,7 +334,7 @@ Project (工作区)
     └── Channels: Telegram / Dingtalk / OpenClaw Plugin（飞书/微信/QQ 等）
 ```
 
-**模板默认能力**：工作区文件模板内容与产品级 Agent 默认策略分离。Mino 文件模板来自打包资源/外部模板仓库；MyAgents 在 `WorkspaceTemplate.agentDefaults` 声明产品默认能力。新建 Mino project 会记录 `templateId=mino` / `templateSource=builtin`，随后 `buildAgentForProject()` 生成默认开启的 Agent（heartbeat + memory update），但不自动创建 channel；Rust 仍只在 `agent.enabled && channel.enabled && credentials` 成立时启动 channel/Agent heartbeat。
+**模板默认能力**：工作区文件模板内容与产品级 Agent 默认策略分离。Mino 文件模板来自打包资源/外部模板仓库；BlexAgent 在 `WorkspaceTemplate.agentDefaults` 声明产品默认能力。新建 Mino project 会记录 `templateId=mino` / `templateSource=builtin`，随后 `buildAgentForProject()` 生成默认开启的 Agent（heartbeat + memory update），但不自动创建 channel；Rust 仍只在 `agent.enabled && channel.enabled && credentials` 成立时启动 channel/Agent heartbeat。
 
 Memory auto-update 的默认指令文件不属于 Mino 文件模板的硬依赖：`src-tauri/src/im/memory_update.rs` 在执行自动更新流程时会确保工作区根目录 `UPDATE_MEMORY.md` 存在，缺失则从 `src/shared/default-update-memory.md` 初始化；已有文件始终是用户内容权威。
 
@@ -428,7 +428,7 @@ SDK subprocess → ANTHROPIC_BASE_URL=127.0.0.1:${sidecarPort}
 | 文件 | 职责 |
 |------|------|
 | `types.ts` | `AgentRuntime` 接口 + `UnifiedEvent` 联合类型 |
-| `factory.ts` | Runtime 工厂，`getCurrentRuntimeType()` 读 `MYAGENTS_RUNTIME` 环境变量 |
+| `factory.ts` | Runtime 工厂，`getCurrentRuntimeType()` 读 `BLEXAGENT_RUNTIME` 环境变量 |
 | `claude-code.ts` | CC Runtime：NDJSON over stdio，`-p` 模式 |
 | `codex.ts` | Codex Runtime：JSON-RPC 2.0 over stdio，`app-server` 持久进程 |
 | `gemini.ts` | Gemini Runtime：ACP JSON-RPC 2.0 over stdio，`gemini --acp` |
@@ -447,7 +447,7 @@ SDK subprocess → ANTHROPIC_BASE_URL=127.0.0.1:${sidecarPort}
 | `transcript-persistence.ts` | in-memory session messages、persisted runtime usage totals、user/assistant append、retry truncate、last assistant read、SessionStore save + metadata preview/context update |
 | `interactive.ts` | permission/AskUserQuestion pending state、active IM request id、IM registry cleanup、inbox/watch reply metadata与错误推送；permission response 成功 delivery 后才 consume pending state |
 
-**门控链路：** Rust `sidecar/runtime_identity.rs` 读取 `config.multiAgentRuntime` + `agent.runtime`，`sidecar/session_lifecycle.rs` / `sidecar/instances.rs` 在 spawn Sidecar 时注入 `MYAGENTS_RUNTIME` 环境变量 → Node.js `factory.ts` 读取 → `session-engine/selector.ts` 通过 `shouldUseExternalRuntime()` 选择 builtin/external `SessionEngine`。前端 `Chat.tsx` 用同样门控决定 `currentRuntime`。
+**门控链路：** Rust `sidecar/runtime_identity.rs` 读取 `config.multiAgentRuntime` + `agent.runtime`，`sidecar/session_lifecycle.rs` / `sidecar/instances.rs` 在 spawn Sidecar 时注入 `BLEXAGENT_RUNTIME` 环境变量 → Node.js `factory.ts` 读取 → `session-engine/selector.ts` 通过 `shouldUseExternalRuntime()` 选择 builtin/external `SessionEngine`。前端 `Chat.tsx` 用同样门控决定 `currentRuntime`。
 
 新增“config 同步 / 注入 user 消息 / 等待 turn 完成 / session read / session operation”的 Sidecar endpoint 时，MUST 走 `SessionEngine` facade；不要在 route handler 里直接手写 builtin/external 分流。Phase5 已迁移的代表路径包括 `/api/session-state`、`/api/session-latest-result`、`/chat/stream`、`GET /sessions/:id`、`/chat/rewind`、`/chat/external-retry`、`/sessions/fork`、`/sessions/switch`、`/api/im/session/new`、`/api/mcp/set`、`/api/agents/set`、`/api/provider/set`、`/api/session/config`。仅 external-only legacy/diagnostic endpoint 可直接调用 `external-session.ts`，并需在代码注释说明兼容原因。
 
@@ -498,7 +498,7 @@ PTY master read → emit('terminal:data:{id}') → xterm.write → 屏幕渲染
 - Rust `TerminalManager` 管理 `HashMap<String, TerminalSession>`，每个 session 持有 PTY pair（`portable-pty`）
 - 不走 SSE Proxy，用 Tauri event
 - 终端绑定 Tab 生命周期，面板关闭不杀进程
-- 环境注入：内置 Node.js + `~/.myagents/bin` + `MYAGENTS_PORT` + `TERM=xterm-256color`
+- 环境注入：内置 Node.js + `~/.blexagent/bin` + `BLEXAGENT_PORT` + `TERM=xterm-256color`
 - Shell 以 login shell（`-l`）启动
 - 主题：日间 / 夜间双主题自动切换（MutationObserver 监听 `<html>.dark`）
 
@@ -534,8 +534,8 @@ Cmd+W 层级关闭：Overlay → 分屏面板 → Tab，高 z-index 优先。
 **仅 Tauri 可用** —— 前端通过 `invoke('cmd_search_*')` 直接调 Rust，不经 Sidecar。浏览器开发模式不提供 fallback。
 
 **关键设计：**
-- Session 索引：单一全局索引 `~/.myagents/search_index/sessions/`
-- Session watcher：`notify-debouncer-full` 5s 滑动去抖观察 `~/.myagents/sessions/`，**任何**写入者的变更都自动流入索引
+- Session 索引：单一全局索引 `~/.blexagent/search_index/sessions/`
+- Session watcher：`notify-debouncer-full` 5s 滑动去抖观察 `~/.blexagent/sessions/`，**任何**写入者的变更都自动流入索引
 - 读写并发：`Arc<SessionIndex>`（无外层 mutex），读路径 lock-free
 - 中文分词：`tantivy-jieba`（~37 万词词典），字段 MUST 显式 `"chinese"` tokenizer
 - Schema 版本门控：`SCHEMA_VERSION` + `.schema_version` 磁盘 marker，不一致时自动删除重建
@@ -545,7 +545,7 @@ Cmd+W 层级关闭：Overlay → 分屏面板 → Tab，高 z-index 优先。
 
 ### 15. Skill URL 安装 (`src/server/skills/`)
 
-支持从 GitHub 链接、`npx skills add` 命令或直连 zip 一键把社区 skill 装到 `~/.myagents/skills/`（或当前工作区 `.claude/skills/`）。
+支持从 GitHub 链接、`npx skills add` 命令或直连 zip 一键把社区 skill 装到 `~/.blexagent/skills/`（或当前工作区 `.claude/skills/`）。
 
 **三段流水线：**
 ```
@@ -567,13 +567,13 @@ installer.ts         — 扫描 SKILL.md / marketplace.json → InstallAnalysis
 把"想法速记 → 对齐 → 派发 → 执行 → 验收 → 审计"的完整工作流一等公民化。
 
 **两个持久化 Store：**
-- `ThoughtStore` —— `~/.myagents/thoughts/<YYYY-MM>/<id>.md`
-- `TaskStore` —— `~/.myagents/tasks.jsonl` + `~/.myagents/tasks/<id>/{task.md, verify.md, progress.md, alignment/}`
+- `ThoughtStore` —— `~/.blexagent/thoughts/<YYYY-MM>/<id>.md`
+- `TaskStore` —— `~/.blexagent/tasks.jsonl` + `~/.blexagent/tasks/<id>/{task.md, verify.md, progress.md, alignment/}`
 
 **关键设计：**
 - Task 状态机 + 审计链（每次状态变更原子写入 `statusHistory`）
 - Task ↔ CronTask 反向指针：Task 不自己跑，登记 `CronTask { task_id }`，调度器 tick 时动态构造 Prompt（用户中途编辑 task.md 立即生效）
-- AI 讨论路径：想法卡 →「AI 讨论」打开新 Tab + 注入 `task-alignment` Skill → 完成后 `myagents task create-from-alignment`
+- AI 讨论路径：想法卡 →「AI 讨论」打开新 Tab + 注入 `task-alignment` Skill → 完成后 `blexagent task create-from-alignment`
 - 状态变更广播 Tauri event `task:status-changed`（非 SSE），所有打开的任务中心 Tab 实时同步
 
 详见 `tech_docs/task_center.md`。
@@ -600,7 +600,7 @@ installer.ts         — 扫描 SKILL.md / marketplace.json → InstallAnalysis
 | `delete` | 删除：默认进 OS 回收站（`trash` crate，Finder「放回原处」承担恢复），`permanent:true` 直删；symlink（含断链）一律直接 unlink 不入 trash | `cmd_workspace_delete` |
 | `transfer` | 外部路径拷贝（drag-drop，源过 external-read 黑名单 + 存在时 canonical 复查）与工作区内部 copy/paste（源走 canonical 工作区解析，自动重名）；两者 per-file `errors[]` 上报，symlink-safe collision check | `cmd_workspace_copy_paths` / `cmd_workspace_copy_internal` |
 | `files_b64` | drag-drop 字节侧（base64 IPC，import + read），拒 symlink + bounded read 防身份伪装 | `cmd_workspace_import_files_b64` / `cmd_workspace_read_files_b64` |
-| `user_attachments` | 用户输入图片附件 staging：绝对路径图片由 Rust 读取并复制到 `~/.myagents/attachments/<session>/`，返回 session-owned `relativePath`；≤10MB 作为图片预览/vision ref，>10MB 交回 `transfer` 转 `@myagents_files/...` 文件引用 | `cmd_prepare_user_image_attachments` |
+| `user_attachments` | 用户输入图片附件 staging：绝对路径图片由 Rust 读取并复制到 `~/.blexagent/attachments/<session>/`，返回 session-owned `relativePath`；≤10MB 作为图片预览/vision ref，>10MB 交回 `transfer` 转 `@blexagent_files/...` 文件引用 | `cmd_prepare_user_image_attachments` |
 | `check_paths` | 200-batch existence 探针（与读侧 symlink-escape gate 一致，挡 chip 假阳性） | `cmd_workspace_check_paths` |
 | `gitignore` | `.gitignore` append（`with_file_lock_blocking` 串行写） | `cmd_workspace_add_gitignore` |
 | `slash` | / 命令扫描（builtin + 项目 + 用户 skills；`agent-browser` Windows 屏蔽） | `cmd_list_slash_commands` |
@@ -637,7 +637,7 @@ AI 运行时（Codex / builtin / 未来 Gemini / CC）产出的富媒体（图�
 `UnifiedEvent.tool_result.attachments[]` 通道，前端用单一 `ToolAttachmentGallery` 组件渲染。
 v0.2.15 wire 上 Codex Runtime；v0.2.33（#293）wire 上 builtin（tool_result 内容块里的图片源经
 `extractToolResultRenderParts` 提取 → `saveExtractedToolResultAttachments` 落盘到
-`<workspace>/myagents_files/<tool>/` + trusted-root 服务副本，session 数据从此只存 path 引用，
+`<workspace>/blexagent_files/<tool>/` + trusted-root 服务副本，session 数据从此只存 path 引用，
 图片字节不再进 JSONL/SSE）；Gemini / CC 待接入。
 
 **关键设计：**
@@ -656,7 +656,7 @@ v0.2.15 wire 上 Codex Runtime；v0.2.33（#293）wire 上 builtin（tool_result
   载入历史时调用，把 Codex savedPath 重新注册进 in-process registry，解决 sidecar restart 后
   attachment 404
 - **5 层路径校验**：blacklist + canonicalize symlinks（读侧 default true）+ 拒绝 symlink leaf +
-  positive allow-list（仅 `~/.codex/` `~/.myagents/` `~/Documents/` 等）+ trusted root（写侧）
+  positive allow-list（仅 `~/.codex/` `~/.blexagent/` `~/Documents/` 等）+ trusted root（写侧）
 - **SSRF 防护**：URL 下载限定 `https:` + 拒绝 loopback / RFC1918 / 169.254/16 / IPv6 ULA +
   `redirect: 'error'` + DNS 解析后校验并把 fetch 钉死在已验证 IP（防 rebinding TOCTOU）+
   流式读取累计 25MB 上限（防无 Content-Length 的无界分配）
@@ -673,13 +673,13 @@ SessionStore 反查 attachments 重 register。跨 Sidecar fetch attachment **�
 
 **HTTP endpoint**：`GET /api/attachment/tool/<sessionId>/<turnId>/<filename>`（CORS + Cache-Control
 immutable）。第一轮查内存 `externalPathRegistry`（Codex savedPath 命中），miss 后 fallback 到
-trusted root `~/.myagents/generated/tool-attachments/<sid>/<tid>/<file>`（base64/url 落盘命中）。
+trusted root `~/.blexagent/generated/tool-attachments/<sid>/<tid>/<file>`（base64/url 落盘命中）。
 
 详见 `tech_docs/tool_attachment_pipeline.md`。
 
 ---
 
-### 19. MyAgents Cloud Space（开发中，`src-tauri/src/space_cloud.rs` + `src/renderer/pages/Space.tsx`）
+### 19. BlexAgent Cloud Space（开发中，`src-tauri/src/space_cloud.rs` + `src/renderer/pages/Space.tsx`）
 
 Cloud Space 把官方/团队空间接入桌面端，目前仍是开发中/半成品能力，不作为已发布用户能力写入 CHANGELOG 或 GitHub Release notes。
 
@@ -687,12 +687,12 @@ Cloud Space 把官方/团队空间接入桌面端，目前仍是开发中/半成
 
 - Space 不是 AI Runtime / Session Sidecar。云端登录、HTTP 请求、附件/Skill IO、registered-agent IssueDelivery poll/process 都由 Rust Tauri command 拥有。
 - Renderer 只通过 `src/renderer/api/spaceCloud.ts` 调 Tauri invoke，不直连 Space 服务，也不持有 session token。
-- build-time capability 由 `src-tauri/build.rs` 注入 `MYAGENTS_SPACE_*`，`cmd_space_get_capability` 只裁决构建能力；开发中入口还受 `config.teamSpaceEnabled` 默认关闭门控。
-- 本地状态在 `~/.myagents/space/{session.json,registered_agents.json,delivery_log.json}`，不进入 SessionStore。
-- 本地端点身份统一由 `~/.myagents/device_id` 表达，Rust owner 是 `src-tauri/src/device_identity.rs`。Analytics 的 `device_id` 与 Space 的 `deviceId` 消费同一个值，不再派生第二套云端 device id。
+- build-time capability 由 `src-tauri/build.rs` 注入 `BLEXAGENT_SPACE_*`，`cmd_space_get_capability` 只裁决构建能力；开发中入口还受 `config.teamSpaceEnabled` 默认关闭门控。
+- 本地状态在 `~/.blexagent/space/{session.json,registered_agents.json,delivery_log.json}`，不进入 SessionStore。
+- 本地端点身份统一由 `~/.blexagent/device_id` 表达，Rust owner 是 `src-tauri/src/device_identity.rs`。Analytics 的 `device_id` 与 Space 的 `deviceId` 消费同一个值，不再派生第二套云端 device id。
 - 云端概念是 `user_devices(userId, deviceId)`，用于记录某个登录用户在某个本地端点上的设备名、平台、系统版本、客户端版本与 last seen。客户端登录/授权后会尝试 upsert；registered-agent 注册/编辑 payload 也携带这些字段供服务端落表。
 - Registered Agent 是执行实体，归属于 `(ownerUserId, deviceId)`，并关联该设备上的本地 Agent 工作区。只有 `ownerUserId === current session user` 且 `deviceId === current local device_id` 的 Agent 才是当前设备可编辑/可执行的 local Agent。
-- Registered Agent 执行端点使用 token-only capability：本地轮询时只带 registered-agent token，服务端由 token 映射到 user / space / device / agent 权限边界；MyAgents Desktop 只从“当前 Space user + 当前 device”的本地 token 集合中选择 token。
+- Registered Agent 执行端点使用 token-only capability：本地轮询时只带 registered-agent token，服务端由 token 映射到 user / space / device / agent 权限边界；BlexAgent Desktop 只从“当前 Space user + 当前 device”的本地 token 集合中选择 token。
 
 详见 `tech_docs/space_cloud.md`。
 
@@ -767,7 +767,7 @@ Cloud Space 把官方/团队空间接入桌面端，目前仍是开发中/半成
 
 ## 安全设计
 
-- **FS 权限：** Tauri scope 仅允许 `~/.myagents` 配置目录
+- **FS 权限：** Tauri scope 仅允许 `~/.blexagent` 配置目录
 - **Agent 目录验证：** 阻止访问系统敏感目录
 - **Tauri Capabilities：** 最小权限原则
 - **本地绑定：** Sidecar 仅监听 `127.0.0.1`
@@ -806,7 +806,7 @@ Cloud Space 把官方/团队空间接入桌面端，目前仍是开发中/半成
 
 ## 单一运行时与预置二进制
 
-### Node.js v24（唯一 MyAgents 自有 runtime）
+### Node.js v24（唯一 BlexAgent 自有 runtime）
 
 | 用途 |
 |------|
@@ -814,14 +814,14 @@ Cloud Space 把官方/团队空间接入桌面端，目前仍是开发中/半成
 | Plugin Bridge |
 | MCP Server (`npx`) |
 | 社区 npm 包 |
-| `myagents` CLI |
+| `blexagent` CLI |
 | AI Bash `node` / `npx` / `npm` |
 
 打包位置：`src-tauri/resources/nodejs/`（构建 staging 目录；按架构缓存见 `tech_docs/bundled_node.md`）。
 
 ### SDK Native Binary（SDK 团队的实现细节）
 
-`src-tauri/resources/claude-agent-sdk/claude[.exe]` —— SDK 0.2.113+ 用 `bun build --compile` 产物分发，内嵌 SDK team pin 的 Bun。独立进程，stdio NDJSON 与我们通信，**不共享 MyAgents Node 进程内状态**；但在 builtin `anthropic-sub` 路径下，它仍按 Claude Code native 默认规则读取本机官方 OAuth credential store（macOS Keychain / `~/.claude/.credentials.json`）。MyAgents 不设置 `CLAUDE_CONFIG_DIR`，也不接管这套 OAuth 生命周期。
+`src-tauri/resources/claude-agent-sdk/claude[.exe]` —— SDK 0.2.113+ 用 `bun build --compile` 产物分发，内嵌 SDK team pin 的 Bun。独立进程，stdio NDJSON 与我们通信，**不共享 BlexAgent Node 进程内状态**；但在 builtin `anthropic-sub` 路径下，它仍按 Claude Code native 默认规则读取本机官方 OAuth credential store（macOS Keychain / `~/.claude/.credentials.json`）。BlexAgent 不设置 `CLAUDE_CONFIG_DIR`，也不接管这套 OAuth 生命周期。
 
 `src/server/agent-session.ts::resolveClaudeCodeCli()` 按 platform triple 定位。
 
@@ -829,7 +829,7 @@ Cloud Space 把官方/团队空间接入桌面端，目前仍是开发中/半成
 
 | 二进制 | 用途 | 来源 | 打包位置 |
 |--------|------|------|---------|
-| **cuse** | 预置 Computer-Use MCP（截图/点击/输入/滚动，仅 macOS/Windows） | Cloudflare R2: `https://download.myagents.io/cuse/...`（源头是私有 `hAcKlyc/MyAgents-Cuse` GH Release，由该仓库的 `publish_r2.sh` 镜像到 R2 供本开源 repo build 使用） | `src-tauri/binaries/cuse-*-<triple>[.exe]` |
+| **cuse** | 预置 Computer-Use MCP（截图/点击/输入/滚动，仅 macOS/Windows） | Cloudflare R2: `https://download.blexagent.com/cuse/...`（源头是私有 `blexagent/blexagent-Cuse` GH Release，由该仓库的 `publish_r2.sh` 镜像到 R2 供本开源 repo build 使用） | `src-tauri/binaries/cuse-*-<triple>[.exe]` |
 
 新增同类二进制约定：
 - 注册到 `PRESET_MCP_SERVERS` 时用 `command: '__bundled_xxx__'` 哨兵
@@ -842,7 +842,7 @@ Windows 无自带 git/bash，NSIS 静默安装 Git for Windows（`src-tauri/nsis
 
 ### PATH 注入
 
-`buildClaudeSessionEnv()` 优先级：`systemNodeDirs`（用户安装的 Node.js） → `bundledNodeDir` → `~/.myagents/npm-global/bin` → `~/.myagents/bin` → 系统路径。SDK shell env 不全局设置 `npm_config_prefix`；需要固定 npm 安装落点时使用命令级 env。
+`buildClaudeSessionEnv()` 优先级：`systemNodeDirs`（用户安装的 Node.js） → `bundledNodeDir` → `~/.blexagent/npm-global/bin` → `~/.blexagent/bin` → 系统路径。SDK shell env 不全局设置 `npm_config_prefix`；需要固定 npm 安装落点时使用命令级 env。
 
 详见 `tech_docs/bundled_node.md`。
 
@@ -854,15 +854,15 @@ Windows 无自带 git/bash，NSIS 静默安装 Git for Windows（`src-tauri/nsis
 
 应用启动和每个 Sidecar 创建时输出 `[boot]` 单行自检信息：
 ```
-[boot] v=0.2.0 build=release os=macos-aarch64 provider=deepseek mcp=2 agents=3 channels=5 cron=12 proxy=false dir=/Users/xxx/.myagents
+[boot] v=0.2.0 build=release os=macos-aarch64 provider=deepseek mcp=2 agents=3 channels=5 cron=12 proxy=false dir=/Users/xxx/.blexagent
 [boot] pid=12345 port=31415 workspace=/path session=abc-123 resume=true model=deepseek-chat bridge=yes mcp=playwright,im-cron
 ```
 
-排查第一步：`grep '\[boot\]' ~/.myagents/logs/unified-*.log` 获取完整环境。
+排查第一步：`grep '\[boot\]' ~/.blexagent/logs/unified-*.log` 获取完整环境。
 
 ### 统一日志格式
 
-三个来源汇入 `~/.myagents/logs/unified-{YYYY-MM-DD}.log`（本地时间）：
+三个来源汇入 `~/.blexagent/logs/unified-{YYYY-MM-DD}.log`（本地时间）：
 - **[REACT]** 前端日志
 - **[NODE]** Node.js Sidecar 日志（logger interceptor 直写）
 - **[RUST]** Rust 层日志

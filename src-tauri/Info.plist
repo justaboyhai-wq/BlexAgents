@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -16,9 +16,9 @@
 	  helpers (e.g. WeChat scroll fallback). Screen Recording and Accessibility
 	  prompts are system-generated with no Info.plist key, and are inherited
 	  by child processes that share the parent app's code signature — so
-	  granting them once to MyAgents.app covers cuse automatically.
+	  granting them once to BlexAgent.app covers cuse automatically.
 	-->
 	<key>NSAppleEventsUsageDescription</key>
-	<string>MyAgents 需要控制其他应用，以便 AI 为你激活窗口、运行 AppleScript 并完成桌面自动化任务。</string>
+	<string>BlexAgent 需要控制其他应用，以便 AI 为你激活窗口、运行 AppleScript 并完成桌面自动化任务。</string>
 </dict>
 </plist>

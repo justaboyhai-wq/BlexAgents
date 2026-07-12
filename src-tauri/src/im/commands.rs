@@ -201,11 +201,11 @@ pub async fn cmd_im_conversations(
 
 // ===== Unified Config Commands (v0.1.26) =====
 
-/// Persist a partial patch to a single bot's entry in `~/.myagents/config.json`.
+/// Persist a partial patch to a single bot's entry in `~/.blexagent/config.json`.
 /// Uses the shared config lock. `None` = no change, `Some("")` = clear.
 pub(super) fn persist_bot_config_patch(bot_id: &str, patch: &BotConfigPatch) -> Result<(), String> {
     let home = dirs::home_dir().ok_or("[im] Home dir not found")?;
-    let config_path = home.join(".myagents").join("config.json");
+    let config_path = home.join(".blexagent").join("config.json");
     with_config_lock(&config_path, true, |config| {
         // Find the bot/channel entry: search legacy imBotConfigs first, then agents[].channels[] (v0.1.42)
         // Use JSON Pointer path to locate the entry, then get a mutable reference.
@@ -637,10 +637,10 @@ async fn update_bot_config_internal<R: Runtime>(
     Ok(())
 }
 
-/// Add a new bot entry to `~/.myagents/config.json`.
+/// Add a new bot entry to `~/.blexagent/config.json`.
 fn add_bot_config_to_disk(bot_config: &serde_json::Value) -> Result<(), String> {
     let home = dirs::home_dir().ok_or("[im] Home dir not found")?;
-    let config_path = home.join(".myagents").join("config.json");
+    let config_path = home.join(".blexagent").join("config.json");
     with_config_lock(&config_path, true, |config| {
         // Ensure imBotConfigs array exists
         if config.get("imBotConfigs").is_none() {
@@ -668,10 +668,10 @@ fn add_bot_config_to_disk(bot_config: &serde_json::Value) -> Result<(), String> 
     Ok(())
 }
 
-/// Remove a bot entry from `~/.myagents/config.json`.
+/// Remove a bot entry from `~/.blexagent/config.json`.
 fn remove_bot_config_from_disk(bot_id: &str) -> Result<(), String> {
     let home = dirs::home_dir().ok_or("[im] Home dir not found")?;
-    let config_path = home.join(".myagents").join("config.json");
+    let config_path = home.join(".blexagent").join("config.json");
     with_config_lock(&config_path, true, |config| {
         if let Some(bots) = config
             .get_mut("imBotConfigs")
@@ -685,10 +685,10 @@ fn remove_bot_config_from_disk(bot_id: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Read `availableProvidersJson` from the top-level field of `~/.myagents/config.json`.
+/// Read `availableProvidersJson` from the top-level field of `~/.blexagent/config.json`.
 pub(super) fn read_available_providers_from_disk() -> Option<String> {
     let home = dirs::home_dir()?;
-    let config_path = home.join(".myagents").join("config.json");
+    let config_path = home.join(".blexagent").join("config.json");
     let content = std::fs::read_to_string(&config_path).ok()?;
     let config: serde_json::Value = serde_json::from_str(strip_bom(&content)).ok()?;
     config
@@ -2278,7 +2278,7 @@ pub async fn cmd_create_agent(
 
     tokio::task::spawn_blocking(move || {
         let home = dirs::home_dir().ok_or("[agent] Home dir not found")?;
-        let config_path = home.join(".myagents").join("config.json");
+        let config_path = home.join(".blexagent").join("config.json");
 
         with_config_lock(&config_path, true, |app_config| {
             let agents = app_config.get_mut("agents").and_then(|v| v.as_array_mut());
@@ -2328,7 +2328,7 @@ pub async fn cmd_delete_agent(
     let aid = agentId.clone();
     tokio::task::spawn_blocking(move || {
         let home = dirs::home_dir().ok_or("[agent] Home dir not found")?;
-        let config_path = home.join(".myagents").join("config.json");
+        let config_path = home.join(".blexagent").join("config.json");
 
         with_config_lock(&config_path, true, |app_config| {
             if let Some(agents) = app_config.get_mut("agents").and_then(|v| v.as_array_mut()) {
@@ -2337,8 +2337,8 @@ pub async fn cmd_delete_agent(
             Ok(())
         })?;
 
-        // Clean up agent data directory (~/.myagents/agents/{agentId}/)
-        let agent_data_dir = home.join(".myagents").join("agents").join(&aid);
+        // Clean up agent data directory (~/.blexagent/agents/{agentId}/)
+        let agent_data_dir = home.join(".blexagent").join("agents").join(&aid);
         if agent_data_dir.exists() {
             if let Err(e) = std::fs::remove_dir_all(&agent_data_dir) {
                 ulog_warn!(

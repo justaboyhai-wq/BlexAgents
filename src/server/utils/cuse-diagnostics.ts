@@ -10,7 +10,7 @@ import { getBundledCusePath } from './runtime';
 
 const CUSE_VERSION_TIMEOUT_MS = 5_000;
 const CUSE_LATEST_TIMEOUT_MS = 5_000;
-const CUSE_LATEST_URL = 'https://download.myagents.io/cuse/latest.json';
+const CUSE_LATEST_URL = 'https://download.blexagent.com/cuse/latest.json';
 const MAX_SKILL_CACHE_HASH_BYTES = 50 * 1024 * 1024;
 
 const execFileAsync = promisify(execFile);
@@ -26,7 +26,7 @@ export interface CuseBinaryDiagnostic {
 }
 
 export interface CuseSkillCacheDiagnostic extends CuseBinaryDiagnostic {
-  source: 'workspace' | 'myagents-user' | 'codex-user' | 'claude-user';
+  source: 'workspace' | 'blexagent-user' | 'codex-user' | 'claude-user';
   label: string;
   differsFromBundledHash: boolean | null;
   notExecuted: true;
@@ -208,9 +208,9 @@ function uniqueSkillCacheCandidates(workspacePath: string | undefined, homeDir: 
   if (homeDir) {
     candidates.push(
       {
-        source: 'myagents-user',
-        label: '~/.myagents skill',
-        path: join(homeDir, '.myagents', 'skills', 'cuse', 'scripts', binaryName),
+        source: 'blexagent-user',
+        label: '~/.blexagent skill',
+        path: join(homeDir, '.blexagent', 'skills', 'cuse', 'scripts', binaryName),
       },
       {
         source: 'codex-user',
@@ -240,7 +240,7 @@ async function inspectSkillCaches(
 ): Promise<CuseSkillCacheDiagnostic[]> {
   const safeRoots = existingRealRoots([
     workspacePath,
-    homeDir ? join(homeDir, '.myagents', 'skills', 'cuse') : null,
+    homeDir ? join(homeDir, '.blexagent', 'skills', 'cuse') : null,
     homeDir ? join(homeDir, '.codex', 'skills', 'cuse') : null,
     homeDir ? join(homeDir, '.claude', 'skills', 'cuse') : null,
   ]);

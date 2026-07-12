@@ -10,7 +10,7 @@ import {
 const invalidPlainScalarFrontmatter = `---
 name: prompt-writer
 description: Methodology for writing prompts. Triggers: "write a prompt", "help me write a prompt". Not for: direct answers.
-author: MyAgents
+author: BlexAgent
 ---
 
 # Prompt Writer
@@ -24,7 +24,7 @@ describe('slash command frontmatter parsing', () => {
             expect(parseSkillFrontmatter(invalidPlainScalarFrontmatter)).toEqual({
                 name: 'prompt-writer',
                 description: 'Methodology for writing prompts. Triggers: "write a prompt", "help me write a prompt". Not for: direct answers.',
-                author: 'MyAgents',
+                author: 'BlexAgent',
             });
             expect(warn).not.toHaveBeenCalled();
         } finally {

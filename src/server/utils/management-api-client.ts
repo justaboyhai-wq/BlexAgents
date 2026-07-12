@@ -3,7 +3,7 @@ import { readLoopbackJson } from './loopback-response';
 
 export const ADMIN_LOOPBACK_TIMEOUT_MS = 10_000;
 
-const MGMT_PORT = process.env.MYAGENTS_MANAGEMENT_PORT;
+const MGMT_PORT = process.env.BLEXAGENT_MANAGEMENT_PORT;
 
 export async function managementApi(
   path: string,
@@ -15,7 +15,7 @@ export async function managementApi(
       ok: false,
       error: 'Management API not available (app may still be starting)',
       recoveryHint: {
-        recoveryCommand: 'myagents status',
+        recoveryCommand: 'blexagent status',
         message: 'Check whether the app backend is fully up; if not, retry in a few seconds.',
       },
     };
@@ -37,7 +37,7 @@ export async function managementApi(
       ok: false,
       error: `Management API unreachable: ${msg}`,
       recoveryHint: {
-        recoveryCommand: 'myagents status',
+        recoveryCommand: 'blexagent status',
         message: 'Check backend health; restart the app if the problem persists.',
       },
     };

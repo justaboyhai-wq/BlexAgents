@@ -46,7 +46,7 @@ const COLLAPSED_WORKSPACE_COUNT = 6;
 const HISTORY_PAGE_SIZE = 30;
 const WORKSPACE_ROW_MAX_HEIGHT = 94;
 const EMPTY_SESSION_TAGS: SessionTag[] = [];
-const SHOW_AUTOMATION_HISTORY_STORAGE_KEY = 'myagents.launcher.showAutomationHistorySessions';
+const SHOW_AUTOMATION_HISTORY_STORAGE_KEY = 'blexagent.launcher.showAutomationHistorySessions';
 
 type HistoryFilterValue = 'all' | 'favorites' | string;
 

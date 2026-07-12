@@ -3,7 +3,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import type { ProxySettings } from '../shared/config-types';
-import { effectiveProxyScopeKey, shouldUseMyAgentsProxyForProvider } from '../shared/proxyScope';
+import { effectiveProxyScopeKey, shouldUseBlexAgentProxyForProvider } from '../shared/proxyScope';
 import {
   isSocksBridgeRunning,
   startSocksBridge,
@@ -23,10 +23,10 @@ const PROXY_VARS_LIST = [
   'no_proxy',
 ] as const;
 
-const proxyWasInjectedByRust = process.env.MYAGENTS_PROXY_INJECTED === '1';
-const proxyInheritedEnvJson = process.env.MYAGENTS_PROXY_INHERITED_ENV_JSON;
-delete process.env.MYAGENTS_PROXY_INJECTED;
-delete process.env.MYAGENTS_PROXY_INHERITED_ENV_JSON;
+const proxyWasInjectedByRust = process.env.BLEXAGENT_PROXY_INJECTED === '1';
+const proxyInheritedEnvJson = process.env.BLEXAGENT_PROXY_INHERITED_ENV_JSON;
+delete process.env.BLEXAGENT_PROXY_INJECTED;
+delete process.env.BLEXAGENT_PROXY_INHERITED_ENV_JSON;
 
 const inheritedProxySnapshot: Record<string, string | undefined> = readInheritedProxySnapshot();
 
@@ -70,7 +70,7 @@ function proxySnapshotForLog(snapshot: Record<string, string | undefined>): stri
 
 function readInitialProxySettings(): ProxySettings | null {
   try {
-    const raw = readFileSync(join(homedir(), '.myagents', 'config.json'), 'utf8');
+    const raw = readFileSync(join(homedir(), '.blexagent', 'config.json'), 'utf8');
     const parsed = JSON.parse(raw.replace(/^\uFEFF/, '')) as { proxySettings?: unknown };
     return coerceProxySettings(parsed.proxySettings);
   } catch {
@@ -123,8 +123,8 @@ function copyProxyEnvVars(
     if (value !== undefined) target[key] = value;
     else delete target[key];
   }
-  delete target.MYAGENTS_PROXY_INJECTED;
-  delete target.MYAGENTS_PROXY_INHERITED_ENV_JSON;
+  delete target.BLEXAGENT_PROXY_INJECTED;
+  delete target.BLEXAGENT_PROXY_INHERITED_ENV_JSON;
   if (!target.NO_PROXY && !target.no_proxy) {
     target.NO_PROXY = PROXY_NO_PROXY_VAL;
     target.no_proxy = PROXY_NO_PROXY_VAL;
@@ -263,7 +263,7 @@ export function applyProviderProxyPolicyToEnv(
   env: Record<string, string | undefined>,
   providerId: string,
 ): void {
-  if (shouldUseMyAgentsProxyForProvider(currentProxySettings, providerId)) {
+  if (shouldUseBlexAgentProxyForProvider(currentProxySettings, providerId)) {
     copyProxyEnvVars(env, process.env);
     return;
   }
@@ -271,7 +271,7 @@ export function applyProviderProxyPolicyToEnv(
 }
 
 export function getProxyForProviderUrl(providerId: string, url: string): string | undefined {
-  const source = shouldUseMyAgentsProxyForProvider(currentProxySettings, providerId)
+  const source = shouldUseBlexAgentProxyForProvider(currentProxySettings, providerId)
     ? process.env
     : inheritedProxySnapshot;
   return proxyForUrlFromEnv(url, source);

@@ -176,7 +176,7 @@ function getRuntimeDisplayLabel(runtime: RuntimeType | undefined): string {
     case 'gemini': return 'Gemini CLI';
     case 'builtin':
     default:
-      return 'MyAgents';
+      return 'BlexAgent';
   }
 }
 
@@ -1971,7 +1971,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     onFilesDropped: handleFileDrop,
   });
 
-  // Handle Tauri file drop on chat area (copy to myagents_files + insert reference)
+  // Handle Tauri file drop on chat area (copy to blexagent_files + insert reference)
   const handleTauriChatDrop = useCallback(async (paths: string[]) => {
     if (isDebugMode()) {
       console.log('[Chat] Tauri drop on chat area:', paths);
@@ -2638,7 +2638,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     // effect higher up, which validates the persisted value against the current runtime's mode
     // set and falls back to the runtime default if stale. Don't override here without validation —
     // doing so reintroduces the cross-runtime leak (e.g. Codex's 'no-restrictions' bleeding into
-    // a Gemini session, confirmed in ~/Downloads/myagents-logs-2026-04-14T17-28-53.txt:174).
+    // a Gemini session, confirmed in ~/Downloads/blexagent-logs-2026-04-14T17-28-53.txt:174).
     // Sync provider (useState initializer runs when currentProject is still undefined).
     // Re-arm providerInitRef to suppress the deferred provider-change effect (fires next render)
     // that would otherwise override the project-stored model with provider's primaryModel.
@@ -2839,7 +2839,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     // Known limitation: this gate accepts `currentAgent` as authoritative
     // before `sessionRuntime` arrives via SSE chat:system-init / REST
     // loadSession. For the vast majority of opens that's correct — the
-    // sidecar was just spawned with `MYAGENTS_RUNTIME` derived from the
+    // sidecar was just spawned with `BLEXAGENT_RUNTIME` derived from the
     // same `currentAgent.runtime` we read here. The narrow race window is:
     // user changes agent.runtime in another tab AFTER its sidecar spawned
     // with the old value but BEFORE this tab's first render. Tightening

@@ -18,11 +18,11 @@ pub struct CronTaskManager {
 }
 
 impl CronTaskManager {
-    /// Create a new CronTaskManager with persistence at ~/.myagents/cron_tasks.json
+    /// Create a new CronTaskManager with persistence at ~/.blexagent/cron_tasks.json
     pub fn new() -> Self {
         let storage_path = dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join(".myagents")
+            .join(".blexagent")
             .join("cron_tasks.json");
 
         // Load persisted tasks synchronously before creating the manager
@@ -1205,7 +1205,7 @@ impl CronTaskManager {
         if !self.try_mark_task_executing(task_id).await {
             return Err(format!(
                 "Cannot run-now: a scheduled tick or earlier run-now is firing for {} this instant. \
-                 Wait for it to finish (typically <60s); see `myagents cron runs {} --limit 1` after.",
+                 Wait for it to finish (typically <60s); see `blexagent cron runs {} --limit 1` after.",
                 task_id, task_id
             ));
         }

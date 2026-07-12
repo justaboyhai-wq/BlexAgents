@@ -5,12 +5,12 @@
 
 ## 数据层 (Rust)
 
-两个持久化 Store，均存于 `~/.myagents/` 用户目录：
+两个持久化 Store，均存于 `~/.blexagent/` 用户目录：
 
 | Store | 文件 | 模块 |
 |-------|------|------|
-| `ThoughtStore` | `~/.myagents/thoughts/<YYYY-MM>/<id>.md`（按月分目录的 Markdown + 头部 YAML frontmatter） | `src-tauri/src/thought.rs` |
-| `TaskStore` | `~/.myagents/tasks.jsonl`（元数据行）+ `~/.myagents/tasks/<id>/{task.md, verify.md, progress.md, alignment/…}`（AI 工作区） | `src-tauri/src/task.rs` |
+| `ThoughtStore` | `~/.blexagent/thoughts/<YYYY-MM>/<id>.md`（按月分目录的 Markdown + 头部 YAML frontmatter） | `src-tauri/src/thought.rs` |
+| `TaskStore` | `~/.blexagent/tasks.jsonl`（元数据行）+ `~/.blexagent/tasks/<id>/{task.md, verify.md, progress.md, alignment/…}`（AI 工作区） | `src-tauri/src/task.rs` |
 
 ### 写盘原子性
 
@@ -70,11 +70,11 @@ Todo → Running → Verifying ↔ Done
 完整 5 步流程：
 
 1. 用户点想法卡「AI 讨论」→ 打开新 Chat Tab + 注入 `task-alignment` Skill
-2. AI 完成 alignment → 四份文档（alignment.md / task.md / verify.md / progress.md）存于 `~/.myagents/tasks/<alignmentSessionId>/alignment/`
-3. AI 调 `myagents task create-from-alignment <alignmentSessionId> --name <name>`
+2. AI 完成 alignment → 四份文档（alignment.md / task.md / verify.md / progress.md）存于 `~/.blexagent/tasks/<alignmentSessionId>/alignment/`
+3. AI 调 `blexagent task create-from-alignment <alignmentSessionId> --name <name>`
 4. `TaskStore::create_from_alignment` 事务化迁移：
    - JSONL 先写
-   - 原 alignment 目录 rename 到 `~/.myagents/tasks/<newTaskId>/`
+   - 原 alignment 目录 rename 到 `~/.blexagent/tasks/<newTaskId>/`
    - 失败时 JSONL rollback
 5. `dispatchOrigin = 'ai-aligned'`，后续走 `/task-implement` 模板
 
@@ -119,12 +119,12 @@ Todo → Running → Verifying ↔ Done
 
 - v1 规模用内存线性扫描（<10k 条）
 - Thought 遍历 ThoughtStore
-- Task 遍历 TaskStore 并按需读 `~/.myagents/tasks/<id>/task.md` 全文
+- Task 遍历 TaskStore 并按需读 `~/.blexagent/tasks/<id>/task.md` 全文
 - 超过规模再切 Tantivy，schema 接口已留好
 
 ## CLI
 
-`myagents task` 命令族：
+`blexagent task` 命令族：
 ```
 list / get / run / rerun
 update-status / update-progress / append-session
@@ -132,7 +132,7 @@ archive / delete
 create-direct / create-from-alignment
 ```
 
-`myagents thought` 命令族：
+`blexagent thought` 命令族：
 ```
 list / create
 ```
@@ -141,7 +141,7 @@ list / create
 
 | 调用方 | actor | source |
 |--------|-------|--------|
-| AI 子进程（`MYAGENTS_PORT` 环境变量存在） | `agent` | `cli` |
+| AI 子进程（`BLEXAGENT_PORT` 环境变量存在） | `agent` | `cli` |
 | 用户终端 | `user` | `cli` |
 | UI 路径（Tauri 层强制） | `user` | `ui` |
 

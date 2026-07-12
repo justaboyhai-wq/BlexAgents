@@ -12,7 +12,7 @@ const project: Project = {
     id: 'p1',
     name: 'Mino5',
     displayName: 'Mino5',
-    path: '/Users/zhihu/.myagents/projects/Mino5',
+    path: '/Users/zhihu/.blexagent/projects/Mino5',
     providerId: null,
     permissionMode: null,
     isAgent: true,

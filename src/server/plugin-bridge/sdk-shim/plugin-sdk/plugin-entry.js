@@ -1,10 +1,10 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./plugin-entry.auto.js";
 // === END AUTO-AUGMENT ===
 
-// OpenClaw plugin-sdk/plugin-entry shim for MyAgents Plugin Bridge
+// OpenClaw plugin-sdk/plugin-entry shim for BlexAgent Plugin Bridge
 // Provides definePluginEntry() and type stubs for 3.22+ plugins.
 
 /**

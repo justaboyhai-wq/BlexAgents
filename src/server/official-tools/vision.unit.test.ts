@@ -101,7 +101,7 @@ function configureVisionProvider() {
 
 describe('official vision tool', () => {
   beforeEach(() => {
-    mocks.workspace = mkdtempSync(join(tmpdir(), 'myagents-vision-unit-'));
+    mocks.workspace = mkdtempSync(join(tmpdir(), 'blexagent-vision-unit-'));
     mocks.capturedPromptText = '';
     mocks.queryMode = 'success';
     mocks.lastAbortController = undefined;
@@ -148,7 +148,7 @@ describe('official vision tool', () => {
 
   it('rejects prompt files outside the workspace', async () => {
     writeFileSync(join(mocks.workspace, 'screen.png'), pngBytes);
-    const outside = join(tmpdir(), `myagents-vision-outside-${Date.now()}.txt`);
+    const outside = join(tmpdir(), `blexagent-vision-outside-${Date.now()}.txt`);
     writeFileSync(outside, 'steal me');
 
     try {

@@ -1,4 +1,4 @@
-//! CLI mode handler for `myagents` binary.
+//! CLI mode handler for `blexagent` binary.
 //!
 //! When the binary is invoked with CLI arguments (mcp, model, status, --help, etc.),
 //! it runs in CLI mode instead of starting the GUI. This avoids:
@@ -7,7 +7,7 @@
 //! 3. Starting the full Tauri app just for a CLI query
 //!
 //! The CLI forwards arguments to the bundled Node.js + esbuild'd CLI script at
-//! ~/.myagents/bin/myagents (JavaScript, shebang `#!/usr/bin/env node`). The
+//! ~/.blexagent/bin/blexagent (JavaScript, shebang `#!/usr/bin/env node`). The
 //! script handles argument parsing, HTTP requests to the Sidecar Admin API, and
 //! output formatting.
 
@@ -16,18 +16,18 @@ use std::process::{Command, Stdio};
 
 /// CLI subcommands that trigger CLI mode
 ///
-/// Keep this list in sync with the command groups in `src/cli/myagents.ts` TOP_HELP.
+/// Keep this list in sync with the command groups in `src/cli/blexagent.ts` TOP_HELP.
 /// Missing commands silently take the GUI launch path, which looks like "my command
 /// was ignored" to a terminal user — the exact failure mode this whole CLI was
 /// designed to avoid for AI callers.
 const CLI_COMMANDS: &[&str] = &[
     "mcp", "vision", "model", "agent", "runtime", "config", "status", "reload", "version", "cron",
     "plugin", "skill", "task", "thought", "im", "session", "widget", "space",
-    // Issue #194 — `myagents diagnose runtime <type>` sugar. Without this, the
+    // Issue #194 — `blexagent diagnose runtime <type>` sugar. Without this, the
     // packaged Tauri binary launches the GUI when invoked with just `diagnose ...`.
     // `runtime diagnose <type>` still works via the "runtime" entry above.
     "diagnose",
-    // PRD 0.2.36 — CLI tool registry. Without this, `myagents tool list` via the
+    // PRD 0.2.36 — CLI tool registry. Without this, `blexagent tool list` via the
     // packaged binary silently launches the GUI instead of CLI mode.
     "tool",
 ];
@@ -65,12 +65,12 @@ pub fn run(args: &[String]) -> i32 {
         }
     };
 
-    // 2. Find the CLI script at ~/.myagents/bin/myagents
+    // 2. Find the CLI script at ~/.blexagent/bin/blexagent
     let cli_script = match find_cli_script() {
         Some(p) => p,
         None => {
-            eprintln!("Error: CLI script not found at ~/.myagents/bin/myagents");
-            eprintln!("Please launch the MyAgents app at least once to initialize the CLI.");
+            eprintln!("Error: CLI script not found at ~/.blexagent/bin/blexagent");
+            eprintln!("Please launch the BlexAgent app at least once to initialize the CLI.");
             return 1;
         }
     };
@@ -93,9 +93,9 @@ pub fn run(args: &[String]) -> i32 {
     cmd.stdout(Stdio::inherit());
     cmd.stderr(Stdio::inherit());
 
-    // Inject sidecar port if available (the Node script reads MYAGENTS_PORT)
+    // Inject sidecar port if available (the Node script reads BLEXAGENT_PORT)
     if let Some(ref p) = port {
-        cmd.env("MYAGENTS_PORT", p);
+        cmd.env("BLEXAGENT_PORT", p);
     }
 
     // Protect localhost from system proxy (Node's fetch() reads HTTP_PROXY)
@@ -112,7 +112,7 @@ pub fn run(args: &[String]) -> i32 {
 }
 
 /// Find the bundled Node.js binary, shipped as a resource alongside the app.
-/// macOS: /Applications/MyAgents.app/Contents/Resources/nodejs/bin/node
+/// macOS: /Applications/BlexAgent.app/Contents/Resources/nodejs/bin/node
 /// Windows: <install-dir>/resources/nodejs/node.exe
 /// Linux (AppImage / deb): <install-dir>/resources/nodejs/bin/node
 fn find_node_binary() -> Option<PathBuf> {
@@ -170,21 +170,21 @@ fn find_node_binary() -> Option<PathBuf> {
     None
 }
 
-/// Find the CLI script at ~/.myagents/bin/myagents.
+/// Find the CLI script at ~/.blexagent/bin/blexagent.
 /// This script is synced from src/cli/ by cmd_sync_cli.
 fn find_cli_script() -> Option<PathBuf> {
     let home = dirs::home_dir()?;
 
-    // Primary: ~/.myagents/bin/myagents
-    let script = home.join(".myagents").join("bin").join("myagents");
+    // Primary: ~/.blexagent/bin/blexagent
+    let script = home.join(".blexagent").join("bin").join("blexagent");
     if script.exists() {
         return Some(script);
     }
 
-    // Windows: ~/.myagents/bin/myagents.cmd
+    // Windows: ~/.blexagent/bin/blexagent.cmd
     #[cfg(windows)]
     {
-        let cmd_script = home.join(".myagents").join("bin").join("myagents.cmd");
+        let cmd_script = home.join(".blexagent").join("bin").join("blexagent.cmd");
         if cmd_script.exists() {
             return Some(cmd_script);
         }
@@ -193,12 +193,12 @@ fn find_cli_script() -> Option<PathBuf> {
     None
 }
 
-/// Read the Global Sidecar port from ~/.myagents/sidecar.port.
+/// Read the Global Sidecar port from ~/.blexagent/sidecar.port.
 /// This file is written by sidecar.rs when the Global Sidecar starts.
 /// Validates the port is a valid u16 to guard against stale/corrupt files.
 fn discover_sidecar_port() -> Option<String> {
     let home = dirs::home_dir()?;
-    let port_file = home.join(".myagents").join("sidecar.port");
+    let port_file = home.join(".blexagent").join("sidecar.port");
     let content = std::fs::read_to_string(port_file).ok()?;
     let port = content.trim().to_string();
     // Validate: must be a valid port number (1-65535)

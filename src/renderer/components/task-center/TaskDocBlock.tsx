@@ -130,13 +130,13 @@ export function TaskDocBlock({
     };
   }, [loaded, content]);
 
-  // The on-disk path is deterministic (`~/.myagents/tasks/<id>/<doc>.md`)
+  // The on-disk path is deterministic (`~/.blexagent/tasks/<id>/<doc>.md`)
   // so we can surface it + an opener button right below the title —
   // same pattern as the edit panel's DocSectionHeader, so preview and
   // edit modes don't diverge visually. Declared before the
   // hideWhenEmpty short-circuit so the useCallback hook call order
   // stays stable across renders (rules-of-hooks).
-  const path = `~/.myagents/tasks/${task.id}/${doc}.md`;
+  const path = `~/.blexagent/tasks/${task.id}/${doc}.md`;
   const handleOpenFolder = useCallback(() => {
     void taskOpenDocsDir(task.id).catch((e) => onError(extractErrorMessage(e)));
   }, [task.id, onError]);

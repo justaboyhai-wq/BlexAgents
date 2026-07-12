@@ -101,7 +101,7 @@ Runtime 内部协议差异通过 `UnifiedEvent` 联合类型统一，`external-s
 | 文本 | `text_delta`, `text_stop` | AI 回复流式文本 |
 | 思考 | `thinking_start/delta/stop` | 推理过程 |
 | 工具 | `tool_use_start`, `tool_input_delta`, `tool_use_stop`, `tool_result` | 工具调用全生命周期 |
-| 权限 | `permission_request` | 委托 MyAgents UI 审批 |
+| 权限 | `permission_request` | 委托 BlexAgent UI 审批 |
 | 生命周期 | `session_init`, `turn_complete`, `session_complete` | 会话状态 |
 | 元数据 | `usage`, `log` | Token 用量、日志 |
 | 诊断 | `runtime_diagnostics` | Runtime 自检快照（Codex 启动后 fire-and-forget 收集，详见「Runtime 诊断 + envPolicy」） |
@@ -115,12 +115,12 @@ type RuntimeType = 'builtin' | 'claude-code' | 'codex' | 'gemini';
 
 ### Runtime Source
 
-外部 runtime 还带有 `RuntimeConfig.source` / `MYAGENTS_RUNTIME_SOURCE`，用于区分同一个 runtime 协议由谁管理：
+外部 runtime 还带有 `RuntimeConfig.source` / `BLEXAGENT_RUNTIME_SOURCE`，用于区分同一个 runtime 协议由谁管理：
 
 | Source | 含义 | 典型入口 |
 |---|---|---|
 | `system-cli` | 用户自行安装并登录的本机 CLI | 实验室「更多 Agent Runtime」里选择 Codex / Claude Code / Gemini |
-| `managed-provider` | MyAgents 管理 runtime 二进制、安装状态与登录状态 | Provider 列表里的 `codex-sub`（Codex 订阅） |
+| `managed-provider` | BlexAgent 管理 runtime 二进制、安装状态与登录状态 | Provider 列表里的 `codex-sub`（Codex 订阅） |
 
 `managed-provider` 不受 `config.multiAgentRuntime` 门控；它由自己的 Provider readiness gate 控制：provider gate 开启、managed runtime 已安装到要求版本、managed Codex auth 有效（`chatgpt` 或兼容的 `access-token`），且 provider 未被禁用。Rust `runtime_identity.rs` 在新 session/IM/Cron sidecar 出生时根据 Agent 的 `providerId:'codex-sub'` 与这些 readiness 字段解析出 `runtime='codex'`、`source='managed-provider'`。
 
@@ -173,13 +173,13 @@ Turn 2: claude -p --resume abc     → 恢复上下文 → 执行 → 退出
 
 ### 权限模式映射
 
-| MyAgents | CC CLI |
+| BlexAgent | CC CLI |
 |----------|--------|
 | `auto` | `acceptEdits` |
 | `plan` | `plan` |
 | `fullAgency` | `bypassPermissions` |
 
-**IM native-card 例外**：当 `InteractionScenario` 是 IM / Agent Channel 且 `hostInteraction.askUserQuestion === 'native-card'` 时，`fullAgency` 不能直接传给 Claude Code 的 `bypassPermissions`。`AskUserQuestion` 通过 CC `control_request/can_use_tool` + `--permission-prompt-tool stdio` 回到 MyAgents；bypass 会跳过这条交互通道。`external-session.ts` 在 runtime 边界把启动态权限降为 `auto/acceptEdits`，同时对非 `AskUserQuestion` 的 permission request 做 fullAgency fast-path 自动允许，保持“普通工具自治、结构化提问可交互”的语义。
+**IM native-card 例外**：当 `InteractionScenario` 是 IM / Agent Channel 且 `hostInteraction.askUserQuestion === 'native-card'` 时，`fullAgency` 不能直接传给 Claude Code 的 `bypassPermissions`。`AskUserQuestion` 通过 CC `control_request/can_use_tool` + `--permission-prompt-tool stdio` 回到 BlexAgent；bypass 会跳过这条交互通道。`external-session.ts` 在 runtime 边界把启动态权限降为 `auto/acceptEdits`，同时对非 `AskUserQuestion` 的 permission request 做 fullAgency fast-path 自动允许，保持“普通工具自治、结构化提问可交互”的语义。
 
 ### SessionStart Hook
 
@@ -210,13 +210,13 @@ Server → Client (Notification): {"jsonrpc":"2.0","method":"item/agentMessage/d
 
 ### `thread/start` 参数 Schema（Codex v0.111.0）
 
-| 参数 | 类型 | MyAgents 对接 | 说明 |
+| 参数 | 类型 | BlexAgent 对接 | 说明 |
 |------|------|-------------|------|
 | `cwd` | string? | ✅ `workspacePath` | 工作目录 |
 | `model` | string? | ✅ 用户选择的模型 | 模型覆盖（null=Codex 默认） |
 | `approvalPolicy` | enum? | ✅ mapped from permissionMode | `untrusted`/`on-failure`/`on-request`/`never` |
 | `sandbox` | enum? | ✅ mapped from permissionMode | `read-only`/`workspace-write`/`danger-full-access` |
-| `developerInstructions` | string? | ✅ `systemPromptAppend` | MyAgents 三层系统提示词 |
+| `developerInstructions` | string? | ✅ `systemPromptAppend` | BlexAgent 三层系统提示词 |
 | `ephemeral` | boolean? | ✅ `false` | 是否临时线程 |
 | `modelProvider` | string? | ❌ 未对接 | 模型供应商覆盖 |
 | `serviceTier` | enum? | ❌ 未对接 | `fast`/`flex` |
@@ -227,7 +227,7 @@ Server → Client (Notification): {"jsonrpc":"2.0","method":"item/agentMessage/d
 
 ### `thread/resume` 参数 Schema
 
-| 参数 | 类型 | MyAgents 对接 | 说明 |
+| 参数 | 类型 | BlexAgent 对接 | 说明 |
 |------|------|-------------|------|
 | `threadId` | **string (必填)** | ✅ `resumeSessionId` | 要恢复的线程 ID |
 | `model` | string? | ✅ | 模型覆盖 |
@@ -240,13 +240,13 @@ Server → Client (Notification): {"jsonrpc":"2.0","method":"item/agentMessage/d
 | `personality` | enum? | ❌ 未对接 | |
 | `baseInstructions` | string? | ❌ 未对接 | |
 
-**注意**：Codex 不支持通过 `thread/start`/`thread/resume` 注入 MCP Server 配置。Codex 的 MCP 由其自身管理（`~/.codex/` 配置），MyAgents 无法控制。
+**注意**：Codex 不支持通过 `thread/start`/`thread/resume` 注入 MCP Server 配置。Codex 的 MCP 由其自身管理（`~/.codex/` 配置），BlexAgent 无法控制。
 
 ### Skills 加载
 
-Codex 原生扫描 `.agents/skills`，而 MyAgents/Claude Agent SDK 的工作区协议使用 `.claude/skills`。为保持产品层一致性，Codex adapter 在 `startSession()` 中做两步桥接：
+Codex 原生扫描 `.agents/skills`，而 BlexAgent/Claude Agent SDK 的工作区协议使用 `.claude/skills`。为保持产品层一致性，Codex adapter 在 `startSession()` 中做两步桥接：
 
-1. 调 `syncProjectUserConfigFiles(workspacePath)`，把 `~/.myagents/skills` 中启用的用户级 skills 同步为工作区 `.claude/skills/*` symlink（与 builtin Claude SDK 共用同一套磁盘桥接逻辑，不另建 Codex 专用目录）。
+1. 调 `syncProjectUserConfigFiles(workspacePath)`，把 `~/.blexagent/skills` 中启用的用户级 skills 同步为工作区 `.claude/skills/*` symlink（与 builtin Claude SDK 共用同一套磁盘桥接逻辑，不另建 Codex 专用目录）。
 2. `initialize` 握手完成后调 Codex app-server RPC `skills/extraRoots/set`，把 `<workspace>/.claude/skills` 作为额外 skill root 注入当前 Codex 进程。
 
 同步失败只记录 warning，Codex 会话继续启动；`.claude/skills` 作为工作区级 extra root 的注入与用户级 symlink 同步解耦，仍会照常尝试。这条路径在 `src/server/runtimes/codex.ts::CodexRuntime.startSession()` 内，因此 `runtimeSource:'managed-provider'`（内置 Codex 订阅）和 `runtimeSource:'system-cli'`（实验室外部 Codex CLI）都会生效。若用户系统 CLI 版本过旧、不支持 `skills/extraRoots/set`，adapter 同样只记录 warning 并继续启动会话；此时 Codex 回落到自身默认 `.agents/skills` 扫描。
@@ -267,9 +267,9 @@ Codex 原生扫描 `.agents/skills`，而 MyAgents/Claude Agent SDK 的工作区
 
 ### Codex Server Request / 权限协议
 
-`app-server` 还会通过 JSON-RPC Server → Client request 向 MyAgents 要结果。`src/server/runtimes/codex.ts::KNOWN_CODEX_SERVER_REQUEST_METHODS` 是显式 allowlist，升级 Codex CLI 时必须先用 `codex app-server generate-ts --out <dir>` 对照 `v2/ServerRequest.ts`，再决定映射或 fail-closed。当前对接约束：
+`app-server` 还会通过 JSON-RPC Server → Client request 向 BlexAgent 要结果。`src/server/runtimes/codex.ts::KNOWN_CODEX_SERVER_REQUEST_METHODS` 是显式 allowlist，升级 Codex CLI 时必须先用 `codex app-server generate-ts --out <dir>` 对照 `v2/ServerRequest.ts`，再决定映射或 fail-closed。当前对接约束：
 
-| Server request | MyAgents 映射 |
+| Server request | BlexAgent 映射 |
 |---|---|
 | `item/commandExecution/requestApproval` | `permission_request`，`toolName:'Shell'`，保留 `command/cwd/reason` |
 | `item/fileChange/requestApproval` | `permission_request`，`toolName:'FileEdit'`，保留 `reason/grantRoot` |
@@ -278,7 +278,7 @@ Codex 原生扫描 `.agents/skills`，而 MyAgents/Claude Agent SDK 的工作区
 | `item/tool/requestUserInput` | 映射到 `AskUserQuestion`，答案按 Codex 原生 question id 回传 |
 | `mcpServer/elicitation/request` (`form` / `openai/form`) | 有 schema fields 时映射到 `AskUserQuestion`；`url` / tool approval / generic elicitation 走 `permission_request` |
 | `currentTime/read` | runtime adapter 直接返回 `{currentTimeAt}`，不进入 UI |
-| `item/tool/call` / token refresh / attestation | MyAgents 不托管，显式 error |
+| `item/tool/call` / token refresh / attestation | BlexAgent 不托管，显式 error |
 
 IM / Agent Channel 默认不支持桌面结构化提问：若 `hostInteraction.askUserQuestion === 'none'`，Codex `item/tool/requestUserInput` 立即按协议返回空 answers，`mcpServer/elicitation/request` form 立即返回 `action:'cancel'`，并且不登记 `pendingRequests`。`runtimeSource:'managed-provider'` 与 `runtimeSource:'system-cli'` 共享同一个 Codex adapter，因此必须保持一致。
 
@@ -351,7 +351,7 @@ resume 重 register）详见 [Tool Attachment 管道](./tool_attachment_pipeline
 
 ### 权限模式映射
 
-| MyAgents | Codex approvalPolicy | sandbox |
+| BlexAgent | Codex approvalPolicy | sandbox |
 |----------|---------------------|---------|
 | `suggest` | `untrusted` | `read-only` |
 | `auto-edit` | `on-request` | `workspace-write` |
@@ -363,7 +363,7 @@ resume 重 register）详见 [Tool Attachment 管道](./tool_attachment_pipeline
 ### 协议:Agent Client Protocol (ACP) over stdio
 
 Gemini CLI 通过 `gemini --acp` 原生实现了 Zed 的 Agent Client Protocol(ACP)— 同样是
-JSON-RPC 2.0 持久进程,与 Codex `app-server` 形态同构。MyAgents 作为 ACP Client,
+JSON-RPC 2.0 持久进程,与 Codex `app-server` 形态同构。BlexAgent 作为 ACP Client,
 Gemini CLI 作为 ACP Agent。协议规范见 https://agentclientprotocol.com/protocol/schema。
 
 ### Agent 方法(Client → Agent)
@@ -396,7 +396,7 @@ Gemini CLI 作为 ACP Agent。协议规范见 https://agentclientprotocol.com/pr
 
 | RPC 方法 | 处理 |
 |---------|------|
-| `session/request_permission` | 派生 `permission_request` UnifiedEvent(同时若未发 `tool_use_start` 则 late-bind)。MyAgents 返回 `{outcome:{outcome:'selected',optionId:...}}`;选项 `optionId` 基于 ACP 回传的 `options[].kind`(`allow_once` / `allow_always` / `reject_once`)健壮匹配。`default` 模式下 Gemini 跳过 `tool_call` notification 直接发 permission request,runtime 在此路径补发 `tool_use_start`,保证前端显示一致 |
+| `session/request_permission` | 派生 `permission_request` UnifiedEvent(同时若未发 `tool_use_start` 则 late-bind)。BlexAgent 返回 `{outcome:{outcome:'selected',optionId:...}}`;选项 `optionId` 基于 ACP 回传的 `options[].kind`(`allow_once` / `allow_always` / `reject_once`)健壮匹配。`default` 模式下 Gemini 跳过 `tool_call` notification 直接发 permission request,runtime 在此路径补发 `tool_use_start`,保证前端显示一致 |
 | `fs/*` / `terminal/*` | **不声明**对应 capability,Gemini 使用自己的内置工具。如仍收到 → `respondError(-32601)` |
 
 ### 系统提示词注入:`GEMINI_SYSTEM_MD` + tmp 文件合并
@@ -413,12 +413,12 @@ https://geminicli.com/docs/cli/system-prompt/):它指向一个 markdown 文件,
    `gemini -p "."` 子进程,通过 `GEMINI_WRITE_SYSTEM_MD=<cachePath>` 环境变量让 Gemini
    把内置 prompt 导出到文件。Gemini 写文件发生在启动阶段、API 调用之前,runtime 轮询
    文件出现即 `kill(9)` 子进程 — **不产生 token 消耗**。
-   缓存路径:`~/.myagents/tmp/gemini-prompts/base-<version>.md`,v0.37.2 约 25KB。
+   缓存路径:`~/.blexagent/tmp/gemini-prompts/base-<version>.md`,v0.37.2 约 25KB。
 
-2. **per-session 合并**:`writeSessionSystemPrompt(sessionId, myAgentsPrompt, version)` 把
-   MyAgents 的三层 prompt(base-identity + channel + scenario)前置,基底附在
-   `---` 分隔符后并包上 "以 MyAgents 指令为优先" 的说明。写入:
-   `~/.myagents/tmp/gemini-prompts/session-<sessionId>.md`。
+2. **per-session 合并**:`writeSessionSystemPrompt(sessionId, blexAgentPrompt, version)` 把
+   BlexAgent 的三层 prompt(base-identity + channel + scenario)前置,基底附在
+   `---` 分隔符后并包上 "以 BlexAgent 指令为优先" 的说明。写入:
+   `~/.blexagent/tmp/gemini-prompts/session-<sessionId>.md`。
 
 3. **注入**:`spawn(['gemini', '--acp'], { env: { GEMINI_SYSTEM_MD: promptFile } })` —
    环境变量在 spawn 时即生效。
@@ -429,7 +429,7 @@ https://geminicli.com/docs/cli/system-prompt/):它指向一个 markdown 文件,
 
 ### 模式 ID 映射(D5/D6)
 
-| MyAgents 内部值 | Gemini ACP modeId |
+| BlexAgent 内部值 | Gemini ACP modeId |
 |----------------|-------------------|
 | `default`       | `default`  |
 | `autoEdit`      | `autoEdit` |
@@ -464,8 +464,8 @@ stdout reader 先进入 `await read()`,防止 initialize 响应在 handler 注�
 
 ### 认证
 
-**完全不由 MyAgents 管理**。Gemini CLI 支持 OAuth、`GEMINI_API_KEY`、Vertex AI 三种方式,
-用户自行在本机完成登录(`gemini` 交互式向导或 shell rc 导出环境变量),MyAgents 子进程
+**完全不由 BlexAgent 管理**。Gemini CLI 支持 OAuth、`GEMINI_API_KEY`、Vertex AI 三种方式,
+用户自行在本机完成登录(`gemini` 交互式向导或 shell rc 导出环境变量),BlexAgent 子进程
 继承 Sidecar 的环境变量即可。如果用户未登录,`session/new` 会抛 `-32000` RPC 错误,
 前端显示"请先在终端运行 `gemini` 完成登录"。
 
@@ -526,7 +526,7 @@ pre-warm、IM reset、external config boundary）必须按 runtime process 存�
 而不是只看 active turn。Codex app-server 这类 persistent runtime 在 turn 结束后会进入
 idle，但进程仍持有 stdin/thread owner；在 `restoreExternalSessionState(target, ...)`
 或 `resetSession()` 前如果不先 stop 这个 idle process，就会把旧 runtime 进程挂到新的
-MyAgents session 身份下，造成历史会话和新会话串写。
+BlexAgent session 身份下，造成历史会话和新会话串写。
 
 ### 桌面连续发送响应模式
 
@@ -535,11 +535,11 @@ MyAgents session 身份下，造成历史会话和新会话串写。
 | 模式 | builtin SDK | Codex app-server | 其它 external runtime |
 |---|---|---|---|
 | `realtime`（默认） | busy 时进入 SDK async queue，模型在工具边界读取 | busy 且无更早 queued work 时调用 `turn/steer` 追加到当前 active turn | 不支持 same-turn steering，fallback 到 turn-boundary queue |
-| `turn` | busy 时进入 turn-boundary queue | busy 时进入 MyAgents turn-boundary queue，当前 turn 完成后再 `turn/start` | turn-boundary queue |
+| `turn` | busy 时进入 turn-boundary queue | busy 时进入 BlexAgent turn-boundary queue，当前 turn 完成后再 `turn/start` | turn-boundary queue |
 
 实现边界：
 - `AgentRuntime.steerMessage?()` 是可选能力；只有 Codex adapter 实现。`external-session` 只看 capability，不硬编码 runtime 名。
-- `turn/steer` 必须带 `expectedTurnId`（来自 Codex 当前 active turn）和 MyAgents user message id 作为 `clientUserMessageId`。
+- `turn/steer` 必须带 `expectedTurnId`（来自 Codex 当前 active turn）和 BlexAgent user message id 作为 `clientUserMessageId`。
 - same-turn steering 不应用新的 model / permission / reasoning effort snapshot；这些仍是下一 turn 边界生效，和 builtin busy 时“配置锁定当前 turn”的语义一致。
 - 只作用于桌面 `sendDesktopMessage`；IM / Cron / Inbox / injected turn 保持 turn 级同步语义。
 
@@ -608,7 +608,7 @@ Gemini / Codex 冷启动(spawn CLI + `initialize` + `session/new`)约 10–15 �
 
 **首条消息路径**:
 - 预热成功且进程仍活着 → `sendExternalMessage` 命中 Case 3(进程活着),`ensureExternalSessionMetadataForRealUserTurn({ turnPath:'active-process' })` 在此处写 metadata + 启动看门狗。
-- 预热进程已退出但留下 runtime session id → `sendExternalMessage` 命中 Case 2(resume),`_doStartExternalSession` 的 `initialMessage` 分支必须先用 pending birth materialize metadata,再通过 `external-session/transcript-persistence.ts::persistExternalUserMessageAppend()` 写入用户消息。 这是 Codex/Gemini prewarm-exit 的关键路径:虽然传了 `resumeSessionId`,但 MyAgents metadata 还没出生。
+- 预热进程已退出但留下 runtime session id → `sendExternalMessage` 命中 Case 2(resume),`_doStartExternalSession` 的 `initialMessage` 分支必须先用 pending birth materialize metadata,再通过 `external-session/transcript-persistence.ts::persistExternalUserMessageAppend()` 写入用户消息。 这是 Codex/Gemini prewarm-exit 的关键路径:虽然传了 `resumeSessionId`,但 BlexAgent metadata 还没出生。
 - 预热完全失败/无历史 → `sendExternalMessage` 命中 Case 1(fresh),走正常启动路径,metadata 在 `_doStartExternalSession` 的 `initialMessage` 分支写入。
 - 三条路径共享 `ensureExternalSessionMetadataForRealUserTurn()`。pending birth 只由 fresh prewarm(`!initialMessage && !resumeSessionId && !metadata`)建立;缺 metadata 只允许 fresh start 或明确的 pending birth 创建。普通 resume / active-process / resume prewarm 缺 metadata 直接 fail-closed,避免删除后的 session 被 runtime 侧状态复活。
 
@@ -637,7 +637,7 @@ Gemini / Codex 冷启动(spawn CLI + `initialize` + `session/new`)约 10–15 �
 
 ## Runtime 诊断 + envPolicy（PRD 0.2.16）
 
-外部 Runtime 在 MyAgents 容器内的行为不一定等同于用户终端里直接跑——env、proxy、shell 探测、PATH 都可能差异化。诊断面板把这些差异显式 surface 出来，env policy 让用户在三种 env 注入策略间切换。
+外部 Runtime 在 BlexAgent 容器内的行为不一定等同于用户终端里直接跑——env、proxy、shell 探测、PATH 都可能差异化。诊断面板把这些差异显式 surface 出来，env policy 让用户在三种 env 注入策略间切换。
 
 ### 诊断收集（Codex）
 
@@ -664,14 +664,14 @@ Gemini / Codex 冷启动(spawn CLI + `initialize` + `session/new`)约 10–15 �
 
 | 字面量 | 行为 | 适用场景 |
 |--------|------|---------|
-| `'myagents'`（默认） | 继承 Sidecar 的 `process.env` proxy var——Rust 侧 `proxy_config::apply_to_subprocess` 已在 Sidecar 启动时注入了用户在 MyAgents 设置里配的 proxy | 绝大多数用户；MyAgents 提供一站式 proxy 管理 |
-| `'terminal'` | 剥掉继承的 proxy var，恢复用户 interactive shell 在 `~/.zshrc` / `~/.bashrc` 里 export 的（warmup 时 `shell.ts::warmupShellPath` 抓的 8 个 var：`HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY`/`NO_PROXY` × 大小写）；语义上等同于"用户在自己电脑的终端里手动启动这个 CLI 时看到的 env" | 用户终端能调某个 endpoint 但 MyAgents 里调不到（issue #194 原始场景）；用 Clash TUN / VPN 等系统层路由的用户也走这档（shell 通常没 export proxy → 等同于无 proxy） |
+| `'blexagent'`（默认） | 继承 Sidecar 的 `process.env` proxy var——Rust 侧 `proxy_config::apply_to_subprocess` 已在 Sidecar 启动时注入了用户在 BlexAgent 设置里配的 proxy | 绝大多数用户；BlexAgent 提供一站式 proxy 管理 |
+| `'terminal'` | 剥掉继承的 proxy var，恢复用户 interactive shell 在 `~/.zshrc` / `~/.bashrc` 里 export 的（warmup 时 `shell.ts::warmupShellPath` 抓的 8 个 var：`HTTP_PROXY`/`HTTPS_PROXY`/`ALL_PROXY`/`NO_PROXY` × 大小写）；语义上等同于"用户在自己电脑的终端里手动启动这个 CLI 时看到的 env" | 用户终端能调某个 endpoint 但 BlexAgent 里调不到（issue #194 原始场景）；用 Clash TUN / VPN 等系统层路由的用户也走这档（shell 通常没 export proxy → 等同于无 proxy） |
 
-**未知字面量 → fallback 到 `'myagents'`**（`env-utils.ts::augmentedProcessEnv` 防御纵深；Codex review #5 catch）。
+**未知字面量 → fallback 到 `'blexagent'`**（`env-utils.ts::augmentedProcessEnv` 防御纵深；Codex review #5 catch）。
 
-**0.2.16 dev 历史**：曾短暂存在第三个 `'direct'` 字面量（剥掉所有 proxy var），dogfooding 反馈"三个选项太复杂"后在 0.2.16 release 前移除。已存盘的 `'direct'` 在 `resolveAgentEnvPolicy` 校验白名单里 fallback 到 `'myagents'`（UI 会显示选中"MyAgents 代理"，依赖 strip 行为的用户可手动改成"跟随终端"——shell 里没 export proxy 时效果与原 `'direct'` 一致）。
+**0.2.16 dev 历史**：曾短暂存在第三个 `'direct'` 字面量（剥掉所有 proxy var），dogfooding 反馈"三个选项太复杂"后在 0.2.16 release 前移除。已存盘的 `'direct'` 在 `resolveAgentEnvPolicy` 校验白名单里 fallback 到 `'blexagent'`（UI 会显示选中"BlexAgent 代理"，依赖 strip 行为的用户可手动改成"跟随终端"——shell 里没 export proxy 时效果与原 `'direct'` 一致）。
 
-**校验入口统一**：disk 上的 `agent.runtimeConfig.envPolicy.proxy` MUST 通过 `env-utils.resolveAgentEnvPolicy(workspacePath)` 读，**禁止**裸 `raw as RuntimeEnvPolicy` cast——后者会让 `proxy: 'evil_value'` 这种 typo 在诊断面板上显示成 `'myagents'`，对用户隐藏 misconfig。两个调用点（`external-session.ts` 会话启动 + `admin-api.ts` CLI diagnose handler）现已统一走这个 helper。
+**校验入口统一**：disk 上的 `agent.runtimeConfig.envPolicy.proxy` MUST 通过 `env-utils.resolveAgentEnvPolicy(workspacePath)` 读，**禁止**裸 `raw as RuntimeEnvPolicy` cast——后者会让 `proxy: 'evil_value'` 这种 typo 在诊断面板上显示成 `'blexagent'`，对用户隐藏 misconfig。两个调用点（`external-session.ts` 会话启动 + `admin-api.ts` CLI diagnose handler）现已统一走这个 helper。
 
 ### `RuntimeEffectiveEnv` snapshot
 
@@ -679,7 +679,7 @@ Gemini / Codex 冷启动(spawn CLI + `initialize` + `session/new`)约 10–15 �
 
 ```typescript
 {
-  proxyPolicy: 'myagents' | 'terminal' | 'direct',
+  proxyPolicy: 'blexagent' | 'terminal' | 'direct',
   httpProxy?: string,
   httpsProxy?: string,
   allProxy?: string,
@@ -695,8 +695,8 @@ Gemini / Codex 冷启动(spawn CLI + `initialize` + `session/new`)约 10–15 �
 ### CLI 自助诊断
 
 ```bash
-myagents runtime diagnose codex --workspace=<path>   # 主形式
-myagents diagnose runtime codex --workspace=<path>   # 别名糖
+blexagent runtime diagnose codex --workspace=<path>   # 主形式
+blexagent diagnose runtime codex --workspace=<path>   # 别名糖
 ```
 
 调用 `admin-api::handleRuntimeDiagnose`——spawn 一个短命 `codex app-server` 进程跑 initialize + 4 个 RPC，结构化 JSON 输出可直接贴 issue。CLI 路径同样走 `resolveAgentEnvPolicy` 拿 envPolicy，所以诊断结果反映**真实会话**会看到的 env，不是 baseline。
@@ -715,10 +715,10 @@ config.multiAgentRuntime (磁盘/React state)
   │
   ├── Rust sidecar/runtime_identity.rs: resolve_agent_runtime_from_config()
   │     → 仅当 multiAgentRuntime=true 时读取 agent.runtime
-  │     → sidecar/session_lifecycle.rs 或 sidecar/instances.rs 在 spawn 时注入 MYAGENTS_RUNTIME
+  │     → sidecar/session_lifecycle.rs 或 sidecar/instances.rs 在 spawn 时注入 BLEXAGENT_RUNTIME
   │
   ├── Node factory.ts: getCurrentRuntimeType()
-  │     → 读取 process.env.MYAGENTS_RUNTIME
+  │     → 读取 process.env.BLEXAGENT_RUNTIME
   │     → 未设置 → 'builtin'
   │     → 识别 'claude-code' | 'codex' | 'gemini'
   │
@@ -786,4 +786,4 @@ config.multiAgentRuntime (磁盘/React state)
 | `src/shared/types/tool-attachment.ts` | `ToolAttachment` 共享类型（PRD 0.2.15） |
 | `src/shared/types/runtime.ts` | 共享类型（RuntimeType、模型列表、权限模式） |
 | `src/renderer/components/RuntimeSelector.tsx` | 前端 Runtime 选择器组件 |
-| `src/server/runtimes/claude-code.ts` → `FORWARDER_SCRIPT` | CC SessionStart hook 转发脚本（运行时生成至 `~/.myagents/.cc-hooks/forwarder.cjs`） |
+| `src/server/runtimes/claude-code.ts` → `FORWARDER_SCRIPT` | CC SessionStart hook 转发脚本（运行时生成至 `~/.blexagent/.cc-hooks/forwarder.cjs`） |

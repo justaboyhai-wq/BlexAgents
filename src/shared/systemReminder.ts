@@ -1,7 +1,7 @@
 export const SYSTEM_REMINDER_OPEN = '<system-reminder>';
 export const SYSTEM_REMINDER_CLOSE = '</system-reminder>';
 export const FLOATING_BALL_CONTEXT_TAG = 'FLOATING_BALL_CONTEXT';
-export const SPACE_ISSUE_CONTEXT_TAG = 'myagents-space-issue';
+export const SPACE_ISSUE_CONTEXT_TAG = 'blexagent-space-issue';
 
 export interface ParsedLeadingSystemReminder {
   hasReminder: boolean;
@@ -107,7 +107,7 @@ export function buildFloatingBallContextReminder(input: FloatingBallContextRemin
     SYSTEM_REMINDER_OPEN,
     `<${FLOATING_BALL_CONTEXT_TAG}>`,
     '<interaction>',
-    'This message comes from the MyAgents floating window. Keep the reply concise and directly useful for a small desktop-adjacent window.',
+    'This message comes from the BlexAgent floating window. Keep the reply concise and directly useful for a small desktop-adjacent window.',
     '</interaction>',
     '',
     '<context>',

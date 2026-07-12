@@ -1,4 +1,4 @@
-# 工作区文件 IO 诊断
+﻿# 工作区文件 IO 诊断
 
 使用场景：工作区文件树/搜索/预览异常；`@` 文件或图片失败；拖拽/粘贴附件失败；新建、重命名、删除、移动、在 Finder/默认应用打开文件不正常。
 
@@ -13,7 +13,7 @@
 ## 取证
 
 ```bash
-myagents status --json
+blexagent status --json
 rg -n "cmd_workspace|workspace_files|DirectoryPanel|SimpleChatInput|FilePreviewModal|RichDocViewer|WorkspaceTree|workspace:files-changed|watch_start|watch_stop|Unsupported file type|File type not supported|symlink|resolve_existing_inside_workspace" ./logs/unified-*.log | tail -180
 rg -n "\\[AppErrorBoundary\\]|\\[REACT\\] \\[ERROR\\]" ./logs/unified-*.log | tail -80
 ```
@@ -31,6 +31,6 @@ rg -n "\\[AppErrorBoundary\\]|\\[REACT\\] \\[ERROR\\]" ./logs/unified-*.log | ta
 
 ## 修复边界
 
-- 不要直接引导用户改 `~/.myagents` 内部索引来修文件树。
+- 不要直接引导用户改 `~/.blexagent` 内部索引来修文件树。
 - 不要把工作区文件 IO 失败归因到 Provider/MCP，除非证据显示失败发生在 AI runtime turn 内。
 - 涉及删除/覆盖/移动前必须让用户确认具体路径；报告里路径要脱敏 home 用户名和凭据片段。

@@ -1,4 +1,4 @@
-# Provider 与 MCP 诊断
+﻿# Provider 与 MCP 诊断
 
 使用场景：API Key 验证失败、模型不可用、回复报错、MCP 工具不显示、MCP 启动/登录/握手失败。
 
@@ -15,15 +15,15 @@
 ### 取证
 
 ```bash
-myagents model list --json
+blexagent model list --json
 rg -n "provider/verify|subscription/verify|api/provider/verify|auth error|401|403|验证超时|model_error|terminal_reason|anthropic-sub|codex-sub|subscription|managed-codex|runtimeSource=managed-provider|entitlement|Extra usage|usage credits" ./logs/unified-*.log | tail -160
 ```
 
 API Key Provider 需要现场重测时：
 
 ```bash
-myagents model verify <provider-id> --json
-myagents model verify <provider-id> --model <model-id> --json
+blexagent model verify <provider-id> --json
+blexagent model verify <provider-id> --model <model-id> --json
 ```
 
 订阅 Provider 优先用 `model list` 和日志看状态。如果 CLI 没有明确支持订阅 Provider 的 verify，不要把 “缺 API Key / 不支持 verify” 当成 Provider 失败本身。
@@ -44,26 +44,26 @@ myagents model verify <provider-id> --model <model-id> --json
 - MCP 配置在 session 启动时绑定。新增/启用/改 env 后，通常要发下一条消息或新 session 才能被 AI 看到。
 - `mcp test` 是 active probe，会启动或连接 MCP server。
 - OAuth MCP 需要查授权状态，enabled 不等于 token 有效。
-- 外部 Runtime 的 MCP 可能不走 MyAgents MCP。Codex MCP 归 Codex 自己管理。
+- 外部 Runtime 的 MCP 可能不走 BlexAgent MCP。Codex MCP 归 Codex 自己管理。
 
 ### 取证
 
 ```bash
-myagents mcp list --json
-myagents mcp show <mcp-id> --json
-myagents mcp oauth status <mcp-id> --json
+blexagent mcp list --json
+blexagent mcp show <mcp-id> --json
+blexagent mcp oauth status <mcp-id> --json
 rg -n "\\[mcp\\]|MCP|mcp.*failed|command not found|oauth|tool_use|tool_result" ./logs/unified-*.log | tail -120
 ```
 
 需要现场握手时：
 
 ```bash
-myagents mcp test <mcp-id> --json
+blexagent mcp test <mcp-id> --json
 ```
 
 ### 判断
 
-- `command not found`：先看 MCP command 是否拼错，再看 PATH。MyAgents shell 有 bundled Node/npx 兜底，但用户自装 CLI 仍可能不在 PATH。
+- `command not found`：先看 MCP command 是否拼错，再看 PATH。BlexAgent shell 有 bundled Node/npx 兜底，但用户自装 CLI 仍可能不在 PATH。
 - 远程 MCP timeout：查 URL、代理、证书、服务端可达性。
 - OAuth 过期：用 `mcp oauth status` 证实，再引导 `oauth start`。
 - 工具刚配置但 AI 当前轮看不到：正常生效时机，告知“发条新消息后可用”。

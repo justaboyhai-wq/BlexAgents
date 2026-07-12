@@ -1,10 +1,10 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./core.auto.js";
 // === END AUTO-AUGMENT ===
 
-// OpenClaw plugin-sdk/core shim for MyAgents Plugin Bridge
+// OpenClaw plugin-sdk/core shim for BlexAgent Plugin Bridge
 // Re-exports core types and factory functions used by 3.22+ plugins.
 
 // Re-export account-id utilities (plugins import from core or account-id)

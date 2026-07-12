@@ -61,7 +61,7 @@ export function isExternalRuntime(type: RuntimeType | undefined): boolean {
  * Get the current runtime type from environment or default to 'builtin'
  */
 export function getCurrentRuntimeType(): RuntimeType {
-  const env = process.env.MYAGENTS_RUNTIME;
+  const env = process.env.BLEXAGENT_RUNTIME;
   if (env === 'claude-code' || env === 'codex' || env === 'gemini') return env;
   return 'builtin';
 }
@@ -74,7 +74,7 @@ export function getCurrentRuntimeType(): RuntimeType {
  */
 export function getCurrentRuntimeSource(): RuntimeSource | undefined {
   if (!isExternalRuntime(getCurrentRuntimeType())) return undefined;
-  return process.env.MYAGENTS_RUNTIME_SOURCE === 'managed-provider'
+  return process.env.BLEXAGENT_RUNTIME_SOURCE === 'managed-provider'
     ? 'managed-provider'
     : 'system-cli';
 }

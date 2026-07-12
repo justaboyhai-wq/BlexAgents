@@ -111,7 +111,7 @@ async function writeSpaceSkillExportPackages(
 ): Promise<SpaceSkillExportPackage[]> {
   const { default: AdmZip } = await import('adm-zip');
   const exportId = randomUUID();
-  const exportDir = join(homedir(), '.myagents', 'tmp', 'skill-url-export', exportId);
+  const exportDir = join(homedir(), '.blexagent', 'tmp', 'skill-url-export', exportId);
   ensureDirSync(exportDir);
 
   const usedFileNames = new Map<string, number>();
@@ -194,10 +194,10 @@ import { getBuiltinMcpInstance } from './tools/builtin-mcp-registry';
 // './tools/builtin-mcp-meta'. No duplicate import needed here.
 
 // ============= CRASH DIAGNOSTICS =============
-// Pattern 6 §6.3.6: crash logs live under ~/.myagents/logs/crash/ (NOT tmpdir,
+// Pattern 6 §6.3.6: crash logs live under ~/.blexagent/logs/crash/ (NOT tmpdir,
 // so they're inside the unified log export bundle). Each crash gets its own
 // file; we keep the most recent CRASH_LOG_MAX_FILES and evict oldest.
-const CRASH_LOG_DIR = join(homedir(), '.myagents', 'logs', 'crash');
+const CRASH_LOG_DIR = join(homedir(), '.blexagent', 'logs', 'crash');
 const CRASH_LOG_MAX_FILES = 20;
 // PRD #132 — hard cap on a single crash log file. The bug was: a recursive
 // EPIPE loop appended ~50–200 KB per iteration and grew a single file to
@@ -1047,7 +1047,7 @@ interface SkillsConfig {
 
 function getSkillsConfigPath(): string {
   const homeDir = getHomeDirOrNull() || '';
-  return join(homeDir, '.myagents', 'skills-config.json');
+  return join(homeDir, '.blexagent', 'skills-config.json');
 }
 
 function readSkillsConfig(): SkillsConfig {
@@ -1151,29 +1151,29 @@ const SYSTEM_SKILLS: readonly string[] = [
   // skill so existing users get the updated command-local npm self-install
   // SKILL.md after the bundled CLI is removed.
   'agent-browser',
-  // v9: myagents-cli — global skill that exposes the entire `myagents`
+  // v9: blexagent-cli — global skill that exposes the entire `blexagent`
   // CLI surface (cron / task / mcp / model / agent / runtime / skill /
   // plugin / widget / im / config) to every AI session in the product.
   // Force-synced because SKILL.md must track CLI changes in lockstep.
-  'myagents-cli',
+  'blexagent-cli',
   // v18: tool-creator — meta-skill for the CLI tool registry (PRD 0.2.36).
   // Teaches AI to author standards-compliant Agent-CLI tools and register
-  // them via `myagents tool add`. Force-synced because its contract (eight
+  // them via `blexagent tool add`. Force-synced because its contract (eight
   // rules / description cap / readme template) must track registry
   // validation in lockstep.
   'tool-creator',
   // v27: Evo managed tasks target these long-term memory skills by name.
   // Force-sync so the task prompt, scripts, and substrate assumptions remain
   // consistent with the Agent Settings scheduler.
-  'myagents-memory-gardener',
-  'myagents-memory-molt',
+  'blexagent-memory-gardener',
+  'blexagent-memory-molt',
   // v29: prompt-writer promoted from utility → system skill so content
   // improvements reach existing installs (seed-once never updates).
   'prompt-writer',
 ];
 
 /**
- * Seed bundled skills to ~/.myagents/skills/ on first launch.
+ * Seed bundled skills to ~/.blexagent/skills/ on first launch.
  * Only copies skills that haven't been seeded before (tracked in skills-config.json).
  *
  * System skills (SYSTEM_SKILLS above) are owned by Rust's
@@ -1194,7 +1194,7 @@ function seedBundledSkills(): void {
 
     const config = readSkillsConfig();
     const homeDir = getHomeDirOrNull() || '';
-    const userSkillsDir = join(homeDir, '.myagents', 'skills');
+    const userSkillsDir = join(homeDir, '.blexagent', 'skills');
 
     ensureDirSync(userSkillsDir);
 
@@ -1224,7 +1224,7 @@ function seedBundledSkills(): void {
       // hiding the symlink from every guard below, so we must lstat first.
       // Repro: `node -e 'fs.cpSync("/tmp/src", "/tmp/dangling", {recursive:true})'`
       // where /tmp/dangling -> /nonexistent. Reported as user crash on v0.2.5
-      // (~/.myagents/skills/docx pointed at a deleted target).
+      // (~/.blexagent/skills/docx pointed at a deleted target).
       let dstLstat: ReturnType<typeof lstatSync> | null = null;
       try {
         dstLstat = lstatSync(dst);
@@ -1287,13 +1287,13 @@ function seedBundledSkills(): void {
 }
 
 /**
- * Ensure the ~/.myagents/plugins/ directory tree exists for Claude Plugin
+ * Ensure the ~/.blexagent/plugins/ directory tree exists for Claude Plugin
  * support (PRD 0.2.17). Unlike skills, plugins are never seeded by the app —
  * the user installs them via UI/CLI, and the directories below merely have
  * to exist so first-install doesn't have to MkDir-A-Path twice.
  *
- *   ~/.myagents/plugins/                  plugin install root
- *   ~/.myagents/plugins/data/             ${CLAUDE_PLUGIN_DATA} parent
+ *   ~/.blexagent/plugins/                  plugin install root
+ *   ~/.blexagent/plugins/data/             ${CLAUDE_PLUGIN_DATA} parent
  *
  * Idempotent. Called at sidecar startup alongside seedBundledSkills.
  */
@@ -1304,7 +1304,7 @@ function ensurePluginsDirs(): void {
       console.warn('[plugins] HOME not resolvable — skipping ensurePluginsDirs');
       return;
     }
-    const root = join(homeDir, '.myagents', 'plugins');
+    const root = join(homeDir, '.blexagent', 'plugins');
     const dataRoot = join(root, 'data');
     ensureDirSync(root);
     ensureDirSync(dataRoot);
@@ -1521,7 +1521,7 @@ async function routeAdminApi(pathname: string, payload: Record<string, unknown>)
   if (route === 'tool/readme') return await api.handleToolReadme(payload as Parameters<typeof api.handleToolReadme>[0]);
   if (route === 'tool/env') return await api.handleToolEnv(payload as Parameters<typeof api.handleToolEnv>[0]);
 
-  // Official MyAgents CLI tools
+  // Official BlexAgent CLI tools
   if (route === 'vision/readme') return await api.handleVisionReadme();
   if (route === 'vision/analyze') return await api.handleVisionAnalyze(payload as Parameters<typeof api.handleVisionAnalyze>[0]);
 
@@ -1636,7 +1636,7 @@ async function routeAdminApi(pathname: string, payload: Record<string, unknown>)
   if (route === 'thought/list') return await api.handleThoughtList(payload as Parameters<typeof api.handleThoughtList>[0]);
   if (route === 'thought/create') return await api.handleThoughtCreate(payload as Parameters<typeof api.handleThoughtCreate>[0]);
 
-  // MyAgents Cloud Space — Registered Agent CLI bridge.
+  // BlexAgent Cloud Space — Registered Agent CLI bridge.
   if (route === 'space/issue-list') return await api.handleSpaceIssueList(payload as Parameters<typeof api.handleSpaceIssueList>[0]);
   if (route === 'space/issue-get') return await api.handleSpaceIssueGet(payload as Parameters<typeof api.handleSpaceIssueGet>[0]);
   if (route === 'space/issue-comment') return await api.handleSpaceIssueComment(payload as Parameters<typeof api.handleSpaceIssueComment>[0]);
@@ -1649,7 +1649,7 @@ async function routeAdminApi(pathname: string, payload: Record<string, unknown>)
   if (route === 'space/claim-local-task') return await api.handleSpaceClaimLocalTask(payload as Parameters<typeof api.handleSpaceClaimLocalTask>[0]);
   if (route === 'space/attachment-download') return await api.handleSpaceAttachmentDownload(payload as Parameters<typeof api.handleSpaceAttachmentDownload>[0]);
 
-  // Session Inbox (PRD 0.2.18) — `myagents session send`
+  // Session Inbox (PRD 0.2.18) — `blexagent session send`
   if (route === 'session/send') {
     const { handleAdminInbox } = await import('./inbox/admin-handler');
     const sessionRequest = {
@@ -1663,7 +1663,7 @@ async function routeAdminApi(pathname: string, payload: Record<string, unknown>)
     // message }` object overwrote the string. CLI printResult then rendered
     // `Error: [object Object]`. Put the spread first and let explicit fields
     // win; also surface `code` at top level so the granular exit-code branch
-    // in cli/myagents.ts:1627-1633 can read it without destructuring the
+    // in cli/blexagent.ts:1627-1633 can read it without destructuring the
     // nested error object.
     return result.status >= 200 && result.status < 300
       ? { success: true, ...(result.response as unknown as Record<string, unknown>) }
@@ -1835,7 +1835,7 @@ function startupBeacon(step: string): void {
     const y = now.getFullYear();
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
-    const logsDir = join(homedir(), '.myagents', 'logs');
+    const logsDir = join(homedir(), '.blexagent', 'logs');
     ensureDirSync(logsDir);
     const filePath = join(logsDir, `unified-${y}-${m}-${d}.log`);
     const h = String(now.getHours()).padStart(2, '0');
@@ -1867,9 +1867,9 @@ async function main() {
 
   // Store sidecar port BEFORE initializeAgent() so that:
   //   1. pre-warm's buildClaudeSessionEnv() reads the correct sidecarPort
-  //      (OpenAI bridge loopback URL + MYAGENTS_PORT injection both need it).
-  //   2. setSidecarPort's process.env.MYAGENTS_PORT side effect is in place
-  //      before any external runtime subprocess (or `myagents` CLI invocation
+  //      (OpenAI bridge loopback URL + BLEXAGENT_PORT injection both need it).
+  //   2. setSidecarPort's process.env.BLEXAGENT_PORT side effect is in place
+  //      before any external runtime subprocess (or `blexagent` CLI invocation
   //      from pre-warm bash tools) can spawn. This eliminates a subtle timing
   //      coincidence where the old ordering depended on pre-warm's 500ms
   //      debounce outlasting the few µs between these two calls.
@@ -1894,7 +1894,7 @@ async function main() {
   // Route handlers that need agent state call `await awaitDeferredInit()`.
   // Exposed on globalThis so the hono fetch handler (below) can reach it
   // without changing signatures.
-  (globalThis as { __myagentsDeferredInit?: Promise<void> }).__myagentsDeferredInit =
+  (globalThis as { __blexagentDeferredInit?: Promise<void> }).__blexagentDeferredInit =
     deferredInitPromise;
 
   /**
@@ -2003,13 +2003,13 @@ async function main() {
       // Pattern 6 (HTTP request boundary): each request runs inside an ALS
       // frame so any nested console.* call automatically gets correlation
       // fields injected. Renderer-side code (`tauriClient.ts`) attaches
-      // X-MyAgents-Session-Id / X-MyAgents-Tab-Id; the server generates a
-      // fresh requestId (or honours an inbound `X-MyAgents-Request-Id` from
+      // X-BlexAgent-Session-Id / X-BlexAgent-Tab-Id; the server generates a
+      // fresh requestId (or honours an inbound `X-BlexAgent-Request-Id` from
       // the Rust proxy if it pre-populated one).
-      const incomingRequestId = request.headers.get('x-myagents-request-id') ?? undefined;
+      const incomingRequestId = request.headers.get('x-blexagent-request-id') ?? undefined;
       const requestId = incomingRequestId ?? randomUUIDv4Short();
-      const sessionId = request.headers.get('x-myagents-session-id') ?? undefined;
-      const tabId = request.headers.get('x-myagents-tab-id') ?? undefined;
+      const sessionId = request.headers.get('x-blexagent-session-id') ?? undefined;
+      const tabId = request.headers.get('x-blexagent-tab-id') ?? undefined;
       return withLogContext({ requestId, sessionId, tabId }, () => handleRequest(request));
     },
   } as Parameters<typeof honoServe>[0]);
@@ -2197,12 +2197,12 @@ async function main() {
       // Resolution:
       //   1. Look up the external-path registry (Codex savedPath, dynamic URLs after fetch).
       //      Hit → serve that real path.
-      //   2. Miss → fall back to the trusted attachment root <home>/.myagents/generated/
+      //   2. Miss → fall back to the trusted attachment root <home>/.blexagent/generated/
       //      tool-attachments/<s>/<t>/<f> (where base64 / URL downloads land).
       //
       // Security: the registry only holds paths registered by saveToolAttachment, which
       // pre-validated them via validateExternalReadPathNode (system/credential blacklist).
-      // The trusted-root fallback is by construction inside the MyAgents-owned tree.
+      // The trusted-root fallback is by construction inside the BlexAgent-owned tree.
       if (pathname.startsWith('/api/attachment/tool/') && request.method === 'GET') {
         // Codex review EP1: decodeURIComponent throws URIError on malformed
         // %xx escapes — wrap explicitly so we return 400 (with CORS) instead
@@ -2268,7 +2268,7 @@ async function main() {
       }
 
       // Browser dev-mode fallback for attachment files.
-      // Production uses the Tauri `myagents://attachment/<path>` custom protocol
+      // Production uses the Tauri `blexagent://attachment/<path>` custom protocol
       // (`src-tauri/src/attachment_protocol.rs`) which serves bytes directly
       // through WebKit without round-tripping JSON. In dev (vite + browser) the
       // custom scheme isn't registered, so this route serves the same bytes
@@ -2825,7 +2825,7 @@ async function main() {
                   // (canonical task shape from UI) → `payload.model` (CLI passes
                   // `--model X` to top-level Task.model for external runtime →
                   // forwarded here) → agent snapshot fallback. Without honoring
-                  // `payload.model`, `myagents task create-direct --runtime codex
+                  // `payload.model`, `blexagent task create-direct --runtime codex
                   // --model X` silently runs with the agent's default model and
                   // the runtime CLI 404s on the wrong model id.
                   effectiveRuntimeConfig = {
@@ -3255,7 +3255,7 @@ async function main() {
                 // (canonical task shape from UI) → `payload.model` (CLI passes
                 // `--model X` to top-level Task.model for external runtime →
                 // forwarded here) → agent snapshot fallback. Without honoring
-                // `payload.model`, `myagents task create-direct --runtime codex
+                // `payload.model`, `blexagent task create-direct --runtime codex
                 // --model X` silently runs with the agent's default model and
                 // the runtime CLI 404s on the wrong model id.
                 effectiveRuntimeConfig = {
@@ -3889,7 +3889,7 @@ async function main() {
 
         const tail = shrinkSessionMessagesForClient(session.messages.slice(idx + 1));
         // Same metadata-only shape as GET /sessions/:id (P0) — previews are
-        // resolved via the myagents:// custom protocol on the client.
+        // resolved via the blexagent:// custom protocol on the client.
         return jsonResponse({ success: true, fromIndex: idx, messages: tail });
       }
 
@@ -4311,15 +4311,15 @@ async function main() {
             return jsonResponse({ success: false, error: 'Missing path parameter' }, 400);
           }
 
-          // Security: allow reading from workspace/myagents_files/{generated_images,temp}/ or legacy paths
+          // Security: allow reading from workspace/blexagent_files/{generated_images,temp}/ or legacy paths
           const resolvedPath = resolve(imagePath);
-          const legacyDir = join(homedir(), '.myagents', 'generated');
+          const legacyDir = join(homedir(), '.blexagent', 'generated');
           const legacyDirSep = legacyDir.endsWith(sep) ? legacyDir : legacyDir + sep;
-          // New unified paths + backward compat with myagents-generated/images/
+          // New unified paths + backward compat with blexagent-generated/images/
           const allowedDirs = currentAgentDir ? [
-            join(currentAgentDir, 'myagents_files', 'generated_images'),
-            join(currentAgentDir, 'myagents_files', 'temp'),
-            join(currentAgentDir, 'myagents-generated', 'images'), // backward compat
+            join(currentAgentDir, 'blexagent_files', 'generated_images'),
+            join(currentAgentDir, 'blexagent_files', 'temp'),
+            join(currentAgentDir, 'blexagent-generated', 'images'), // backward compat
           ] : [];
           const allowed = resolvedPath.startsWith(legacyDirSep)
             || allowedDirs.some(d => resolvedPath.startsWith(d.endsWith(sep) ? d : d + sep));
@@ -4356,14 +4356,14 @@ async function main() {
             return jsonResponse({ success: false, error: 'Missing path parameter' }, 400);
           }
 
-          // Security: allow reading from workspace/myagents_files/generated_audio/ or legacy paths
+          // Security: allow reading from workspace/blexagent_files/generated_audio/ or legacy paths
           const resolvedPath = resolve(audioPath);
-          const legacyAudioDir = join(homedir(), '.myagents', 'generated_audio');
+          const legacyAudioDir = join(homedir(), '.blexagent', 'generated_audio');
           const legacyAudioDirSep = legacyAudioDir.endsWith(sep) ? legacyAudioDir : legacyAudioDir + sep;
-          // New unified path + backward compat with myagents-generated/audio/
+          // New unified path + backward compat with blexagent-generated/audio/
           const allowedAudioDirs = currentAgentDir ? [
-            join(currentAgentDir, 'myagents_files', 'generated_audio'),
-            join(currentAgentDir, 'myagents-generated', 'audio'), // backward compat
+            join(currentAgentDir, 'blexagent_files', 'generated_audio'),
+            join(currentAgentDir, 'blexagent-generated', 'audio'), // backward compat
           ] : [];
           const audioAllowed = resolvedPath.startsWith(legacyAudioDirSep)
             || allowedAudioDirs.some(d => resolvedPath.startsWith(d.endsWith(sep) ? d : d + sep));
@@ -4477,7 +4477,7 @@ async function main() {
           const { readdirSync, statSync } = await import('fs');
           const { join: joinPath } = await import('path');
           const { homedir } = await import('os');
-          const logsDir = joinPath(homedir(), '.myagents', 'logs');
+          const logsDir = joinPath(homedir(), '.blexagent', 'logs');
 
           // Collect last 3 days of unified-*.log files
           const now = Date.now();
@@ -4498,7 +4498,7 @@ async function main() {
           // Output to Desktop
           const desktopDir = joinPath(homedir(), 'Desktop');
           const timestamp = new Date().toISOString().slice(0, 10);
-          const zipName = `MyAgents-logs-${timestamp}.zip`;
+          const zipName = `BlexAgent-logs-${timestamp}.zip`;
           const zipPath = joinPath(desktopDir, zipName);
 
           // Create zip using platform-appropriate command
@@ -4827,7 +4827,7 @@ async function main() {
                     params: {
                       protocolVersion: '2025-03-26',
                       capabilities: {},
-                      clientInfo: { name: 'MyAgents', version: '0.1.29' },
+                      clientInfo: { name: 'BlexAgent', version: '0.1.29' },
                     },
                   }),
                   signal: controller.signal,
@@ -5737,8 +5737,8 @@ async function main() {
 
       // Cross-platform home directory for user skills/commands
       const homeDir = getHomeDirOrNull() || '';
-      const userSkillsBaseDir = join(homeDir, '.myagents', 'skills');
-      const userCommandsBaseDir = join(homeDir, '.myagents', 'commands');
+      const userSkillsBaseDir = join(homeDir, '.blexagent', 'skills');
+      const userCommandsBaseDir = join(homeDir, '.blexagent', 'commands');
 
       // Helper: Get project base directories (supports explicit agentDir parameter)
       // Security: validates agentDir to prevent path traversal attacks
@@ -5873,7 +5873,7 @@ async function main() {
           // Get folders in Claude Code skills directory (follow junctions — issue #104).
           // Users sometimes mount their skills hub into ~/.claude/skills/ via
           // junction too; bare `isDirectory()` would miss them asymmetrically
-          // with the myagentsFolders side.
+          // with the blexagentFolders side.
           const claudeFolders = readdirSync(claudeSkillsDir, { withFileTypes: true })
             .filter(entry => isDirEntry(entry, join(claudeSkillsDir, entry.name)))
             .map(entry => entry.name);
@@ -5882,21 +5882,21 @@ async function main() {
             return jsonResponse({ canSync: false, count: 0, folders: [] });
           }
 
-          // Get existing folders in MyAgents skills directory.
+          // Get existing folders in BlexAgent skills directory.
           // isDirEntry follows junctions (issue #104) so mounted skills count
           // as existing, preventing sync-from-claude from overwriting them.
-          const myagentsFolders = new Set<string>();
+          const blexagentFolders = new Set<string>();
           if (existsSync(userSkillsBaseDir)) {
             const entries = readdirSync(userSkillsBaseDir, { withFileTypes: true });
             for (const entry of entries) {
               if (isDirEntry(entry, join(userSkillsBaseDir, entry.name))) {
-                myagentsFolders.add(entry.name);
+                blexagentFolders.add(entry.name);
               }
             }
           }
 
-          // Find folders that can be synced (exist in Claude but not in MyAgents)
-          const syncableFolders = claudeFolders.filter(folder => !myagentsFolders.has(folder));
+          // Find folders that can be synced (exist in Claude but not in BlexAgent)
+          const syncableFolders = claudeFolders.filter(folder => !blexagentFolders.has(folder));
 
           return jsonResponse({
             canSync: syncableFolders.length > 0,
@@ -5912,7 +5912,7 @@ async function main() {
         }
       }
 
-      // POST /api/skill/sync-from-claude - Sync skills from Claude Code to MyAgents
+      // POST /api/skill/sync-from-claude - Sync skills from Claude Code to BlexAgent
       // NOTE: This route MUST be before /api/skill/:name to avoid being captured by the wildcard
       if (pathname === '/api/skill/sync-from-claude' && request.method === 'POST') {
         try {
@@ -5932,23 +5932,23 @@ async function main() {
             return jsonResponse({ success: true, synced: 0, failed: 0, message: 'No skills to sync' });
           }
 
-          // Ensure MyAgents skills directory exists
+          // Ensure BlexAgent skills directory exists
           if (!existsSync(userSkillsBaseDir)) {
             ensureDirSync(userSkillsBaseDir);
           }
 
-          // Get existing folders in MyAgents skills directory (follow junctions — issue #104)
-          const myagentsFolders = new Set<string>();
+          // Get existing folders in BlexAgent skills directory (follow junctions — issue #104)
+          const blexagentFolders = new Set<string>();
           const entries = readdirSync(userSkillsBaseDir, { withFileTypes: true });
           for (const entry of entries) {
             if (isDirEntry(entry, join(userSkillsBaseDir, entry.name))) {
-              myagentsFolders.add(entry.name);
+              blexagentFolders.add(entry.name);
             }
           }
 
           // Find folders that can be synced (filter out invalid folder names for security)
           const syncableFolders = claudeFolders.filter(folder =>
-            !myagentsFolders.has(folder) && isValidFolderName(folder)
+            !blexagentFolders.has(folder) && isValidFolderName(folder)
           );
 
           if (syncableFolders.length === 0) {
@@ -6194,7 +6194,7 @@ async function main() {
         }
       }
 
-      // POST /api/skill/copy-to-global - Copy a project skill to global (~/.myagents/skills/)
+      // POST /api/skill/copy-to-global - Copy a project skill to global (~/.blexagent/skills/)
       // NOTE: This route MUST be before /api/skill/:name to avoid being captured by the wildcard
       if (pathname === '/api/skill/copy-to-global' && request.method === 'POST') {
         try {
@@ -6639,7 +6639,7 @@ async function main() {
       // POST /api/skill/export-from-url - Resolve a GitHub/raw/npx skill source
       // and stage one or more canonical zip packages for Space publishing.
       //
-      // This deliberately does not write to ~/.myagents/skills or a workspace.
+      // This deliberately does not write to ~/.blexagent/skills or a workspace.
       // The renderer still hands the staged zip path to the Rust Space command,
       // so Space auth and cloud mutations remain owned by Tauri.
       if (pathname === '/api/skill/export-from-url' && request.method === 'POST') {
@@ -7560,7 +7560,7 @@ async function main() {
 
       // ============= SUB-AGENTS API =============
 
-      const userAgentsBaseDir = join(homeDir, '.myagents', 'agents');
+      const userAgentsBaseDir = join(homeDir, '.blexagent', 'agents');
 
       // Helper: Get project agents directory (supports explicit agentDir parameter)
       const getProjectAgentsDir = (queryAgentDir: string | null) => {
@@ -7645,8 +7645,8 @@ async function main() {
             return jsonResponse({ canSync: false, count: 0, folders: [] });
           }
 
-          const myagentsAgents = scanAgents(userAgentsBaseDir, 'user');
-          const myagentsSet = new Set(myagentsAgents.map(a => a.folderName));
+          const blexagentAgents = scanAgents(userAgentsBaseDir, 'user');
+          const blexagentSet = new Set(blexagentAgents.map(a => a.folderName));
 
           // folderName is the canonical agent identity (e.g. "code-reviewer"
           // for flat, "team/reviewer" for nested, "novels" for folder). The
@@ -7654,8 +7654,8 @@ async function main() {
           // them against scanAgents output at that time — no raw filesystem
           // name is trusted across the request boundary.
           const allFolders = claudeAgents.map(a => a.folderName);
-          const newFolders = claudeAgents.filter(a => !myagentsSet.has(a.folderName)).map(a => a.folderName);
-          const conflictFolders = claudeAgents.filter(a => myagentsSet.has(a.folderName)).map(a => a.folderName);
+          const newFolders = claudeAgents.filter(a => !blexagentSet.has(a.folderName)).map(a => a.folderName);
+          const conflictFolders = claudeAgents.filter(a => blexagentSet.has(a.folderName)).map(a => a.folderName);
 
           return jsonResponse({
             canSync: allFolders.length > 0,
@@ -7670,14 +7670,14 @@ async function main() {
         }
       }
 
-      // POST /api/agent/sync-from-claude - Sync agents from Claude Code to MyAgents
+      // POST /api/agent/sync-from-claude - Sync agents from Claude Code to BlexAgent
       // NOTE: Must be before /api/agent/:name to avoid wildcard capture
       // Supports conflict handling: mode = 'skip' (default) | 'overwrite'
       //
       // Preserves the source agent's layout:
-      //   folder  (.claude/agents/foo/foo.md)        → ~/.myagents/agents/foo/foo.md  + _meta.json
-      //   flat    (.claude/agents/foo.md)            → ~/.myagents/agents/foo.md       (no _meta.json — flat has no home for it)
-      //   nested  (.claude/agents/team/reviewer.md)  → ~/.myagents/agents/team/reviewer.md  (ditto)
+      //   folder  (.claude/agents/foo/foo.md)        → ~/.blexagent/agents/foo/foo.md  + _meta.json
+      //   flat    (.claude/agents/foo.md)            → ~/.blexagent/agents/foo.md       (no _meta.json — flat has no home for it)
+      //   nested  (.claude/agents/team/reviewer.md)  → ~/.blexagent/agents/team/reviewer.md  (ditto)
       //
       // Why preserve instead of canonicalize to `folder`: `nested` folderNames
       // contain `/` (e.g. "team/reviewer"), which collapses ambiguously if
@@ -8395,7 +8395,7 @@ async function main() {
           try {
 
           // Set IM cron context for the im-cron tool (parity with /api/im/chat)
-          if (payload.botId && process.env.MYAGENTS_MANAGEMENT_PORT) {
+          if (payload.botId && process.env.BLEXAGENT_MANAGEMENT_PORT) {
             const imCronModel = snapshotResolvedConfig
               ? snapshotResolvedConfig.model
               : (effectiveRuntime === 'builtin'
@@ -8464,7 +8464,7 @@ async function main() {
             // message) keeps a stale mcpServers config and bridge plugin tools
             // appear "disconnected".
             //
-            // (v0.2.11) `im-media` was retired here — `myagents im send-media`
+            // (v0.2.11) `im-media` was retired here — `blexagent im send-media`
             // CLI is the new path, no SDK sync needed for it. `im-bridge-tools`
             // is the only remaining context-injected MCP this re-sync targets.
             //
@@ -8928,7 +8928,7 @@ async function main() {
               // PRD 0.2.18 Phase 3 — inbox envelope bridge fields (optional).
               // When present, buildCronEventRelayMessage wraps the cron content with
               // an `<inbox-message from="..." reply_back="false">` prefix so
-              // the IM Bot AI can `myagents session send <fromSessionId>` to
+              // the IM Bot AI can `blexagent session send <fromSessionId>` to
               // follow up. Cron uses reply_back=false because the cron task
               // session is short-lived and doesn't await a reply.
               fromSessionId?: string;
@@ -9362,7 +9362,7 @@ description: >
 
       // ============= SESSION INBOX (PRD 0.2.18) =============
       //
-      // Note: `myagents session send` CLI hits `/api/admin/session/send`
+      // Note: `blexagent session send` CLI hits `/api/admin/session/send`
       // (handled by `routeAdminApi` → `handleAdminInbox`). The previous raw
       // route at `/api/session/inbox` was deleted (cross-review Architecture
       // flagged it as duplicate dead code — CLI never hit it).
@@ -9384,7 +9384,7 @@ description: >
           const { handleInboxDrain } = await import('./inbox/drain-handler');
           // PRD 0.2.18 cross-review fix (CC): workspacePath comes from THIS
           // sidecar's session metadata. process.cwd() is app bundle / `/`, and
-          // MYAGENTS_AGENT_DIR env is not reliable for sidecar-to-sidecar inbox.
+          // BLEXAGENT_AGENT_DIR env is not reliable for sidecar-to-sidecar inbox.
           const engine = getSessionEngine();
           const injector: import('./inbox/drain-handler').InboxInjector = async (text, inboxMeta, options) => {
             const sessionId = getRuntimeSessionIdForRequest();
@@ -9506,7 +9506,7 @@ description: >
   // ── Deferred heavy init ─────────────────────────────────────────────────
   // Runs AFTER honoServe has bound the port. Rust's TCP health check now
   // passes within ~50ms instead of waiting ~2s for all this work to finish.
-  // Routes (except /health) `await __myagentsDeferredInit` before running,
+  // Routes (except /health) `await __blexagentDeferredInit` before running,
   // so correctness is preserved: anything that needs agent state (MCP,
   // model, file watcher, bridge) waits for this block to finish.
   //
@@ -9677,7 +9677,7 @@ description: >
   //
   // Startup returns immediately; detected PATH is applied whenever the shell
   // finishes. `getShellEnv()` keeps returning the platform fallback PATH until
-  // then — sufficient for common binary lookups (.myagents/bin, homebrew, nvm,
+  // then — sufficient for common binary lookups (.blexagent/bin, homebrew, nvm,
   // fnm, volta, pnpm, cargo all in fallback).
   import('./utils/shell').then(({ warmupShellPath, getShellPath }) => {
     warmupShellPath().then(() => {

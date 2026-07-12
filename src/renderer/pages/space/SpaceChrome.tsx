@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, GitBranch, Loader2, LogIn, LogOut, MessageSquare, Package, Plus, Settings, UserPlus } from 'lucide-react';
 
 import type { SpaceSession } from '@/api/spaceCloud';
-import myagentsWebLogo from '@/assets/brand/myagents-web-logo.png';
+import blexagentWebLogo from '@/assets/brand/blexagent-web-logo.png';
 import { useCloseLayer } from '@/hooks/useCloseLayer';
 import { SpaceAvatar, spaceDisplayName } from './SpaceAvatar';
 import { PAPER_GRID_STYLE } from './spaceUi';
@@ -23,7 +23,7 @@ export function SpaceLogin({ authBusy, authFlow, onLogin }: { authBusy: boolean;
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-40" style={PAPER_GRID_STYLE} />
       <div className="relative z-10 w-full max-w-md rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-6 shadow-md">
         <div className="mb-6 flex items-center gap-3">
-          <img src={myagentsWebLogo} alt="" className="h-11 w-11 rounded-xl shadow-sm" />
+          <img src={blexagentWebLogo} alt="" className="h-11 w-11 rounded-xl shadow-sm" />
           <div className="min-w-0">
             <p className="text-xs font-medium text-[var(--accent-warm)]">{t('space.login.eyebrow')}</p>
             <h1 className="truncate text-xl font-semibold text-[var(--ink)]">{t('space.login.title')}</h1>
@@ -125,7 +125,7 @@ export function SpaceSidebar({
             {session.space.avatarUrl ? (
               <img src={session.space.avatarUrl} alt="" className="h-8 w-8 rounded-lg object-cover shadow-sm" />
             ) : (
-              <img src={myagentsWebLogo} alt="" className="h-8 w-8 rounded-lg shadow-sm" />
+              <img src={blexagentWebLogo} alt="" className="h-8 w-8 rounded-lg shadow-sm" />
             )}
             <span className="min-w-0">
               <strong className="block truncate text-sm font-semibold text-[var(--ink)]">{session.space.name}</strong>

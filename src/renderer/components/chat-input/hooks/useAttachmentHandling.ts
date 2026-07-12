@@ -298,7 +298,7 @@ export function useAttachmentHandling({
 
         const result = await fileService.importBase64Files({
           files: base64Files,
-          targetDir: 'myagents_files',
+          targetDir: 'blexagent_files',
         });
         if (!mountedRef.current) return;
 
@@ -307,7 +307,7 @@ export function useAttachmentHandling({
         }
 
         try {
-          await fileService.addGitignore({ pattern: 'myagents_files/' });
+          await fileService.addGitignore({ pattern: 'blexagent_files/' });
         } catch {
           // Non-fatal, continue silently.
         }
@@ -429,7 +429,7 @@ export function useAttachmentHandling({
       try {
         const result = await fileService.copyPaths({
           sourcePaths: otherPaths,
-          targetDir: 'myagents_files',
+          targetDir: 'blexagent_files',
           autoRename: true,
         });
         if (!mountedRef.current) return;
@@ -444,7 +444,7 @@ export function useAttachmentHandling({
         }
 
         try {
-          await fileService.addGitignore({ pattern: 'myagents_files/' });
+          await fileService.addGitignore({ pattern: 'blexagent_files/' });
         } catch {
           // Non-fatal, continue silently.
         }

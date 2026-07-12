@@ -113,7 +113,7 @@ pub async fn start_management_api() -> Result<u16, String> {
             "/api/agent/stop-channels",
             post(agent_stop_channels_handler),
         )
-        // Task Center (v0.1.69) — HTTP surface for the `myagents task` CLI.
+        // Task Center (v0.1.69) — HTTP surface for the `blexagent task` CLI.
         .route("/api/task/list", get(task_list_handler))
         .route("/api/task/get", get(task_get_handler))
         .route("/api/task/create-direct", post(task_create_direct_handler))
@@ -1418,11 +1418,11 @@ async fn handle_bridge_message(
 // ========================================================================
 //
 // These endpoints are called by the Bun Admin API (admin-api.ts), which in
-// turn is called by the `myagents task` CLI. The CLI is the **entry point of
+// turn is called by the `blexagent task` CLI. The CLI is the **entry point of
 // trust inference** for `actor` / `source` (PRD §10.2.1 caller-inference table):
 //
-// - `MYAGENTS_PORT` env var set → AI sub-process → `actor=agent, source=cli`
-// - Otherwise (user terminal reading `~/.myagents/sidecar.port`) →
+// - `BLEXAGENT_PORT` env var set → AI sub-process → `actor=agent, source=cli`
+// - Otherwise (user terminal reading `~/.blexagent/sidecar.port`) →
 //   `actor=user, source=cli`
 //
 // That inference happens in the CLI script itself (knows its own env) and is
@@ -1715,7 +1715,7 @@ struct ThoughtListQuery {
     query: Option<String>,
     limit: Option<usize>,
     /// `active` (default) / `archived` / `all`. CLI parity with v0.2.16
-    /// archive feature so `myagents thought list --archived` works.
+    /// archive feature so `blexagent thought list --archived` works.
     archived: Option<String>,
 }
 
@@ -1874,7 +1874,7 @@ async fn task_create_from_alignment_handler(
 ///   creates one with `task_id` reverse pointer if none exists, starts it,
 ///   and kicks the scheduler. The scheduler's first tick calls
 ///   `execute_cron_task()` which builds the first-message prompt dynamically
-///   from `dispatchOrigin` + `~/.myagents/tasks/<id>/task.md` (PRD §9.3.1).
+///   from `dispatchOrigin` + `~/.blexagent/tasks/<id>/task.md` (PRD §9.3.1).
 /// - On successful dispatch transitions `todo → running` via TaskStore.
 /// - For `executionMode = 'once'` the CronTask is `At { at: now }` so it fires
 ///   once and stays stopped after.
@@ -1900,7 +1900,7 @@ pub(crate) async fn run_task_by_id(id: &str) -> Result<(task::Task, String), Str
 
     if ta.status != task::TaskStatus::Todo {
         return Err(format!(
-            "task is in state '{}'; use 'myagents task rerun {}' to re-dispatch it",
+            "task is in state '{}'; use 'blexagent task rerun {}' to re-dispatch it",
             ta.status.as_str(),
             ta.id
         ));
@@ -1984,7 +1984,7 @@ struct TaskReadDocQuery {
     doc: String,
 }
 
-/// `GET /api/task/read-doc?id=&doc=` — used by the `myagents task show-doc`
+/// `GET /api/task/read-doc?id=&doc=` — used by the `blexagent task show-doc`
 /// CLI so Agents running in a workspace can read a Task's markdown without
 /// hardcoding the filesystem path (task docs live in the user profile dir
 /// after v0.1.69, not in the workspace).
@@ -2215,7 +2215,7 @@ async fn ensure_cron_for_task(ta: &task::Task) -> Result<String, String> {
         workspace_path: ta.workspace_path.clone(),
         session_id,
         prompt: format!(
-            "(dynamic — built from ~/.myagents/tasks/{}/task.md at dispatch)",
+            "(dynamic — built from ~/.blexagent/tasks/{}/task.md at dispatch)",
             ta.id
         ),
         interval_minutes,

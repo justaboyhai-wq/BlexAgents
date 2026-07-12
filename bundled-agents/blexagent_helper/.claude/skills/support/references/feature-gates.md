@@ -1,4 +1,4 @@
-# 实验门控与功能入口
+﻿# 实验门控与功能入口
 
 使用场景：用户说某个功能入口没有、设置页找不到、工具箱模块不显示、外部 Runtime 选项不存在、CLI 工具注册不可用。
 
@@ -19,8 +19,8 @@
 诊断：
 
 ```bash
-myagents runtime list --json
-myagents agent show <agent-id> --json
+blexagent runtime list --json
+blexagent agent show <agent-id> --json
 rg -n "multiAgentRuntime|runtimeSource|managed-provider|codex-sub" ./logs/unified-*.log | tail -120
 ```
 
@@ -31,17 +31,17 @@ rg -n "multiAgentRuntime|runtimeSource|managed-provider|codex-sub" ./logs/unifie
 - 默认关闭
 - 关闭时：
   - Settings 工具箱不渲染 CLI 工具模块
-  - `myagents tool --help` 只显示开启指引
-  - `myagents tool ...` 管理 API 被门控
+  - `blexagent tool --help` 只显示开启指引
+  - `blexagent tool ...` 管理 API 被门控
   - 用户注册工具不会注入新 session prompt
   - `tool-creator` skill 不注入工作区
-- 不受影响：稳定内置 `myagents` CLI，例如 cron/task/model/mcp/runtime/status/version
-- 不能通过 `myagents config set cliToolRegistryEnabled ...` 开启
+- 不受影响：稳定内置 `blexagent` CLI，例如 cron/task/model/mcp/runtime/status/version
+- 不能通过 `blexagent config set cliToolRegistryEnabled ...` 开启
 
 诊断：
 
 ```bash
-myagents tool --help
+blexagent tool --help
 ```
 
 ## 回答方式

@@ -1,5 +1,5 @@
 /**
- * Unified system prompt assembly for MyAgents.
+ * Unified system prompt assembly for BlexAgent.
  *
  * Three-layer prompt architecture:
  *   L1 — Base identity (always included)
@@ -35,57 +35,57 @@ function getRuntimeDisplayName(runtime: RuntimeType | undefined): string {
     case 'gemini':      return 'Google Gemini CLI';
     case 'builtin':
     default:
-      return 'MyAgents 内置 Claude Agent SDK';
+      return 'BlexAgent 内置 Claude Agent SDK';
   }
 }
 
 // ===== Inline templates =====
 
-const TMPL_BASE_IDENTITY = `<myagents-identity>
-你正运行在 MyAgents —— 一款通用的桌面端 AI Agent 应用中。用户通过 MyAgents 调用你,
-MyAgents 负责会话管理、工具权限、定时任务、IM Bot 集成、工作区文件访问等能力,
+const TMPL_BASE_IDENTITY = `<blexagent-identity>
+你正运行在 BlexAgent —— 一款通用的桌面端 AI Agent 应用中。用户通过 BlexAgent 调用你,
+BlexAgent 负责会话管理、工具权限、定时任务、IM Bot 集成、工作区文件访问等能力,
 你则负责理解和执行用户的请求。
 
 当前执行 Runtime: {{runtimeName}}
 
-用户全局配置目录: ~/.myagents
+用户全局配置目录: ~/.blexagent
 当对话涉及日期、时间或星期时,先用 Bash 执行 \`date\` 获取准确的当前时间再作判断——系统信息中的日期可能已过期。
-</myagents-identity>`;
+</blexagent-identity>`;
 
-const TMPL_CHANNEL_DESKTOP = `<myagents-interaction-channel>
-用户正通过 MyAgents 桌面客户端与你对话。
-</myagents-interaction-channel>`;
+const TMPL_CHANNEL_DESKTOP = `<blexagent-interaction-channel>
+用户正通过 BlexAgent 桌面客户端与你对话。
+</blexagent-interaction-channel>`;
 
-const TMPL_CHANNEL_IM = `<myagents-interaction-channel>
+const TMPL_CHANNEL_IM = `<blexagent-interaction-channel>
 你正通过 {{platformLabel}} 作为 IM 聊天机器人与用户对话，{{sourceTypeLabel}}。{{#if botName}}你的昵称为「{{botName}}」。{{/if}}
-</myagents-interaction-channel>`;
+</blexagent-interaction-channel>`;
 
-const TMPL_CRON_TASK = `<myagents-cron-task-instructions>
+const TMPL_CRON_TASK = `<blexagent-cron-task-instructions>
 你正处于心跳循环任务模式 (Task ID: {{taskId}})。每隔 {{intervalText}} 系统触发唤醒你一次。{{#if aiCanExit}}
 
-如果任务目标已完全达成、或继续执行无意义/有害，请按下方 \`<myagents-cli-cron-exit>\` 段落给出的 \`myagents cron exit\` 命令结束任务。{{/if}}
-</myagents-cron-task-instructions>`;
+如果任务目标已完全达成、或继续执行无意义/有害，请按下方 \`<blexagent-cli-cron-exit>\` 段落给出的 \`blexagent cron exit\` 命令结束任务。{{/if}}
+</blexagent-cron-task-instructions>`;
 
-const TMPL_HEARTBEAT = `<myagents-heartbeat-instructions>
+const TMPL_HEARTBEAT = `<blexagent-heartbeat-instructions>
 You will periodically receive heartbeat messages (a user message wrapped in tags like \`<HEARTBEAT>\\nThis is a heartbeat from the system.\\n……\\n</HEARTBEAT>\`).
 When you receive one, follow its instructions.
-</myagents-heartbeat-instructions>`;
+</blexagent-heartbeat-instructions>`;
 
-const TMPL_REGISTERED_AGENT = `<myagents-registered-agent-instructions>
-你正作为 MyAgents Registered Agent 在后台处理订阅事件。事件不是普通聊天消息；请先理解事件上下文，再决定 ignore、claim 或继续工作。
-</myagents-registered-agent-instructions>`;
+const TMPL_REGISTERED_AGENT = `<blexagent-registered-agent-instructions>
+你正作为 BlexAgent Registered Agent 在后台处理订阅事件。事件不是普通聊天消息；请先理解事件上下文，再决定 ignore、claim 或继续工作。
+</blexagent-registered-agent-instructions>`;
 
-const TMPL_FLOATING_BALL = `<myagents-floating-ball-instructions>
-You are talking with the user through the MyAgents desktop floating window.
+const TMPL_FLOATING_BALL = `<blexagent-floating-ball-instructions>
+You are talking with the user through the BlexAgent desktop floating window.
 
 This is a lightweight, immediate, desktop-adjacent entry point. The user can easily attach a desktop screenshot or selected text from the app/window they are looking at.
 
 Keep responses concise and directly useful for this small-window interaction.
-</myagents-floating-ball-instructions>`;
+</blexagent-floating-ball-instructions>`;
 
-const TMPL_BROWSER_STORAGE_STATE = `<myagents-browser-storage-instructions>
-当你在浏览器中执行了登录操作或用户帮你完成了登录（输入账号密码、OAuth 授权、扫码登录等），必须在登录成功后**立即**调用 browser_storage_state 工具将登录状态保存到 ~/.myagents/browser-storage-state.json，然后再继续执行后续任务。这样即使后续任务中断或会话异常终止，登录态也不会丢失，后续对话可以复用。
-</myagents-browser-storage-instructions>`;
+const TMPL_BROWSER_STORAGE_STATE = `<blexagent-browser-storage-instructions>
+当你在浏览器中执行了登录操作或用户帮你完成了登录（输入账号密码、OAuth 授权、扫码登录等），必须在登录成功后**立即**调用 browser_storage_state 工具将登录状态保存到 ~/.blexagent/browser-storage-state.json，然后再继续执行后续任务。这样即使后续任务中断或会话异常终止，登录态也不会丢失，后续对话可以复用。
+</blexagent-browser-storage-instructions>`;
 
 // ===== Variable replacement =====
 // Supports {{varName}} simple substitution + {{#if varName}}...{{else}}...{{/if}} conditional blocks
@@ -113,7 +113,7 @@ export interface SystemPromptOptions {
    */
   runtime?: RuntimeType;
   /**
-   * Append the `myagents` CLI capability hints (cron / IM media) to the
+   * Append the `blexagent` CLI capability hints (cron / IM media) to the
    * prompt. Set by ALL runtime paths in v0.2.11+ — builtin and external —
    * because the corresponding in-process MCP servers (`cron-tools` /
    * `im-cron` / `im-media`) were retired in favour of the CLI surface, so
@@ -128,13 +128,13 @@ export interface SystemPromptOptions {
    */
   cliToolsEnabled?: boolean;
   /**
-   * Include user-registered CLI tools from ~/.myagents/tools/registry.json in
+   * Include user-registered CLI tools from ~/.blexagent/tools/registry.json in
    * the prompt. Separate from `cliToolsEnabled` because cron / thought / IM
    * media are stable product CLI capabilities, while the user tool registry is
    * an experimental feature gate.
    */
   userCliToolsEnabled?: boolean;
-  /** Effective MyAgents official CLI tools enabled for this session. */
+  /** Effective BlexAgent official CLI tools enabled for this session. */
   enabledOfficialToolIds?: readonly OfficialToolId[];
 }
 
@@ -187,7 +187,7 @@ export function buildSystemPromptAppend(scenario: InteractionScenario, options?:
 
   // L3: Generative UI widget guidance — universal across runtimes for desktop
   // scenarios. Both builtin SDK and external CLIs load the design contract via
-  // `myagents widget readme <module>` invoked through their shell tool.
+  // `blexagent widget readme <module>` invoked through their shell tool.
   const widgetSection = buildWidgetSection(scenario);
   if (widgetSection) parts.push(widgetSection);
 

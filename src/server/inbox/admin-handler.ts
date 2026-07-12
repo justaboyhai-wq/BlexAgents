@@ -1,6 +1,6 @@
 // Session Inbox admin API handler — POST /api/session/inbox (PRD 0.2.18 §5.2).
 //
-// 由 CLI `myagents session send` 通过 sidecar admin API 调用。流程:
+// 由 CLI `blexagent session send` 通过 sidecar admin API 调用。流程:
 //   1. 解析 body: { toSessionId, prompt, replyBack }
 //   2. 推导 caller label(从本 sidecar 的 session metadata)
 //   3. 构造 PendingInboxMessage(kind=Request)
@@ -34,7 +34,7 @@ export interface AdminInboxResponse {
   fromLabel?: string;
   /** UUID of the dispatched message — used by debug logs / reply correlation */
   messageId?: string;
-  /** Whether MyAgents will push the target turn result back to the caller. */
+  /** Whether BlexAgent will push the target turn result back to the caller. */
   replyBack?: boolean;
   /** Error code when delivered=false:
    *  'session_not_found' | 'delivery_failed' | 'invalid_args' | 'rejected' */
@@ -174,13 +174,13 @@ export async function handleAdminInbox(
   const resumeWorkspacePath = resolveResumeWorkspacePath(body.toSessionId);
 
   // POST to Rust management API
-  const managementPort = process.env.MYAGENTS_MANAGEMENT_PORT;
+  const managementPort = process.env.BLEXAGENT_MANAGEMENT_PORT;
   if (!managementPort) {
     return {
       status: 500,
       response: {
         delivered: false,
-        error: { code: 'delivery_failed', message: 'MYAGENTS_MANAGEMENT_PORT not set' },
+        error: { code: 'delivery_failed', message: 'BLEXAGENT_MANAGEMENT_PORT not set' },
       },
     };
   }

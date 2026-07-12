@@ -1,4 +1,4 @@
-// Cron Task Manager for MyAgents
+// Cron Task Manager for BlexAgent
 // Manages scheduled task execution with persistence and recovery
 // Includes Rust-layer scheduler that directly executes tasks via Sidecar
 //
@@ -6,7 +6,7 @@
 // - Task lifecycle management (create, start, pause, stop, complete)
 // - Interval-based scheduling with overlap prevention
 // - Session activation/deactivation coordination with SidecarManager
-// - Persistence to ~/.myagents/cron_tasks.json with auto-recovery on startup
+// - Persistence to ~/.blexagent/cron_tasks.json with auto-recovery on startup
 
 use chrono::{DateTime, Utc};
 use cron::Schedule as CronExprSchedule;

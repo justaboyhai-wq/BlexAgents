@@ -138,7 +138,7 @@
     "workspaceHint": "Uses this Agent's runtime, model, permissions, and MCP tools by default. Override them below in Advanced config.",
     "tags": "Tags",
     "tagsHint": "(Optional)",
-    "tagsPlaceholder": "Comma-separated, for example MyAgents, maintenance",
+    "tagsPlaceholder": "Comma-separated, for example BlexAgent, maintenance",
     "sectionExecution": "Execution mode",
     "sectionEndConditions": "End conditions",
     "sectionNotifications": "Task notifications",

@@ -2,7 +2,7 @@
  * SessionStore - Handles persistence of session data using JSONL format.
  *
  * Storage structure:
- * ~/.myagents/
+ * ~/.blexagent/
  * ├── sessions.json          # Array of SessionMetadata (index)
  * └── sessions/
  *     ├── {session-id}.jsonl  # Messages in JSONL format (append-only)
@@ -28,13 +28,13 @@ import { withFileLock } from './utils/file-lock';
 import { countNonEmptyJsonlLines } from './utils/jsonl-line-count';
 import { elapsedMs, emitPerfTrace, nowMs } from './utils/perf-trace';
 
-const MYAGENTS_DIR = join(homedir(), '.myagents');
-const SESSIONS_FILE = join(MYAGENTS_DIR, 'sessions.json');
-const SESSIONS_DIR = join(MYAGENTS_DIR, 'sessions');
-const ATTACHMENTS_DIR = join(MYAGENTS_DIR, 'attachments');
-const SESSIONS_TMP_FILE = join(MYAGENTS_DIR, 'sessions.json.tmp');
-const SESSIONS_LOCK_FILE = join(MYAGENTS_DIR, 'sessions.lock');
-const SESSIONS_LOCK_DIR = join(MYAGENTS_DIR, 'session-locks');
+const BLEXAGENT_DIR = join(homedir(), '.blexagent');
+const SESSIONS_FILE = join(BLEXAGENT_DIR, 'sessions.json');
+const SESSIONS_DIR = join(BLEXAGENT_DIR, 'sessions');
+const ATTACHMENTS_DIR = join(BLEXAGENT_DIR, 'attachments');
+const SESSIONS_TMP_FILE = join(BLEXAGENT_DIR, 'sessions.json.tmp');
+const SESSIONS_LOCK_FILE = join(BLEXAGENT_DIR, 'sessions.lock');
+const SESSIONS_LOCK_DIR = join(BLEXAGENT_DIR, 'session-locks');
 const LOCK_TIMEOUT_MS = 5000;
 const LOCK_STALE_MS = 30000;
 
@@ -300,7 +300,7 @@ function recoverSessionsIndexCandidates(): SessionMetadata[] {
 
 function createCorruptBackupPath(): string {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const base = join(MYAGENTS_DIR, `sessions.json.corrupt-${stamp}`);
+    const base = join(BLEXAGENT_DIR, `sessions.json.corrupt-${stamp}`);
     if (!existsSync(base)) {
         return base;
     }
@@ -355,8 +355,8 @@ function readSessionsIndexForWrite(): SessionMetadata[] {
  * Ensure storage directories exist
  */
 function ensureStorageDir(): void {
-    if (!existsSync(MYAGENTS_DIR)) {
-        ensureDirSync(MYAGENTS_DIR);
+    if (!existsSync(BLEXAGENT_DIR)) {
+        ensureDirSync(BLEXAGENT_DIR);
     }
     if (!existsSync(SESSIONS_DIR)) {
         ensureDirSync(SESSIONS_DIR);

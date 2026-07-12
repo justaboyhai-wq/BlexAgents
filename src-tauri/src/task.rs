@@ -1,8 +1,8 @@
 //! Task store for Task Center (v0.1.69).
 //!
 //! Tasks are workspace-scoped execution units. The primary index lives in
-//! `~/.myagents/tasks.jsonl` (one task per line, atomic full-rewrite on change).
-//! Associated markdown documents live under `~/.myagents/tasks/<taskId>/{task.md,
+//! `~/.blexagent/tasks.jsonl` (one task per line, atomic full-rewrite on change).
+//! Associated markdown documents live under `~/.blexagent/tasks/<taskId>/{task.md,
 //! verify.md, progress.md, alignment.md}` (moved out of the workspace in
 //! v0.1.69 — see `task_docs_dir` doc for the rationale). This module
 //! manages `task.md` and `progress.md` but treats `verify.md` /
@@ -310,7 +310,7 @@ pub struct Task {
     pub description: Option<String>,
     pub workspace_id: String,
     /// Absolute path to the workspace — Sidecar cwd and AI-bash base. Task
-    /// docs live in `~/.myagents/tasks/<id>/` (user-scoped, v0.1.69+), not
+    /// docs live in `~/.blexagent/tasks/<id>/` (user-scoped, v0.1.69+), not
     /// here. Stored so UI and execution don't have to resolve it separately.
     #[serde(default)]
     pub workspace_path: String,
@@ -365,7 +365,7 @@ pub struct Task {
     /// PRD 0.2.9 — Per-task provider id override. When `None` the cron
     /// follows the workspace agent (legacy snapshot semantics). When set,
     /// the sidecar live-resolves env on every tick from
-    /// `~/.myagents/config.json`, so credential rotation propagates without
+    /// `~/.blexagent/config.json`, so credential rotation propagates without
     /// a re-save and credential copies never land in `tasks.jsonl` /
     /// `cron_tasks.json`.
     ///
@@ -556,8 +556,8 @@ pub struct TaskCreateFromAlignmentInput {
     pub workspace_id: Option<String>,
     #[serde(default)]
     pub workspace_path: Option<String>,
-    /// Source directory `~/.myagents/tasks/<alignmentSessionId>/` — its
-    /// contents are moved (renamed) to `~/.myagents/tasks/<newTaskId>/`.
+    /// Source directory `~/.blexagent/tasks/<alignmentSessionId>/` — its
+    /// contents are moved (renamed) to `~/.blexagent/tasks/<newTaskId>/`.
     pub alignment_session_id: String,
     pub execution_mode: TaskExecutionMode,
     #[serde(default)]
@@ -625,7 +625,7 @@ pub struct TaskCreateAttachedInput {
     pub notification: Option<NotificationConfig>,
 }
 
-/// Sidecar metadata persisted to `~/.myagents/tasks/<alignmentSessionId>/metadata.json`
+/// Sidecar metadata persisted to `~/.blexagent/tasks/<alignmentSessionId>/metadata.json`
 /// at the moment the 「AI 讨论」 flow creates the alignment session. Lets
 /// `create_from_alignment` inherit the workspace + thought ids without the
 /// AI caller having to re-pass them through the CLI.
@@ -721,7 +721,7 @@ pub struct TaskUpdateInput {
     #[serde(default)]
     pub notification: Option<NotificationConfig>,
     /// When `Some`, the new contents are atomically written to
-    /// `~/.myagents/tasks/<id>/task.md` under the same write lock that persists the
+    /// `~/.blexagent/tasks/<id>/task.md` under the same write lock that persists the
     /// JSONL row. Empty string is rejected — prompt must have content.
     #[serde(default)]
     pub prompt: Option<String>,
@@ -1398,7 +1398,7 @@ impl TaskStore {
         if !matches!(input.execution_mode, TaskExecutionMode::Once) {
             return Err(format!(
                 "create-from-alignment only supports executionMode=once; \
-                 to set a schedule, create the task and then `myagents task update <id> \
+                 to set a schedule, create the task and then `blexagent task update <id> \
                  --cronExpression <expr>` or use `create-direct` (got {:?})",
                 input.execution_mode
             ));
@@ -1525,7 +1525,7 @@ impl TaskStore {
         // Transactional order (PRD design):
         // 1. Persist the row to jsonl FIRST. If this fails, the alignment dir is
         //    untouched — retry is safe.
-        // 2. Move the alignment dir to `~/.myagents/tasks/<newId>/`. If this fails, we unwind
+        // 2. Move the alignment dir to `~/.blexagent/tasks/<newId>/`. If this fails, we unwind
         //    the row from jsonl so the store stays consistent.
         // 3. Swap in-memory state only after both succeed.
         let mut inner = self.inner.write().await;
@@ -1719,7 +1719,7 @@ impl TaskStore {
         self.inner.read().await.get(id).cloned()
     }
 
-    /// Check-and-write `~/.myagents/tasks/<id>/<filename>` atomically with respect to
+    /// Check-and-write `~/.blexagent/tasks/<id>/<filename>` atomically with respect to
     /// the running/verifying lock. The status check and the file write
     /// both happen under the same write lock so a concurrent
     /// `update_status(running)` can't slip in between and let us mutate
@@ -2769,8 +2769,8 @@ fn pin_runtime_for_provider_id(provider_id: &Option<String>, runtime: &mut Optio
     }
 }
 
-/// Resolve `~/.myagents/tasks/<id>/` and verify the resolved path stays inside
-/// `~/.myagents/tasks/`. This is the pit-of-success guard — centralizing path
+/// Resolve `~/.blexagent/tasks/<id>/` and verify the resolved path stays inside
+/// `~/.blexagent/tasks/`. This is the pit-of-success guard — centralizing path
 /// join + boundary check here means no caller can accidentally escape the
 /// sandbox via a bad id.
 ///
@@ -2786,7 +2786,7 @@ pub fn task_docs_dir(task_id: &str) -> Result<PathBuf, String> {
     let base = task_docs_root()?;
     let resolved = base.join(task_id);
     // Defense in depth: after the `validate_safe_id` check above, any resolved
-    // path must still lexically start with `~/.myagents/tasks/`. This catches
+    // path must still lexically start with `~/.blexagent/tasks/`. This catches
     // future bypasses if the validator is weakened.
     if !resolved.starts_with(&base) {
         return Err(format!(
@@ -2798,9 +2798,9 @@ pub fn task_docs_dir(task_id: &str) -> Result<PathBuf, String> {
     Ok(resolved)
 }
 
-/// Root dir for all task documents — `~/.myagents/tasks/`.
+/// Root dir for all task documents — `~/.blexagent/tasks/`.
 ///
-/// Honors `MYAGENTS_TASK_DOCS_ROOT` **only in debug / test builds** so tests
+/// Honors `BLEXAGENT_TASK_DOCS_ROOT` **only in debug / test builds** so tests
 /// (and the one-off migration script) can redirect to a tempdir without
 /// touching the real user profile. Production builds ignore the env var to
 /// shut down the "user's shell rc or a rogue child-process env accidentally
@@ -2810,23 +2810,23 @@ pub fn task_docs_dir(task_id: &str) -> Result<PathBuf, String> {
 fn task_docs_root() -> Result<PathBuf, String> {
     #[cfg(debug_assertions)]
     {
-        if let Ok(override_path) = std::env::var("MYAGENTS_TASK_DOCS_ROOT") {
+        if let Ok(override_path) = std::env::var("BLEXAGENT_TASK_DOCS_ROOT") {
             let p = PathBuf::from(&override_path);
             if !p.is_absolute() {
                 return Err(format!(
-                    "MYAGENTS_TASK_DOCS_ROOT must be absolute, got {}",
+                    "BLEXAGENT_TASK_DOCS_ROOT must be absolute, got {}",
                     override_path
                 ));
             }
             return Ok(p);
         }
     }
-    // Route through `app_dirs::myagents_data_dir()` so future dev/prod data
-    // isolation (see `app_dirs.rs` doc — e.g. `~/.myagents-dev/` for debug
+    // Route through `app_dirs::blexagent_data_dir()` so future dev/prod data
+    // isolation (see `app_dirs.rs` doc — e.g. `~/.blexagent-dev/` for debug
     // builds) picks up this path automatically. Don't hardcode home dir.
-    crate::app_dirs::myagents_data_dir()
+    crate::app_dirs::blexagent_data_dir()
         .map(|d| d.join("tasks"))
-        .ok_or_else(|| "cannot resolve myagents data dir for task docs".to_string())
+        .ok_or_else(|| "cannot resolve blexagent data dir for task docs".to_string())
 }
 
 /// Crash-durable atomic text write: tmp write → sync_all → rename → cleanup
@@ -2961,7 +2961,7 @@ pub async fn mark_cron_completion_if_linked(cron_task_id: &str, exit_reason: Opt
 ///
 /// - `dispatchOrigin='direct'`   → `执行任务：<task.md 正文>`
 /// - `dispatchOrigin='ai-aligned'` → `/task-implement` slash command (the skill
-///    reads `~/.myagents/tasks/<id>/{task,verify,progress,alignment}.md` on its own)
+///    reads `~/.blexagent/tasks/<id>/{task,verify,progress,alignment}.md` on its own)
 ///
 /// Returns `None` if the store isn't initialized or the task doesn't exist.
 /// Returns `Some(Err(...))` for unrecoverable I/O (missing task.md on a
@@ -2977,7 +2977,7 @@ fn compose_dispatch_prompt(task: &Task) -> Result<String, String> {
     match task.dispatch_origin {
         TaskDispatchOrigin::AiAligned => {
             // The task-implement skill discovers the four alignment docs from
-            // `~/.myagents/tasks/<taskId>/` on its own. We just need to invoke it.
+            // `~/.blexagent/tasks/<taskId>/` on its own. We just need to invoke it.
             Ok(format!("/task-implement {}", task.id))
         }
         TaskDispatchOrigin::AttachedSession => Err(format!(
@@ -3318,7 +3318,7 @@ pub async fn cmd_task_append_session(
 }
 
 /// Persist alignment-session sidecar metadata to
-/// `~/.myagents/tasks/<alignmentSessionId>/metadata.json`.
+/// `~/.blexagent/tasks/<alignmentSessionId>/metadata.json`.
 ///
 /// Called at the moment the frontend spawns an 「AI 讨论」 session so that
 /// `create_from_alignment` can later inherit workspace_id / workspace_path /
@@ -3393,14 +3393,14 @@ pub async fn cmd_task_delete(
 
 /// Read one of the markdown documents attached to a Task.
 ///
-/// - `task`: the executor prompt (`~/.myagents/tasks/<id>/task.md`). Authored by the user
+/// - `task`: the executor prompt (`~/.blexagent/tasks/<id>/task.md`). Authored by the user
 ///   at dispatch, editable from the task detail overlay.
-/// - `verify`: acceptance criteria (`~/.myagents/tasks/<id>/verify.md`). Optional; may
+/// - `verify`: acceptance criteria (`~/.blexagent/tasks/<id>/verify.md`). Optional; may
 ///   be authored by the user or produced by the alignment flow. Returns an
 ///   empty string when the file does not yet exist.
-/// - `progress`: read-only execution log (`~/.myagents/tasks/<id>/progress.md`). Agents
+/// - `progress`: read-only execution log (`~/.blexagent/tasks/<id>/progress.md`). Agents
 ///   append to this file during runs; the UI renders it but does not write.
-/// - `alignment`: AI-discussion decision record (`~/.myagents/tasks/<id>/alignment.md`).
+/// - `alignment`: AI-discussion decision record (`~/.blexagent/tasks/<id>/alignment.md`).
 ///   Written by `/task-alignment` skill directly; read-only from the UI.
 #[tauri::command]
 pub async fn cmd_task_read_doc(
@@ -3451,7 +3451,7 @@ pub async fn cmd_task_write_doc(
     state.write_doc(&id, filename, &content).await
 }
 
-/// Reveal `~/.myagents/tasks/<id>/` in the OS file manager so the user
+/// Reveal `~/.blexagent/tasks/<id>/` in the OS file manager so the user
 /// can inspect / edit `task.md`, `verify.md`, `progress.md`, `alignment.md`
 /// directly. Sandboxed through `task_docs_dir` so we can't be coerced into
 /// opening an arbitrary path. Creates the dir on demand — a fresh Task
@@ -3626,7 +3626,7 @@ mod tests {
     fn ensure_test_docs_root() {
         TEST_DOCS_ROOT.get_or_init(|| {
             let dir = tempdir().expect("create shared test docs tempdir");
-            std::env::set_var("MYAGENTS_TASK_DOCS_ROOT", dir.path());
+            std::env::set_var("BLEXAGENT_TASK_DOCS_ROOT", dir.path());
             dir
         });
     }
@@ -3636,7 +3636,7 @@ mod tests {
             name: "升级 openclaw lark 适配器".to_string(),
             executor: TaskExecutor::Agent,
             description: None,
-            workspace_id: "ws-myagents".to_string(),
+            workspace_id: "ws-blexagent".to_string(),
             workspace_path: ws.to_string_lossy().into_owned(),
             task_md_content: "跑通 v2.4".to_string(),
             execution_mode: TaskExecutionMode::Once,
@@ -3657,7 +3657,7 @@ mod tests {
             mcp_enabled_servers: None,
             managed_kind: None,
             source_thought_id: Some("thought-1".to_string()),
-            tags: vec!["MyAgents".to_string()],
+            tags: vec!["BlexAgent".to_string()],
             notification: None,
         }
     }
@@ -3736,8 +3736,8 @@ mod tests {
             .create_attached(TaskCreateAttachedInput {
                 name: "Space Issue #123".to_string(),
                 executor: TaskExecutor::Agent,
-                description: Some("MyAgents Space Issue iss_123".to_string()),
-                workspace_id: "ws-myagents".to_string(),
+                description: Some("BlexAgent Space Issue iss_123".to_string()),
+                workspace_id: "ws-blexagent".to_string(),
                 workspace_path: ws.to_string_lossy().into_owned(),
                 task_md_content: "处理 Space Issue".to_string(),
                 current_session_id: "session-123".to_string(),

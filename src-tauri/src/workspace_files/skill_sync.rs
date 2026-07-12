@@ -13,7 +13,7 @@
 //! 1. We NEVER write through real (non-symlink) project skill/command paths.
 //!    A user that hand-creates `<workspace>/.claude/skills/foo/` keeps it.
 //! 2. We only DELETE project-side entries that are symlinks pointing into
-//!    `~/.myagents/skills` (resp. `~/.myagents/commands`). Anything else
+//!    `~/.blexagent/skills` (resp. `~/.blexagent/commands`). Anything else
 //!    is treated as user-owned and left alone.
 //! 3. We use `fs::symlink_metadata` (NOT `fs::metadata`) for every existence
 //!    probe — broken symlinks must register as occupied (CLAUDE.md v0.2.5
@@ -55,14 +55,14 @@ fn sync_workspace_skills_with_home(workspace: &Path, home: &Path) -> Result<(), 
             workspace.display()
         ));
     }
-    let myagents_root = home.join(".myagents");
-    sync_skills_subtree(workspace, &myagents_root);
-    sync_commands_subtree(workspace, &myagents_root);
+    let blexagent_root = home.join(".blexagent");
+    sync_skills_subtree(workspace, &blexagent_root);
+    sync_commands_subtree(workspace, &blexagent_root);
     Ok(())
 }
 
-fn sync_skills_subtree(workspace: &Path, myagents_root: &Path) {
-    let user_skills = myagents_root.join("skills");
+fn sync_skills_subtree(workspace: &Path, blexagent_root: &Path) {
+    let user_skills = blexagent_root.join("skills");
     if !user_skills.is_dir() {
         return;
     }
@@ -76,8 +76,8 @@ fn sync_skills_subtree(workspace: &Path, myagents_root: &Path) {
         return;
     }
 
-    let disabled = read_disabled_list(myagents_root);
-    let cli_tool_registry_enabled = read_cli_tool_registry_enabled(myagents_root);
+    let disabled = read_disabled_list(blexagent_root);
+    let cli_tool_registry_enabled = read_cli_tool_registry_enabled(blexagent_root);
     let mut managed: HashSet<String> = HashSet::new();
 
     let entries = match fs::read_dir(&user_skills) {
@@ -106,7 +106,7 @@ fn sync_skills_subtree(workspace: &Path, myagents_root: &Path) {
             continue;
         }
         // Require SKILL.md so we don't symlink random user dirs that happen
-        // to be inside ~/.myagents/skills.
+        // to be inside ~/.blexagent/skills.
         if !target.join("SKILL.md").is_file() {
             continue;
         }
@@ -174,8 +174,8 @@ fn sync_skills_subtree(workspace: &Path, myagents_root: &Path) {
     cleanup_dangling_symlinks(&project_skills, &user_skills, &managed);
 }
 
-fn sync_commands_subtree(workspace: &Path, myagents_root: &Path) {
-    let user_commands = myagents_root.join("commands");
+fn sync_commands_subtree(workspace: &Path, blexagent_root: &Path) {
+    let user_commands = blexagent_root.join("commands");
     if !user_commands.is_dir() {
         return;
     }
@@ -260,7 +260,7 @@ fn sync_commands_subtree(workspace: &Path, myagents_root: &Path) {
 /// Cross-review (Codex round 3) caught: an earlier version used
 /// `fs::canonicalize(&link)` to resolve the target, but `canonicalize` fails
 /// for broken symlinks (the original sin: user disabled / removed the
-/// `~/.myagents/skills/foo` source → project-side `foo` link is now broken).
+/// `~/.blexagent/skills/foo` source → project-side `foo` link is now broken).
 /// That's exactly the case `cleanup_dangling_symlinks` is supposed to handle,
 /// so the canonicalize approach silently skipped every dangling link → they
 /// accumulated forever. Use lexical `read_link` + `path.parent().join(target)`
@@ -363,11 +363,11 @@ mod tests {
     use crate::workspace_files::test_support::make_test_workspace;
 
     fn user_root_with_skill(name: &str) -> std::path::PathBuf {
-        // Create a stand-in `~/.myagents` rooted at a tempdir for tests so
+        // Create a stand-in `~/.blexagent` rooted at a tempdir for tests so
         // we don't poke the real user home. We monkey-patch HOME for the
         // duration of the test.
         let root = make_test_workspace("home_for_skill_sync");
-        let user_skills = root.join(".myagents").join("skills");
+        let user_skills = root.join(".blexagent").join("skills");
         fs::create_dir_all(user_skills.join(name)).unwrap();
         fs::write(
             user_skills.join(name).join("SKILL.md"),
@@ -393,7 +393,7 @@ mod tests {
     #[test]
     fn skips_skill_without_skill_md() {
         let home = make_test_workspace("home_no_skill_md");
-        let user_skill = home.join(".myagents/skills/empty");
+        let user_skill = home.join(".blexagent/skills/empty");
         fs::create_dir_all(&user_skill).unwrap();
         // No SKILL.md → should be ignored.
         let workspace = make_test_workspace("ws_no_skill_md");
@@ -424,7 +424,7 @@ mod tests {
     fn skips_real_project_skill_dir() {
         // A user has hand-created `<workspace>/.claude/skills/foo/` (a real
         // dir, not a symlink). User also has a same-named skill in
-        // `~/.myagents/skills/foo`. Sync MUST NOT clobber the real dir.
+        // `~/.blexagent/skills/foo`. Sync MUST NOT clobber the real dir.
         let home = user_root_with_skill("foo");
         let workspace = make_test_workspace("ws_real_skill_kept");
         let real_dir = workspace.join(".claude/skills/foo");
@@ -456,7 +456,7 @@ mod tests {
 
         // Delete the user-side skill, sync again — project-side link must
         // be cleaned up.
-        fs::remove_dir_all(home.join(".myagents/skills/foo")).unwrap();
+        fs::remove_dir_all(home.join(".blexagent/skills/foo")).unwrap();
         sync_workspace_skills_with_home(&workspace, &home).unwrap();
         assert!(
             !workspace.join(".claude/skills/foo").exists(),
@@ -471,7 +471,7 @@ mod tests {
         let home = user_root_with_skill("foo");
         // Write a skills-config.json marking foo as disabled.
         fs::write(
-            home.join(".myagents/skills-config.json"),
+            home.join(".blexagent/skills-config.json"),
             r#"{"disabled":["foo"],"seeded":[],"generation":0}"#,
         )
         .unwrap();
@@ -504,7 +504,7 @@ mod tests {
     fn syncs_tool_creator_skill_when_cli_tool_registry_gate_is_enabled() {
         let home = user_root_with_skill("tool-creator");
         fs::write(
-            home.join(".myagents/config.json"),
+            home.join(".blexagent/config.json"),
             r#"{"cliToolRegistryEnabled":true}"#,
         )
         .unwrap();
@@ -523,7 +523,7 @@ mod tests {
     #[test]
     fn removes_tool_creator_symlink_when_cli_tool_registry_gate_turns_off() {
         let home = user_root_with_skill("tool-creator");
-        let config_path = home.join(".myagents/config.json");
+        let config_path = home.join(".blexagent/config.json");
         fs::write(&config_path, r#"{"cliToolRegistryEnabled":true}"#).unwrap();
         let workspace = make_test_workspace("ws_tool_creator_gate_flip");
 

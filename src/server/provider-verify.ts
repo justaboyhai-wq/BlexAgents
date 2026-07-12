@@ -198,9 +198,9 @@ async function verifyViaSdk(
 
   try {
     const cliPath = resolveClaudeCodeCli();
-    // Use ~/.myagents/projects/ as cwd — a dedicated app directory with guaranteed permissions.
+    // Use ~/.blexagent/projects/ as cwd — a dedicated app directory with guaranteed permissions.
     // Avoids potential permission or .claude/ config issues in home directory.
-    const cwd = join(homedir(), '.myagents', 'projects');
+    const cwd = join(homedir(), '.blexagent', 'projects');
     ensureDirSync(cwd);
 
     async function* simplePrompt() {
@@ -480,7 +480,7 @@ export async function fetchSdkSupportedModels(): Promise<Array<{ value: string; 
   // is needed. `buildClaudeSessionEnv()` is now a pure function — no global
   // state pollution to clean up.
   const cliPath = resolveClaudeCodeCli();
-  const cwd = join(homedir(), '.myagents', 'projects');
+  const cwd = join(homedir(), '.blexagent', 'projects');
   ensureDirSync(cwd);
 
   const officialSubscriptionProvider: ProviderEnv = { providerId: SUBSCRIPTION_PROVIDER_ID };
@@ -585,7 +585,7 @@ export async function verifySubscription(): Promise<SubscriptionVerifyResult> {
   // send `x-api-key: <third-party-key>` to api.anthropic.com → 403.
   //
   // OAuth credentials live in macOS Keychain (or `.credentials.json`), neither
-  // of which is gated by settingSources. MyAgents deliberately does not host
+  // of which is gated by settingSources. BlexAgent deliberately does not host
   // the OAuth lifecycle here: buildClaudeSessionEnv() skips
   // CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST for anthropic-sub, so the native
   // Claude Code runtime consumes the same local login state as `claude` CLI.

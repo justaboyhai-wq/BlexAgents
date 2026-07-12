@@ -1,10 +1,10 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./channel-config-schema.auto.js";
 // === END AUTO-AUGMENT ===
 
-// OpenClaw plugin-sdk/channel-config-schema shim for MyAgents Plugin Bridge
+// OpenClaw plugin-sdk/channel-config-schema shim for BlexAgent Plugin Bridge
 // Provides buildChannelConfigSchema() — converts Zod schema to JSON Schema (or passes through).
 
 /**
@@ -36,7 +36,7 @@ export function buildChannelConfigSchema(schema) {
 /**
  * Build a catch-all multi-account channel schema.
  * In real OpenClaw: wraps a per-account Zod schema in a record.
- * Our shim: passthrough — MyAgents handles multi-account via its own config.
+ * Our shim: passthrough — BlexAgent handles multi-account via its own config.
  */
 export function buildCatchallMultiAccountChannelSchema(accountSchema) {
   return accountSchema;

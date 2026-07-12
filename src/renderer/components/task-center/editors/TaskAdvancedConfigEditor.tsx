@@ -166,7 +166,7 @@ export function TaskAdvancedConfigEditor(props: Props) {
   //
   // The runtimeConfig scrub now reuses `buildRuntimeChangePatch` so it's in
   // lockstep with the agent-level confirmRuntimeChange / Settings /
-  // Launcher / `myagents agent set runtime` paths.
+  // Launcher / `blexagent agent set runtime` paths.
   //
   // No-op guard: when the new effective runtime equals the old one (e.g. the
   // user toggles override → "follow Agent" but Agent is the same kind),

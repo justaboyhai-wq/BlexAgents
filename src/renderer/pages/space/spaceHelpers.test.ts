@@ -17,9 +17,9 @@ import {
 } from './spaceHelpers';
 
 const session = (role: SpaceSession['membership']['role'], userId = 'user-1'): SpaceSession => ({
-  baseUrl: 'https://space.myagents.test',
+  baseUrl: 'https://space.blexagent.test',
   user: { id: userId, email: 'user@example.com' },
-  space: { id: 'space-1', slug: 'official', name: 'MyAgents社区', joinPolicy: 'open' },
+  space: { id: 'space-1', slug: 'official', name: 'BlexAgent社区', joinPolicy: 'open' },
   membership: { id: 'membership-1', role },
   updatedAt: '2026-06-24T00:00:00.000Z',
 });
@@ -53,13 +53,13 @@ describe('space issue helpers', () => {
   });
 
   it('builds the issue command prompt around the short CLI alias', () => {
-    const prompt = buildIssueCommandPrompt({ spaceName: 'MyAgents社区', issueId: 'iss_123' });
+    const prompt = buildIssueCommandPrompt({ spaceName: 'BlexAgent社区', issueId: 'iss_123' });
 
-    expect(prompt).toContain('这是来自「MyAgents社区」团队空间的 issue');
+    expect(prompt).toContain('这是来自「BlexAgent社区」团队空间的 issue');
     expect(prompt).toContain('请先读取该 issue');
-    expect(prompt).toContain('myagents space issue view iss_123 --comments');
-    expect(prompt).toContain('myagents space issue claim iss_123');
-    expect(prompt).toContain('myagents issue iss_123 --json');
+    expect(prompt).toContain('blexagent space issue view iss_123 --comments');
+    expect(prompt).toContain('blexagent space issue claim iss_123');
+    expect(prompt).toContain('blexagent issue iss_123 --json');
   });
 
   it('exposes status options by permission', () => {
@@ -108,7 +108,7 @@ describe('space issue helpers', () => {
     ] as Project[];
     const agent = {
       id: 'agent-1',
-      baseUrl: 'https://space.myagents.test',
+      baseUrl: 'https://space.blexagent.test',
       spaceId: 'space-1',
       workspaceId: 'project-1',
       displayName: 'Builder',
@@ -137,7 +137,7 @@ describe('space issue helpers', () => {
   it('requires local registered agents to match the current space identity', () => {
     const agent = {
       id: 'agent-1',
-      baseUrl: 'https://space.myagents.test',
+      baseUrl: 'https://space.blexagent.test',
       spaceId: 'space-1',
       ownerUserId: 'user-1',
       deviceId: 'device-1',

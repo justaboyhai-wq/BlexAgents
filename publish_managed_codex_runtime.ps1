@@ -1,4 +1,4 @@
-﻿# Publish the MyAgents-managed Codex runtime bundle to Cloudflare R2.
+﻿# Publish the BlexAgent-managed Codex runtime bundle to Cloudflare R2.
 # This is intentionally separate from publish_windows.ps1: App releases do not
 # upload runtime resources.
 
@@ -21,8 +21,8 @@ Set-Location $ProjectDir
 
 $EnvFile = Join-Path $ProjectDir ".env"
 $RustCodexFile = Join-Path $ProjectDir "src-tauri\src\managed_codex.rs"
-$R2Bucket = "myagents-releases"
-$DownloadBaseUrl = "https://download.myagents.io"
+$R2Bucket = "blexagent-releases"
+$DownloadBaseUrl = "https://download.blexagent.com"
 if (-not $OutDir) {
     $OutDir = Join-Path $ProjectDir "dist\managed-codex"
 }

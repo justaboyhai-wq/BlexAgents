@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # upload_qr_code.sh - Upload user community QR code to R2 storage
 # Usage: ./upload_qr_code.sh
 #
@@ -25,13 +25,13 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Configuration - same bucket as publish_release.sh (download.myagents.io domain)
-R2_BUCKET="myagents-releases"
+# Configuration - same bucket as publish_release.sh (download.blexagent.com domain)
+R2_BUCKET="blexagent-releases"
 TARGET_PATH="assets/feedback_qr_code.png"
-PUBLIC_URL="https://download.myagents.io/${TARGET_PATH}"
+PUBLIC_URL="https://download.blexagent.com/${TARGET_PATH}"
 
 echo -e "${CYAN}╔════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║     MyAgents QR Code Upload Tool               ║${NC}"
+echo -e "${CYAN}║     BlexAgent QR Code Upload Tool               ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════╝${NC}"
 echo ""
 

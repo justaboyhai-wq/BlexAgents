@@ -1,6 +1,6 @@
 // Slash Commands Service
 // Provides slash command discovery and management for the chat input
-// Supports builtin commands, custom commands (.claude/commands/), and skills (.claude/skills/, ~/.myagents/skills/)
+// Supports builtin commands, custom commands (.claude/commands/), and skills (.claude/skills/, ~/.blexagent/skills/)
 
 import { load as yamlLoad } from 'js-yaml';
 

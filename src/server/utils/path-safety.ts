@@ -37,7 +37,7 @@ const SYSTEM_BLACKLIST: readonly string[] =
       ? [...POSIX_SYSTEM_DIRS, ...MACOS_PRIVATE_DIRS]
       : POSIX_SYSTEM_DIRS;
 
-const CREDENTIAL_SUBDIRS: readonly string[] = ['.ssh', '.gnupg', '.aws', '.kube', '.docker', '.config/op', '.myagents/codex'];
+const CREDENTIAL_SUBDIRS: readonly string[] = ['.ssh', '.gnupg', '.aws', '.kube', '.docker', '.config/op', '.blexagent/codex'];
 
 const MAC_SENSITIVE_SUBDIRS: readonly string[] = [
   'Library/Keychains',
@@ -64,8 +64,8 @@ export const __blacklistForCrossCheck = {
   winSensitiveSubdirs: WIN_SENSITIVE_SUBDIRS,
 } as const;
 
-/** Trusted root for MyAgents-owned tool attachments (relative to $HOME). */
-export const TOOL_ATTACHMENT_ROOT_REL = '.myagents/generated/tool-attachments';
+/** Trusted root for BlexAgent-owned tool attachments (relative to $HOME). */
+export const TOOL_ATTACHMENT_ROOT_REL = '.blexagent/generated/tool-attachments';
 
 export interface PathSafetyOk {
   ok: true;
@@ -174,8 +174,8 @@ function checkBlacklist(canonical: string): PathSafetyResult {
 }
 
 /**
- * Validate that `target` is inside the MyAgents-owned attachment root
- * (`~/.myagents/generated/tool-attachments/...`). Used by `saveToolAttachment`
+ * Validate that `target` is inside the BlexAgent-owned attachment root
+ * (`~/.blexagent/generated/tool-attachments/...`). Used by `saveToolAttachment`
  * to refuse writes outside the trusted root.
  */
 export function validateTrustedAttachmentRoot(

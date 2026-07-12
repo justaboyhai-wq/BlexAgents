@@ -96,7 +96,7 @@ describe('snapshotForOwnedSession — reasoning effort capture (#324)', () => {
         permissionMode: 'no-restrictions',
         reasoningEffort: 'high',
       },
-      mcpEnabledServers: ['myagents'],
+      mcpEnabledServers: ['blexagent'],
     }), { managedCodexProviderReady: true });
 
     expect(snap).toMatchObject({
@@ -113,7 +113,7 @@ describe('snapshotForOwnedSession — reasoning effort capture (#324)', () => {
       },
       permissionMode: 'no-restrictions',
       reasoningEffort: 'high',
-      mcpEnabledServers: ['myagents'],
+      mcpEnabledServers: ['blexagent'],
     });
     expect(snap.providerRoute).toBeUndefined();
     expect(snap.providerEnvJson).toBeUndefined();

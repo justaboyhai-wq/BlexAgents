@@ -2,7 +2,7 @@
  * PRD 0.2.27 — Rewind cross-reload durability ("window B" reconcile).
  * See specs/prd/prd_0.2.27_rewind_reload_durability.md.
  *
- * Problem: a rewind truncates our MyAgents store immediately, but the SDK-side
+ * Problem: a rewind truncates our BlexAgent store immediately, but the SDK-side
  * truncation rides on an in-memory anchor (`pendingResumeSessionAt`) that is
  * consumed at the next pre-warm and never persisted. If the process dies after a
  * rewind but BEFORE a new turn materialized the truncated branch into the SDK

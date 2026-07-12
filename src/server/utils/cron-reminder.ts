@@ -17,7 +17,7 @@ function metadataLine(label: string, value: string | number | boolean | undefine
 
 export function buildCronTaskReminder(input: CronReminderInput): string {
   const lines = [
-    'You are running inside a MyAgents scheduled task execution.',
+    'You are running inside a BlexAgent scheduled task execution.',
     'The user-visible text after this reminder is the task prompt for this execution.',
     '',
     ...[
@@ -33,8 +33,8 @@ export function buildCronTaskReminder(input: CronReminderInput): string {
   if (input.aiCanExit) {
     lines.push(
       '',
-      'If this MyAgents scheduled task goal is complete and future executions should stop, run:',
-      '  myagents cron exit --reason "<brief reason>"',
+      'If this BlexAgent scheduled task goal is complete and future executions should stop, run:',
+      '  blexagent cron exit --reason "<brief reason>"',
       '',
       'The command is bound to the current cron execution context; do not pass a task id.',
     );

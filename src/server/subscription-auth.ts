@@ -224,7 +224,7 @@ export async function startSubscriptionLogin(): Promise<SubscriptionLoginState> 
 
   try {
     const cliPath = resolveClaudeCodeCli();
-    const cwd = join(homedir(), '.myagents', 'projects');
+    const cwd = join(homedir(), '.blexagent', 'projects');
     ensureDirSync(cwd);
     const officialSubscriptionProvider: ProviderEnv = { providerId: SUBSCRIPTION_PROVIDER_ID };
     const authQuery = query({

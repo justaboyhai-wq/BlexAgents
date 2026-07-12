@@ -15,7 +15,7 @@ import type { ImagePayload } from './types';
 
 describe('image payload attachment refs', () => {
   beforeEach(() => {
-    storeMock.root = mkdtempSync(join(tmpdir(), 'myagents-image-payload-'));
+    storeMock.root = mkdtempSync(join(tmpdir(), 'blexagent-image-payload-'));
     mkdirSync(storeMock.root, { recursive: true });
   });
 

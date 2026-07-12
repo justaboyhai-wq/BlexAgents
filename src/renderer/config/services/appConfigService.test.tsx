@@ -94,25 +94,25 @@ describe('ensureManagedCodexProviderDevGateDefault', () => {
   });
 
   it('persists the release default as an explicit true when the raw config omits it', async () => {
-    localStorage.setItem('myagents:config', JSON.stringify({ theme: 'dark' }));
+    localStorage.setItem('blexagent:config', JSON.stringify({ theme: 'dark' }));
 
     await ensureManagedCodexProviderDevGateDefault();
 
-    const stored = JSON.parse(localStorage.getItem('myagents:config') ?? '{}') as Record<string, unknown>;
+    const stored = JSON.parse(localStorage.getItem('blexagent:config') ?? '{}') as Record<string, unknown>;
     expect(stored.theme).toBe('dark');
     expect(stored.managedCodexProviderDevGate).toBe(true);
     expect(stored.defaultPermissionMode).toBeUndefined();
   });
 
   it('preserves an explicit false so users can keep the provider hidden', async () => {
-    localStorage.setItem('myagents:config', JSON.stringify({
+    localStorage.setItem('blexagent:config', JSON.stringify({
       theme: 'dark',
       managedCodexProviderDevGate: false,
     }));
 
     await ensureManagedCodexProviderDevGateDefault();
 
-    const stored = JSON.parse(localStorage.getItem('myagents:config') ?? '{}') as Record<string, unknown>;
+    const stored = JSON.parse(localStorage.getItem('blexagent:config') ?? '{}') as Record<string, unknown>;
     expect(stored.managedCodexProviderDevGate).toBe(false);
   });
 });

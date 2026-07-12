@@ -1,7 +1,7 @@
 ---
 name: task-alignment
 description: "Alignment conversation starting from a 想法/idea. Co-decides with the user whether the idea should be acted on directly in the current session, or fixed into a formal Task for independent dispatch (one-off or recurring). Handles lightweight 'do it now while we talk', heavyweight 'define precisely, run later or on a schedule', and 'just help me think about this' — all on the same skill. Use when the user arrives via the 想法 panel's 'AI 讨论' button (parameter dictionary in the first message), or says 'let's think this through', 'help me plan this', 'I want to explore X', 'I have an idea', '/task-alignment'. Also use proactively when a user jumps into a complex task without defining scope or success criteria — pause, align, and help them pick the right vessel (this session vs. a task)."
-author: MyAgents
+author: BlexAgent
 ---
 
 # Task Alignment
@@ -177,12 +177,12 @@ Summarize what you've agreed on — goal in a few sentences, verification as a c
 
 ### Where to write
 
-All four documents go to `~/.myagents/tasks/<alignmentSessionId>/`:
+All four documents go to `~/.blexagent/tasks/<alignmentSessionId>/`:
 
 - Use the `Write` tool with an **absolute** path (expand `~` to `$HOME` in bash).
 - This directory lives outside the workspace — task docs are user-scoped application data, not project content.
 - The docs are AI-owned end-to-end; program code never writes to them.
-- The `create-from-alignment` CLI below promotes this directory by renaming it to `~/.myagents/tasks/<newTaskId>/`.
+- The `create-from-alignment` CLI below promotes this directory by renaming it to `~/.blexagent/tasks/<newTaskId>/`.
 - If the directory already contains docs from a prior run, ask: archive (move to `archive/<timestamp>/`) or overwrite?
 
 ### Four documents
@@ -290,14 +290,14 @@ re-alignments.)
 After writing all four, run:
 
 ```bash
-myagents task create-from-alignment <alignmentSessionId> --name "<短任务名>"
+blexagent task create-from-alignment <alignmentSessionId> --name "<短任务名>"
 ```
 
 Only two arguments: `alignmentSessionId` (from the prompt's parameter dictionary) and `--name` (you pick one based on the discussion). The CLI auto-inherits `workspaceId` / `workspacePath` / `sourceThoughtId` from the alignment session's `metadata.json` sidecar — **do not re-pass them from the prompt**. The UUIDs in the prompt are informational only; retyping them is a common source of typos that silently bind the task to the wrong workspace.
 
-The CLI renames the docs directory to `~/.myagents/tasks/<newTaskId>/`, backfills the source thought's `convertedTaskIds`, and registers the task with `dispatchOrigin=ai-aligned`.
+The CLI renames the docs directory to `~/.blexagent/tasks/<newTaskId>/`, backfills the source thought's `convertedTaskIds`, and registers the task with `dispatchOrigin=ai-aligned`.
 
-Then ask: 「已创建任务『XXX』，可在任务面板查看。需要现在派发执行吗？」If yes → `myagents task run <newTaskId>` (or pass `--run` on the create call to chain create+dispatch atomically).
+Then ask: 「已创建任务『XXX』，可在任务面板查看。需要现在派发执行吗？」If yes → `blexagent task run <newTaskId>` (or pass `--run` on the create call to chain create+dispatch atomically).
 
 ## Mid-session upgrade
 

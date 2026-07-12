@@ -94,7 +94,7 @@ describe('tauriClient renderer correlation', () => {
                 method: 'GET',
                 body: undefined,
                 headers: {
-                    'X-MyAgents-Tab-Id': 'new-launcher-tab',
+                    'X-BlexAgent-Tab-Id': 'new-launcher-tab',
                 },
             },
         });
@@ -125,8 +125,8 @@ describe('tauriClient renderer correlation', () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-MyAgents-Tab-Id': 'target-tab',
-                'X-MyAgents-Session-Id': 'target-session',
+                'X-BlexAgent-Tab-Id': 'target-tab',
+                'X-BlexAgent-Session-Id': 'target-session',
             },
             body: '{}',
         });
@@ -138,8 +138,8 @@ describe('tauriClient renderer correlation', () => {
                 body: '{}',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-MyAgents-Tab-Id': 'target-tab',
-                    'X-MyAgents-Session-Id': 'target-session',
+                    'X-BlexAgent-Tab-Id': 'target-tab',
+                    'X-BlexAgent-Session-Id': 'target-session',
                 },
             },
         });

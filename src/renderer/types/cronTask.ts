@@ -152,7 +152,7 @@ export interface CronTaskConfig {
    *  `providerId` instead. Retained for back-compat with legacy paths. */
   providerEnv?: CronTaskProviderEnv;
   /** PRD 0.2.9 — Per-task provider id; preferred over `providerEnv`.
-   *  Sidecar live-resolves credentials from `~/.myagents/config.json` on
+   *  Sidecar live-resolves credentials from `~/.blexagent/config.json` on
    *  every tick — no key copies in cron_tasks.json, rotation propagates
    *  without re-saving the cron. */
   providerId?: string;

@@ -1,9 +1,9 @@
 // Resolve a persisted attachment to a URL the WebView can render.
 //
-// Production (Tauri): `resolveMyAgentsProtocolUrl('/attachment/<rel>')` hits
+// Production (Tauri): `resolveBlexAgentProtocolUrl('/attachment/<rel>')` hits
 // the async URI scheme handler in `src-tauri/src/attachment_protocol.rs`
-// (`myagents://...` on macOS/Linux, `http://myagents.localhost/...` on
-// Windows). The handler serves bytes from `~/.myagents/attachments/<rel>`
+// (`blexagent://...` on macOS/Linux, `http://blexagent.localhost/...` on
+// Windows). The handler serves bytes from `~/.blexagent/attachments/<rel>`
 // through the WebView resource pipeline. Zero JSON round-trip, zero base64
 // bloat, zero main-thread read.
 //
@@ -13,7 +13,7 @@
 // the vite dev server proxy without needing a Tauri bridge.
 
 import { isTauri } from '@/api/tauriClient';
-import { resolveMyAgentsProtocolUrl } from '@/utils/myagentsProtocol';
+import { resolveBlexAgentProtocolUrl } from '@/utils/blexagentProtocol';
 
 function encodeRelative(rel: string): string {
   return rel.split('/').map(encodeURIComponent).join('/');
@@ -31,7 +31,7 @@ export function resolveAttachmentUrl(att: {
   }
   const encoded = encodeRelative(rel);
   if (isTauri()) {
-    return resolveMyAgentsProtocolUrl(`/attachment/${encoded}`);
+    return resolveBlexAgentProtocolUrl(`/attachment/${encoded}`);
   }
   return `/api/attachment/${encoded}`;
 }

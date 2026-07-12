@@ -6,7 +6,7 @@ Generate .docx files with JavaScript/TypeScript.
 
 ## Setup
 Assumes docx is already installed globally.
-If not installed: `npm_config_prefix="${MYAGENTS_NPM_GLOBAL_PREFIX:-$HOME/.myagents/npm-global}" npm install -g docx`
+If not installed: `npm_config_prefix="${BLEXAGENT_NPM_GLOBAL_PREFIX:-$HOME/.blexagent/npm-global}" npm install -g docx`
 
 ```javascript
 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun, Media, 

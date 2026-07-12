@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档总结了 MyAgents Windows 平台适配的关键技术点和最佳实践，包含路径处理、进程管理、环境变量、CSP 配置等方面的经验。
+本文档总结了 BlexAgent Windows 平台适配的关键技术点和最佳实践，包含路径处理、进程管理、环境变量、CSP 配置等方面的经验。
 
 ---
 
@@ -21,12 +21,12 @@ import { join } from 'path';
 import { homeDir, tempDir } from '@tauri-apps/api/path';
 
 // ✅ 正确
-const configPath = join(await homeDir(), '.myagents', 'config.json');
-const tempPath = join(await tempDir(), 'myagents-cache');
+const configPath = join(await homeDir(), '.blexagent', 'config.json');
+const tempPath = join(await tempDir(), 'blexagent-cache');
 
 // ❌ 错误
-const configPath = `${homeDir}/.myagents/config.json`;  // Linux 路径
-const tempPath = `${homeDir}\\.myagents\\config.json`;  // Windows 路径
+const configPath = `${homeDir}/.blexagent/config.json`;  // Linux 路径
+const tempPath = `${homeDir}\\.blexagent\\config.json`;  // Windows 路径
 ```
 
 ### 环境变量
@@ -59,9 +59,9 @@ export function getPlatformPaths() {
 
 ### SDK Shell 输出编码
 
-Claude Agent SDK 的 Bash 工具输出最终会以 UTF-8 字符串进入 MyAgents session JSONL / SSE。Windows 上不少子进程会默认按系统 ANSI/OEM code page（如 CP936/GBK）写 stdout/stderr；一旦 SDK 按 UTF-8 解码成字符串，后续在 renderer 或 SessionStore 已无法可靠恢复原始字节。
+Claude Agent SDK 的 Bash 工具输出最终会以 UTF-8 字符串进入 BlexAgent session JSONL / SSE。Windows 上不少子进程会默认按系统 ANSI/OEM code page（如 CP936/GBK）写 stdout/stderr；一旦 SDK 按 UTF-8 解码成字符串，后续在 renderer 或 SessionStore 已无法可靠恢复原始字节。
 
-`src/server/agent-session.ts::buildClaudeSessionEnv()` 因此在 Windows SDK subprocess env 中统一设置 `LANG=C.UTF-8`、`LC_ALL=C.UTF-8`、`PYTHONUTF8=1`、`PYTHONIOENCODING=utf-8`、`LESSCHARSET=utf-8`。同时写入 MyAgents 管理的 `BASH_ENV` prelude；只要 SDK 使用 Git Bash（无论来自 `CLAUDE_CODE_GIT_BASH_PATH` 还是 PATH fallback），Bash 命令启动前都会执行 `chcp.com 65001`。PowerShell 会忽略 `BASH_ENV`。不要使用 `CLAUDE_CODE_SHELL_PREFIX` 注入 inline shell 片段：SDK 将它当作包装命令而不是 source prelude。也不要把这个逻辑挪到 tool_result 渲染或历史恢复层；那里拿到的已经是 SDK 字符串，不是可逆字节流。
+`src/server/agent-session.ts::buildClaudeSessionEnv()` 因此在 Windows SDK subprocess env 中统一设置 `LANG=C.UTF-8`、`LC_ALL=C.UTF-8`、`PYTHONUTF8=1`、`PYTHONIOENCODING=utf-8`、`LESSCHARSET=utf-8`。同时写入 BlexAgent 管理的 `BASH_ENV` prelude；只要 SDK 使用 Git Bash（无论来自 `CLAUDE_CODE_GIT_BASH_PATH` 还是 PATH fallback），Bash 命令启动前都会执行 `chcp.com 65001`。PowerShell 会忽略 `BASH_ENV`。不要使用 `CLAUDE_CODE_SHELL_PREFIX` 注入 inline shell 片段：SDK 将它当作包装命令而不是 source prelude。也不要把这个逻辑挪到 tool_result 渲染或历史恢复层；那里拿到的已经是 SDK 字符串，不是可逆字节流。
 
 ---
 
@@ -115,7 +115,7 @@ pub fn kill_stale_processes(patterns: &[ProcessPattern]) -> CleanupReport;
 {
   "app": {
     "security": {
-      "csp": "default-src 'self' ipc: tauri: asset: http://ipc.localhost; connect-src 'self' ipc: tauri: asset: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://download.myagents.io; ..."
+      "csp": "default-src 'self' ipc: tauri: asset: http://ipc.localhost; connect-src 'self' ipc: tauri: asset: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://download.blexagent.com; ..."
     }
   }
 }
@@ -179,8 +179,8 @@ let client = proxy_config::build_client_with_proxy(builder)?;
 
 **正确的清理脚本**（`build_windows.ps1` 发布构建）：
 ```powershell
-# 杀死残留 MyAgents 进程
-Get-Process | Where-Object { $_.ProcessName -eq "MyAgents" } | Stop-Process -Force
+# 杀死残留 BlexAgent 进程
+Get-Process | Where-Object { $_.ProcessName -eq "BlexAgent" } | Stop-Process -Force
 
 # 清理构建产物
 Remove-Item dist -Recurse -Force
@@ -196,7 +196,7 @@ Remove-Item src-tauri\target\x86_64-pc-windows-msvc\release\resources -Recurse -
 .\build_dev_win.ps1
 ```
 
-默认只生成 `src-tauri\target\x86_64-pc-windows-msvc\debug\myagents.exe`，不打 NSIS，便于 Windows 真机快速验证功能。脚本仍会清理 `debug\resources`，避免 Tauri 复用旧配置；需要验证安装器时使用：
+默认只生成 `src-tauri\target\x86_64-pc-windows-msvc\debug\blexagent.exe`，不打 NSIS，便于 Windows 真机快速验证功能。脚本仍会清理 `debug\resources`，避免 Tauri 复用旧配置；需要验证安装器时使用：
 
 ```powershell
 .\build_dev_win.ps1 -BundleNsis

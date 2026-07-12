@@ -21,12 +21,12 @@ use crate::{ulog_error, ulog_info, ulog_warn};
 const CODEX_PROVIDER_ID: &str = "codex-sub";
 const REQUIRED_VERSION: &str = "0.142.2";
 const REQUIRED_RUNTIME_SET: &str = "codex-0.142.2";
-const RUNTIME_SETS_BASE_URL: &str = "https://download.myagents.io/runtimes/codex/sets";
+const RUNTIME_SETS_BASE_URL: &str = "https://download.blexagent.com/runtimes/codex/sets";
 // Keep this in sync with `src-tauri/tauri.conf.json > plugins.updater.pubkey`.
 // Managed runtime manifests and artifacts use the same minisign trust root as app updates.
-const MYAGENTS_MINISIGN_PUBKEY: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY3RkQ5QjIzMTE4RTgyRTkKUldUcGdvNFJJNXY5OTB3T2pnUzVUbjFrV203Zk5ZTDg0NVJRdGI0UVRranJzTUsvM0hGcmFlc0IK";
+const BLEXAGENT_MINISIGN_PUBKEY: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY3RkQ5QjIzMTE4RTgyRTkKUldUcGdvNFJJNXY5OTB3T2pnUzVUbjFrV203Zk5ZTDg0NVJRdGI0UVRranJzTUsvM0hGcmFlc0IK";
 const MANIFEST_SCHEMA_VERSION: u32 = 1;
-const DOWNLOAD_HOST: &str = "download.myagents.io";
+const DOWNLOAD_HOST: &str = "download.blexagent.com";
 const DOWNLOAD_PATH_PREFIX: &str = "/runtimes/codex/";
 const MAX_MANIFEST_BYTES: u64 = 256 * 1024;
 const MAX_MANIFEST_SIGNATURE_BYTES: u64 = 16 * 1024;
@@ -211,8 +211,8 @@ fn manifest_signature_url_for_platform(platform: &str) -> String {
 }
 
 fn data_dir() -> Result<PathBuf, String> {
-    crate::app_dirs::myagents_data_dir()
-        .ok_or_else(|| "[managed-codex] Cannot determine ~/.myagents directory".to_string())
+    crate::app_dirs::blexagent_data_dir()
+        .ok_or_else(|| "[managed-codex] Cannot determine ~/.blexagent directory".to_string())
 }
 
 fn codex_home() -> Result<PathBuf, String> {
@@ -726,7 +726,7 @@ fn base64_to_string(value: &str, label: &str) -> Result<String, String> {
 }
 
 fn managed_minisign_public_key() -> Result<PublicKey, String> {
-    let decoded = base64_to_string(MYAGENTS_MINISIGN_PUBKEY, "public key")?;
+    let decoded = base64_to_string(BLEXAGENT_MINISIGN_PUBKEY, "public key")?;
     PublicKey::decode(&decoded)
         .map_err(|e| format!("[managed-codex] Invalid minisign public key: {}", e))
 }
@@ -1601,7 +1601,7 @@ fn managed_env() -> Result<HashMap<String, String>, String> {
         "SSL_CERT_FILE",
         "SSL_CERT_DIR",
         "NODE_EXTRA_CA_CERTS",
-        "MYAGENTS_PROXY_INJECTED",
+        "BLEXAGENT_PROXY_INJECTED",
         "HTTP_PROXY",
         "HTTPS_PROXY",
         "ALL_PROXY",
@@ -1619,7 +1619,7 @@ fn managed_env() -> Result<HashMap<String, String>, String> {
     }
     env.insert("CODEX_HOME".to_string(), normalize_out_path(home));
     env.insert(
-        "MYAGENTS_RUNTIME_SOURCE".to_string(),
+        "BLEXAGENT_RUNTIME_SOURCE".to_string(),
         "managed-provider".to_string(),
     );
     Ok(env)
@@ -3022,24 +3022,24 @@ On a remote or headless machine? Use `codex login --device-auth` instead.";
     }
 
     #[test]
-    fn manifest_rejects_non_myagents_https_urls() {
+    fn manifest_rejects_non_blexagent_https_urls() {
         let mut manifest = valid_manifest("darwin-arm64");
         manifest.artifacts.get_mut("darwin-arm64").unwrap().url =
             "https://example.com/runtimes/codex/codex.zip".to_string();
         assert!(validate_manifest_for_platform(manifest, "darwin-arm64")
             .unwrap_err()
-            .contains("download.myagents.io"));
+            .contains("download.blexagent.com"));
 
         let mut manifest = valid_manifest("darwin-arm64");
         manifest.artifacts.get_mut("darwin-arm64").unwrap().url =
-            "http://download.myagents.io/runtimes/codex/codex.zip".to_string();
+            "http://download.blexagent.com/runtimes/codex/codex.zip".to_string();
         assert!(validate_manifest_for_platform(manifest, "darwin-arm64")
             .unwrap_err()
             .contains("HTTPS"));
 
         let mut manifest = valid_manifest("darwin-arm64");
         manifest.artifacts.get_mut("darwin-arm64").unwrap().url =
-            "https://download.myagents.io/runtimes/codex/sets/other-runtime/darwin-arm64/artifacts/codex.zip".to_string();
+            "https://download.blexagent.com/runtimes/codex/sets/other-runtime/darwin-arm64/artifacts/codex.zip".to_string();
         assert!(validate_manifest_for_platform(manifest, "darwin-arm64")
             .unwrap_err()
             .contains("artifact URL"));
@@ -3116,6 +3116,6 @@ On a remote or headless machine? Use `codex login --device-auth` instead.";
             .and_then(|v| v.get("pubkey"))
             .and_then(|v| v.as_str())
             .expect("updater pubkey");
-        assert_eq!(updater_pubkey, MYAGENTS_MINISIGN_PUBKEY);
+        assert_eq!(updater_pubkey, BLEXAGENT_MINISIGN_PUBKEY);
     }
 }

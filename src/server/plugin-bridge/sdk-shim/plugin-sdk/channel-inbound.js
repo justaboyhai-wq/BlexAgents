@@ -1,4 +1,4 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./channel-inbound.auto.js";
@@ -34,7 +34,7 @@ export function createChannelInboundDebouncer(opts) {
 
 export function shouldDebounceTextInbound() { return false; }
 
-// Bridge mode doesn't use the plugin's own session-envelope path — MyAgents
+// Bridge mode doesn't use the plugin's own session-envelope path — BlexAgent
 // hands inbound text to its own AI runtime (compat-runtime.ts forwards to
 // /api/im-bridge/message) and `core.channel.session.recordInboundSession`
 // is a no-op stub. Plugin callers destructure {storePath, envelopeOptions,

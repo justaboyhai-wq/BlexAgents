@@ -96,7 +96,7 @@ pub async fn cmd_workspace_copy_paths(
                 // files that did go through — but they must reach the caller,
                 // not just the log (cross-review 0.2.33, Codex W3).
                 // ulog_* (not log::*) per CLAUDE.md red-line — log::warn!
-                // doesn't reach `~/.myagents/logs/unified-{date}.log`.
+                // doesn't reach `~/.blexagent/logs/unified-{date}.log`.
                 crate::ulog_warn!("[workspace_files::copy] skipping {}: {}", source, err);
                 errors.push(format!("{}: {}", source, err));
             }
@@ -480,16 +480,16 @@ mod tests {
         let res = cmd_workspace_copy_paths(
             ws.to_string_lossy().to_string(),
             vec![src_file.to_string_lossy().to_string()],
-            "myagents_files".to_string(),
+            "blexagent_files".to_string(),
             None,
         )
         .await
         .unwrap();
 
         assert_eq!(res.copied_files.len(), 1);
-        assert_eq!(res.copied_files[0].target_path, "myagents_files/foo.txt");
+        assert_eq!(res.copied_files[0].target_path, "blexagent_files/foo.txt");
         assert_eq!(
-            fs::read(ws.join("myagents_files").join("foo.txt")).unwrap(),
+            fs::read(ws.join("blexagent_files").join("foo.txt")).unwrap(),
             b"abc"
         );
         let _ = fs::remove_dir_all(&ws);

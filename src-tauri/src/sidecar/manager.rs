@@ -521,7 +521,7 @@ impl SidecarManager {
     /// Runtime drift helper for the IM router (v0.1.66).
     ///
     /// Looks up the Sidecar for `session_id` and checks whether its spawn-time
-    /// MYAGENTS_RUNTIME differs from `desired_runtime`. On drift, the kill
+    /// BLEXAGENT_RUNTIME differs from `desired_runtime`. On drift, the kill
     /// decision depends on which owners are currently attached:
     ///
     ///   - Only `Agent(_)` owners → safe to kill: the IM router is the sole

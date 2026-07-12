@@ -1,15 +1,15 @@
 /**
- * myagents — Self-Configuration CLI for MyAgents
+ * blexagent — Self-Configuration CLI for BlexAgent
  *
  * A thin wrapper that parses CLI arguments and forwards them as HTTP requests
  * to the Sidecar's Admin API. All business logic lives in the Sidecar.
  *
  * Environment:
- *   MYAGENTS_PORT — Sidecar port (injected by buildClaudeSessionEnv)
- *   MYAGENTS_SESSION_ID — current MyAgents session id for attached-session tasks
+ *   BLEXAGENT_PORT — Sidecar port (injected by buildClaudeSessionEnv)
+ *   BLEXAGENT_SESSION_ID — current BlexAgent session id for attached-session tasks
  *
  * No shebang here. `npm run build:cli` (esbuild) injects `#!/usr/bin/env node`
- * through `--banner:js` so the *built* `myagents.js` artifact is what carries
+ * through `--banner:js` so the *built* `blexagent.js` artifact is what carries
  * the shebang. A leftover `#!/usr/bin/env bun` on this source file used to
  * stack with the banner and produced a TWO-shebang artifact (issue #107):
  * bun parses the first line as shebang, the second line `#!/usr/bin/env node`
@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 // Port is resolved after arg parsing (--port flag can override env)
-let PORT = process.env.MYAGENTS_PORT ?? '';
+let PORT = process.env.BLEXAGENT_PORT ?? '';
 let BASE = '';
 
 // ---------------------------------------------------------------------------
@@ -37,7 +37,7 @@ function parseArgs(args: string[]): { positional: string[]; flags: Record<string
   const repeatable = new Set(['args', 'env', 'headers', 'models', 'model-names', 'image']);
 
   // PRD 0.2.18 cross-review fix (Codex): added short-flag → long-flag mapping
-  // so `myagents session send <sid> -p "..."` works as documented in PRD §3.1
+  // so `blexagent session send <sid> -p "..."` works as documented in PRD §3.1
   // and SKILL.md. Only specific aliases are mapped; bare `-` prefixed positional
   // args remain valid (none of the current commands actually use bare-`-`
   // positional, but the explicit allow-list keeps the door open if needed).
@@ -181,7 +181,7 @@ function camelCase(s: string): string {
  * 422.
  *
  * If `value` is non-empty, returns it (narrowed to `string`). If empty,
- * exits 1 with a `myagents <command>` usage line for the AI to follow.
+ * exits 1 with a `blexagent <command>` usage line for the AI to follow.
  *
  * `flagAlternative` documents the `--<flag>` form a caller can use as a
  * workaround when shell quoting drops a positional.
@@ -195,7 +195,7 @@ function requirePositional(
   const v = (value ?? '').trim();
   if (v) return v;
   console.error(`Error: ${command} requires <${argName}>.`);
-  console.error(`  Usage: myagents ${command} <${argName}>${flagAlternative ? ` (or --${flagAlternative} <${argName}>)` : ''}`);
+  console.error(`  Usage: blexagent ${command} <${argName}>${flagAlternative ? ` (or --${flagAlternative} <${argName}>)` : ''}`);
   process.exit(1);
 }
 
@@ -203,9 +203,9 @@ function requirePositional(
 // Help text
 // ---------------------------------------------------------------------------
 
-const TOP_HELP = `myagents — MyAgents Self-Configuration CLI
+const TOP_HELP = `blexagent — BlexAgent Self-Configuration CLI
 
-Usage: myagents <command> [options]
+Usage: blexagent <command> [options]
 
 Commands:
   mcp       Manage MCP tool servers
@@ -218,7 +218,7 @@ Commands:
   cron      Manage scheduled tasks (list/add/runs/exit ...)
   task      Manage Task Center tasks (list/get/update-status/run/rerun ...)
   thought   Manage Task Center thoughts (list/create)
-  space     MyAgents Cloud Space issue/attachment bridge
+  space     BlexAgent Cloud Space issue/attachment bridge
   issue     Legacy read-only alias for Space issue view
   im        IM runtime actions for current chat (send-media)
   session   Session-to-session messaging (send prompts, watch completion/result events)
@@ -235,84 +235,84 @@ Global flags:
   --help      Show help for any command
   --json      Output as JSON
   --dry-run   Preview changes without applying
-  --port NUM  Override Sidecar port (default: $MYAGENTS_PORT)
+  --port NUM  Override Sidecar port (default: $BLEXAGENT_PORT)
 
 Examples:
-  myagents mcp list
-  myagents mcp show playwright
-  myagents mcp add --id playwright --type stdio --command npx --args @playwright/mcp@latest
-  myagents mcp enable playwright --scope both
-  myagents mcp oauth discover notion-mcp
-  myagents mcp oauth start notion-mcp
-  myagents vision readme
-  myagents vision analyze --image myagents_files/screenshot.png --prompt "Summarize the UI state"
-  myagents model list
-  myagents model set-key deepseek sk-xxx
-  myagents skill list
-  myagents skill add vercel-labs/skills --skill react-best-practices
-  myagents skill add https://github.com/anthropics/skills --plugin document-skills
-  myagents skill add "npx skills add foo/bar --skill baz" --force
-  myagents skill remove my-skill
-  myagents skill sync
-  myagents cron list
-  myagents runtime list                       # see installed runtimes + install hints
-  myagents runtime describe codex             # models + permission modes
-  myagents runtime diagnose codex             # auth / features / MCP / apps / env snapshot (issue #194)
-  myagents diagnose runtime codex             # alias for runtime diagnose
-  myagents agent list --archived              # archived Agent workspaces
-  myagents agent show <agent-id>              # effective defaults for a workspace
-  myagents agent archive <agent-id>
-  myagents agent unarchive <agent-id>
-  myagents task list
-  myagents task get <taskId>            # returns metadata + docs paths
+  blexagent mcp list
+  blexagent mcp show playwright
+  blexagent mcp add --id playwright --type stdio --command npx --args @playwright/mcp@latest
+  blexagent mcp enable playwright --scope both
+  blexagent mcp oauth discover notion-mcp
+  blexagent mcp oauth start notion-mcp
+  blexagent vision readme
+  blexagent vision analyze --image blexagent_files/screenshot.png --prompt "Summarize the UI state"
+  blexagent model list
+  blexagent model set-key deepseek sk-xxx
+  blexagent skill list
+  blexagent skill add vercel-labs/skills --skill react-best-practices
+  blexagent skill add https://github.com/anthropics/skills --plugin document-skills
+  blexagent skill add "npx skills add foo/bar --skill baz" --force
+  blexagent skill remove my-skill
+  blexagent skill sync
+  blexagent cron list
+  blexagent runtime list                       # see installed runtimes + install hints
+  blexagent runtime describe codex             # models + permission modes
+  blexagent runtime diagnose codex             # auth / features / MCP / apps / env snapshot (issue #194)
+  blexagent diagnose runtime codex             # alias for runtime diagnose
+  blexagent agent list --archived              # archived Agent workspaces
+  blexagent agent show <agent-id>              # effective defaults for a workspace
+  blexagent agent archive <agent-id>
+  blexagent agent unarchive <agent-id>
+  blexagent task list
+  blexagent task get <taskId>            # returns metadata + docs paths
                                         # (task.md / verify.md / progress.md /
                                         #  alignment.md — read/edit them with
                                         #  standard Read/Edit/Write tools)
-  myagents task update-status <taskId> running --message "starting work"
-  myagents task update-status <taskId> verifying
-  myagents task update-status <taskId> done --message "bundle size dropped 40%"
-  myagents task append-session <taskId> <sessionId>
-  myagents task run <taskId>
-  myagents task rerun <taskId>
-  myagents task create-direct --name "review PR" \\
+  blexagent task update-status <taskId> running --message "starting work"
+  blexagent task update-status <taskId> verifying
+  blexagent task update-status <taskId> done --message "bundle size dropped 40%"
+  blexagent task append-session <taskId> <sessionId>
+  blexagent task run <taskId>
+  blexagent task rerun <taskId>
+  blexagent task create-direct --name "review PR" \\
       --workspaceId proj --workspacePath /path/to/proj \\
       --taskMdContent "Review this PR and file findings in progress.md" \\
       --runtime codex --model gpt-5.2 --permissionMode full-auto
     # Per-task runtime/model/permissionMode overrides — consult
-    #   myagents runtime list  +  myagents runtime describe <runtime>
+    #   blexagent runtime list  +  blexagent runtime describe <runtime>
     # before choosing values. Omit any flag to inherit the agent workspace default.
-  myagents task create-from-alignment <alignmentSessionId> --name "新任务"
+  blexagent task create-from-alignment <alignmentSessionId> --name "新任务"
     # Backend auto-inherits workspaceId / workspacePath / sourceThoughtId
     # from the alignment session's metadata (set when 「AI 讨论」 launched).
     # Pass --run to dispatch immediately in the same call.
     # Pass --json for machine-readable output (task_id + docs_path).
     # Same per-task override flags as create-direct apply here.
-  myagents task create-attached --name "Space Issue #123" \\
+  blexagent task create-attached --name "Space Issue #123" \\
       --workspaceId proj --workspacePath /path/to/proj \\
       --taskMdContent-file task.md --source space-issue --sourceIssueId iss_123
-  myagents space issue list --goal <goalId> --state todo --limit 30
-  myagents space issue view <issueId> --comments --json
-  myagents space issue claim <issueId> --deliveryId <deliveryId>
-  myagents space issue claim <issueId> --deliveryId <deliveryId> --create-attached \\
+  blexagent space issue list --goal <goalId> --state todo --limit 30
+  blexagent space issue view <issueId> --comments --json
+  blexagent space issue claim <issueId> --deliveryId <deliveryId>
+  blexagent space issue claim <issueId> --deliveryId <deliveryId> --create-attached \\
       --workspaceId proj --workspacePath /path/to/proj \\
       --name "Space Issue #123" --taskMdContent-file task.md
-  myagents space issue comment <issueId> --body-file result.md
-  myagents space issue complete <issueId> --taskId <taskId> --body-file result.md \\
+  blexagent space issue comment <issueId> --body-file result.md
+  blexagent space issue complete <issueId> --taskId <taskId> --body-file result.md \\
       --message "completed Space issue"
-  myagents space issue delivery ignore <deliveryId>
-  myagents space issue complete <issueId>
-  myagents space issue close <issueId>
-  myagents space attachment download <attachmentId> --output myagents_files/space/file.bin
-  myagents thought list
-  myagents plugin list
-  myagents cc-plugin list
-  myagents cc-plugin install anthropics/example-plugin
-  myagents cc-plugin install file:///path/to/dev-plugin
-  myagents cc-plugin enable my-plugin
-  myagents version
-  myagents reload
+  blexagent space issue delivery ignore <deliveryId>
+  blexagent space issue complete <issueId>
+  blexagent space issue close <issueId>
+  blexagent space attachment download <attachmentId> --output blexagent_files/space/file.bin
+  blexagent thought list
+  blexagent plugin list
+  blexagent cc-plugin list
+  blexagent cc-plugin install anthropics/example-plugin
+  blexagent cc-plugin install file:///path/to/dev-plugin
+  blexagent cc-plugin enable my-plugin
+  blexagent version
+  blexagent reload
 
-Run 'myagents <command> --help' for details on a specific command.`;
+Run 'blexagent <command> --help' for details on a specific command.`;
 
 // ---------------------------------------------------------------------------
 // HTTP client
@@ -341,10 +341,10 @@ async function callApi(route: string, body: Record<string, unknown> = {}): Promi
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
-      console.error('Error: Cannot connect to MyAgents. Is the app running?');
+      console.error('Error: Cannot connect to BlexAgent. Is the app running?');
       if (process.env.CODEX_SANDBOX || process.env.CODEX_SANDBOX_NETWORK_DISABLED === '1') {
         console.error('  This command appears to be running inside the Codex sandbox.');
-        console.error('  If MyAgents is running on localhost, switch Codex to no-restrictions or run the command from your normal terminal.');
+        console.error('  If BlexAgent is running on localhost, switch Codex to no-restrictions or run the command from your normal terminal.');
       }
       process.exit(3);
     }
@@ -418,7 +418,7 @@ function printResult(group: string, action: string, result: Record<string, unkno
     const missing = data.missingKeys as string[] | undefined;
     if (missing && missing.length > 0) {
       console.log(`\nDeclared but unconfigured: ${missing.join(', ')}`);
-      console.log(`  → Run: myagents tool env ${String(data.name)} set ${missing[0]}=<value>`);
+      console.log(`  → Run: blexagent tool env ${String(data.name)} set ${missing[0]}=<value>`);
     }
     if (result.hint) console.log(`\n${result.hint}`);
     return;
@@ -451,7 +451,7 @@ function printResult(group: string, action: string, result: Record<string, unkno
     console.log(`✓ Triggered ${data.taskId ?? '(unknown)'}`);
     if (data.sessionId) console.log(`  session: ${data.sessionId}`);
     if (data.dispatchedAt) console.log(`  dispatched: ${data.dispatchedAt}`);
-    console.log(`  runs:    myagents cron runs ${data.taskId ?? '<id>'} --limit 1`);
+    console.log(`  runs:    blexagent cron runs ${data.taskId ?? '<id>'} --limit 1`);
     return;
   }
   if (group === 'cron' && action === 'update') {
@@ -605,7 +605,7 @@ function printResult(group: string, action: string, result: Record<string, unkno
     return;
   }
   if (group === 'diagnose') {
-    // `myagents diagnose runtime <type>` — sugar for `runtime diagnose`.
+    // `blexagent diagnose runtime <type>` — sugar for `runtime diagnose`.
     printRuntimeDiagnose(result.data as Record<string, unknown>);
     return;
   }
@@ -617,9 +617,9 @@ function printResult(group: string, action: string, result: Record<string, unkno
     const messageId = result.messageId ? ` ${result.messageId}` : '';
     console.log(`\u2713 session send delivered${messageId}`);
     if (result.replyBack === false) {
-      console.log('  notification: one-way; MyAgents will not push the target turn result back here.');
+      console.log('  notification: one-way; BlexAgent will not push the target turn result back here.');
     } else {
-      console.log('  notification: MyAgents will push the target turn result back as a <myagents-session-event type="send.result"> block.');
+      console.log('  notification: BlexAgent will push the target turn result back as a <blexagent-session-event type="send.result"> block.');
     }
     return;
   }
@@ -631,7 +631,7 @@ function printResult(group: string, action: string, result: Record<string, unkno
     console.log(`\u2713 session watch registered ${result.watchId ?? ''}`.trim());
     console.log(`  target: ${result.targetSessionId ?? '(unknown)'}`);
     console.log(`  state:  ${result.targetStateAtRegistration ?? 'unknown'}`);
-    console.log('  result: MyAgents will push a <myagents-session-event type="watch.completed"> block when the target finishes.');
+    console.log('  result: BlexAgent will push a <blexagent-session-event type="watch.completed"> block when the target finishes.');
     return;
   }
   if (group === 'help') {
@@ -649,7 +649,7 @@ function printResult(group: string, action: string, result: Record<string, unkno
 
   // Task create-* — AI-facing flow: print task_id + docs path + next-step
   // hint + any override echo so the caller doesn't have to guess the id via
-  // `ls -lt ~/.myagents/tasks/`. JSON mode above returns the full payload.
+  // `ls -lt ~/.blexagent/tasks/`. JSON mode above returns the full payload.
   // All create-* forms go through the same enriched server-side response.
   // `enrichTaskCreateResponse` server-side, so one printer covers both.
   if (group === 'task' && (action === 'create-direct' || action === 'create-from-alignment' || action === 'create-attached')) {
@@ -694,9 +694,9 @@ function printResult(group: string, action: string, result: Record<string, unkno
  *   ✓ Task created
  *     task_id:   <uuid>
  *     name:      <string>
- *     docs_path: ~/.myagents/tasks/<uuid>/
- *     next:      myagents task run <uuid>          # non-attached tasks
- *     complete:  myagents task update-status ...   # attached tasks
+ *     docs_path: ~/.blexagent/tasks/<uuid>/
+ *     next:      blexagent task run <uuid>          # non-attached tasks
+ *     complete:  blexagent task update-status ...   # attached tasks
  */
 function printTaskCreateResult(data: Record<string, unknown>): void {
   // Handler returns { task, dispatched?, runResult? } — `task` is the full
@@ -705,7 +705,7 @@ function printTaskCreateResult(data: Record<string, unknown>): void {
   const id = String(task?.id ?? '');
   const name = String(task?.name ?? '');
   const home = process.env.HOME ?? '';
-  const absDocs = `${home}/.myagents/tasks/${id}/`;
+  const absDocs = `${home}/.blexagent/tasks/${id}/`;
   const displayDocs = home && absDocs.startsWith(home)
     ? `~${absDocs.slice(home.length)}`
     : absDocs;
@@ -746,7 +746,7 @@ function printTaskCreateResult(data: Record<string, unknown>): void {
 
   const nextSteps = data?.nextSteps as Record<string, string> | undefined;
   const isAttached = task?.dispatchOrigin === 'attached-session';
-  const dispatch = nextSteps?.dispatch ?? (!isAttached && id ? `myagents task run ${id}` : '');
+  const dispatch = nextSteps?.dispatch ?? (!isAttached && id ? `blexagent task run ${id}` : '');
   if (dispatch) console.log(`  next:      ${dispatch}`);
   const inspect = nextSteps?.inspect;
   if (inspect && isAttached) console.log(`  inspect:   ${inspect}`);
@@ -769,7 +769,7 @@ function printSpaceClaimAttachedResult(data: Record<string, unknown>): void {
   const issueId = String(data.issueId ?? claim.issueId ?? '');
   const claimId = String(claim.id ?? claim.claimId ?? '');
   const taskId = String(task.id ?? task.taskId ?? '');
-  const sessionId = String(data.localSessionId ?? task.currentSessionId ?? process.env.MYAGENTS_SESSION_ID ?? '');
+  const sessionId = String(data.localSessionId ?? task.currentSessionId ?? process.env.BLEXAGENT_SESSION_ID ?? '');
   const workspacePath = typeof task.workspacePath === 'string' && task.workspacePath.trim()
     ? task.workspacePath.trim()
     : '';
@@ -780,11 +780,11 @@ function printSpaceClaimAttachedResult(data: Record<string, unknown>): void {
   if (claimId) console.log(`  claim_id:  ${claimId}`);
   if (taskId) console.log(`  task_id:   ${taskId}`);
   if (sessionId) console.log(`  session:   ${sessionId}`);
-  if (taskId) console.log(`  inspect:   myagents task get ${taskId}`);
+  if (taskId) console.log(`  inspect:   blexagent task get ${taskId}`);
   if (issueId && taskId) {
-    console.log(`  finish:    myagents space issue complete ${shellQuoteArg(issueId)}${workspaceArg} --taskId ${shellQuoteArg(taskId)} --body-file result.md --message "completed Space issue"`);
+    console.log(`  finish:    blexagent space issue complete ${shellQuoteArg(issueId)}${workspaceArg} --taskId ${shellQuoteArg(taskId)} --body-file result.md --message "completed Space issue"`);
   } else if (issueId) {
-    console.log(`  complete:  myagents space issue complete ${shellQuoteArg(issueId)}${workspaceArg}`);
+    console.log(`  complete:  blexagent space issue complete ${shellQuoteArg(issueId)}${workspaceArg}`);
   }
 }
 
@@ -808,7 +808,7 @@ function printSpaceIssueCompleteResult(data: Record<string, unknown>): void {
 }
 
 /**
- * Format `myagents runtime list` output.
+ * Format `blexagent runtime list` output.
  *
  * Structure each row as `runtime  installed  version  displayName`, with
  * non-installed rows following up on the next line with the install hint.
@@ -830,11 +830,11 @@ function printRuntimeList(rows: Array<Record<string, unknown>>): void {
     if (hint) console.log(`    \u2192 ${String(hint)}`);
   }
   console.log('');
-  console.log('Describe a runtime:  myagents runtime describe <runtime>');
+  console.log('Describe a runtime:  blexagent runtime describe <runtime>');
 }
 
 /**
- * Format `myagents runtime describe <runtime>` output.
+ * Format `blexagent runtime describe <runtime>` output.
  *
  * Show the four things an AI needs before choosing override values:
  *   - install state (version string when installed, install hint otherwise)
@@ -888,7 +888,7 @@ function printRuntimeDescribe(data: Record<string, unknown>): void {
 }
 
 /**
- * Format `myagents diagnose runtime <type>` output.
+ * Format `blexagent diagnose runtime <type>` output.
  *
  * Five sections: header (runtime + version + installed state) + auth + features
  * + mcpServers + apps + effectiveEnv. Each section reports `unsupported` or an
@@ -985,8 +985,8 @@ function printRuntimeDiagnose(data: Record<string, unknown>): void {
   console.log(`  HTTPS_PROXY: ${proxy.https ?? '(unset)'}`);
   console.log(`  ALL_PROXY:   ${proxy.all ?? '(unset)'}`);
   console.log(`  NO_PROXY:    ${proxy.no ?? '(unset)'}`);
-  console.log(`  proxyPolicy: ${env.proxyPolicy ?? 'myagents'}`);
-  console.log(`  MYAGENTS_PROXY_INJECTED: ${env.myagentsProxyInjected ? 'yes' : 'no'}`);
+  console.log(`  proxyPolicy: ${env.proxyPolicy ?? 'blexagent'}`);
+  console.log(`  BLEXAGENT_PROXY_INJECTED: ${env.blexagentProxyInjected ? 'yes' : 'no'}`);
   const sandbox = env.codexSandbox as Record<string, unknown> | undefined;
   if (sandbox) {
     console.log(`  Codex sandbox detected: ${sandbox.detected ? 'yes' : 'no'}`);
@@ -1023,7 +1023,7 @@ function printRuntimeDiagnose(data: Record<string, unknown>): void {
 }
 
 /**
- * Format `myagents agent show <id>` output.
+ * Format `blexagent agent show <id>` output.
  *
  * Exposes the resolved defaults an AI would need to decide whether a task
  * override is meaningful or a no-op. Keys are printed one-per-line with
@@ -1057,7 +1057,7 @@ function printAgentShow(data: Record<string, unknown>): void {
     console.log(`  runtimeConfig:  ${JSON.stringify(defaults.runtimeConfig)}`);
   }
   console.log('');
-  console.log('Describe this runtime:  myagents runtime describe <runtime>');
+  console.log('Describe this runtime:  blexagent runtime describe <runtime>');
 }
 
 /**
@@ -1165,7 +1165,7 @@ function printCuseDiagnostics(cuse: Record<string, unknown>, indent = '  '): voi
 }
 
 /**
- * Format `myagents mcp show <id>` output.
+ * Format `blexagent mcp show <id>` output.
  *
  * Parallels printAgentShow — prints the user-visible config + enable state
  * (global / per-project) for a single server. Env and headers are rendered
@@ -1659,10 +1659,10 @@ function printTaskDetail(task: Record<string, unknown>): void {
 
   // Footer — next-step hints so the AI / user doesn't have to guess
   console.log('\nNext steps:');
-  console.log('  myagents task update-status <id> <status> [--message ...]  # transition state machine');
-  console.log('  myagents task run <id>                                     # dispatch immediately');
-  console.log('  myagents task rerun <id>                                   # re-arm stopped/blocked task');
-  console.log('  myagents task --help                                       # full Task CLI reference');
+  console.log('  blexagent task update-status <id> <status> [--message ...]  # transition state machine');
+  console.log('  blexagent task run <id>                                     # dispatch immediately');
+  console.log('  blexagent task rerun <id>                                   # re-arm stopped/blocked task');
+  console.log('  blexagent task --help                                       # full Task CLI reference');
 }
 
 function printThoughtList(thoughts: Array<Record<string, unknown>>): void {
@@ -1791,7 +1791,7 @@ async function main(): Promise<void> {
   // Resolve port: --port flag overrides env
   PORT = (flags.port as string) || PORT;
   if (!PORT) {
-    console.error('Error: MYAGENTS_PORT not set. This CLI runs within the MyAgents app.');
+    console.error('Error: BLEXAGENT_PORT not set. This CLI runs within the BlexAgent app.');
     process.exit(3);
   }
   BASE = `http://127.0.0.1:${PORT}/api/admin`;
@@ -1949,15 +1949,15 @@ function buildRoute(group: string, action: string, rest: string[]): string {
     const oauthAction = rest[0] || 'status';
     return `mcp/oauth/${oauthAction}`;
   }
-  // Tool readmes: `myagents cron readme`, `myagents im readme`, `myagents widget ...`,
-  // `myagents thought readme`. `thought` is included so the AI's natural
+  // Tool readmes: `blexagent cron readme`, `blexagent im readme`, `blexagent widget ...`,
+  // `blexagent thought readme`. `thought` is included so the AI's natural
   // generalization from cron/im/widget readme doesn't 404 — the server returns
   // a brief "no separate readme" message redirecting back to the prompt brief.
   if (action === 'readme' && (group === 'cron' || group === 'im' || group === 'widget' || group === 'thought')) {
     return `readme/${group}`;
   }
   // `widget` only exists for readme lookup — any form of invocation
-  // (`myagents widget`, `myagents widget chart`, `myagents widget readme chart`)
+  // (`blexagent widget`, `blexagent widget chart`, `blexagent widget readme chart`)
   // routes to the same handler. The handler parses modules from the payload.
   if (group === 'widget') {
     return 'readme/widget';
@@ -2251,9 +2251,9 @@ async function claimSpaceIssueWithAttachedTask(
   const currentSessionId =
     typeof flags.currentSessionId === 'string' && flags.currentSessionId.trim()
       ? flags.currentSessionId.trim()
-      : process.env.MYAGENTS_SESSION_ID;
+      : process.env.BLEXAGENT_SESSION_ID;
   if (!currentSessionId) {
-    console.error('Error: space issue claim --create-attached requires MYAGENTS_SESSION_ID. Run it from inside a MyAgents AI session.');
+    console.error('Error: space issue claim --create-attached requires BLEXAGENT_SESSION_ID. Run it from inside a BlexAgent AI session.');
     process.exit(2);
   }
 
@@ -2417,7 +2417,7 @@ async function completeSpaceIssueWithLocalFollowup(
         success: false,
         error: `Issue completed but local task status update failed: ${String(taskResult.error ?? 'unknown error')}.`,
         recoveryHint: {
-          recoveryCommand: `myagents task update-status ${taskId} done --message "completed Space issue"`,
+          recoveryCommand: `blexagent task update-status ${taskId} done --message "completed Space issue"`,
           message: 'Cloud Issue is already complete; rerun this command to close the local Task.',
         },
         data: {
@@ -2489,7 +2489,7 @@ function buildRequestBody(
   // CLI tool registry commands (PRD 0.2.36)
   if (group === 'tool') {
     if (action === 'add') {
-      // `myagents tool add <dir>` — dir is positional; --dir also accepted
+      // `blexagent tool add <dir>` — dir is positional; --dir also accepted
       return { dir: rest[0] ?? flags.dir, dryRun: flags.dryRun };
     }
     if (action === 'env') {
@@ -2640,7 +2640,7 @@ function buildRequestBody(
           'localTaskId',
         );
         const localSessionId = requirePositional(
-          (flags.localSessionId ?? process.env.MYAGENTS_SESSION_ID) as string | undefined,
+          (flags.localSessionId ?? process.env.BLEXAGENT_SESSION_ID) as string | undefined,
           'localSessionId',
           'space claim local-task',
           'localSessionId',
@@ -2672,7 +2672,7 @@ function buildRequestBody(
   if (group === 'issue') {
     const workspacePath = resolveSpaceWorkspacePath(flags);
     if (action === 'comment' || action === 'comments' || action === 'status') {
-      console.error(`Error: myagents issue only reads an issue. Use "myagents space issue ${action} ..." for this operation.`);
+      console.error(`Error: blexagent issue only reads an issue. Use "blexagent space issue ${action} ..." for this operation.`);
       process.exit(1);
     }
     const positionalIssueId = action === 'list' || action === 'get' ? rest[0] : action;
@@ -2809,7 +2809,7 @@ function buildRequestBody(
     return {};
   }
 
-  // Runtime discovery commands (v0.1.69+): `myagents runtime list|describe`
+  // Runtime discovery commands (v0.1.69+): `blexagent runtime list|describe`
   // Pure query endpoints — no body mutation — meant to be consulted BEFORE
   // choosing values for `task create-direct --runtime/--model/...`.
   if (group === 'runtime') {
@@ -2821,7 +2821,7 @@ function buildRequestBody(
     };
     return {};
   }
-  // Sugar form: `myagents diagnose runtime <type>` (issue #194).
+  // Sugar form: `blexagent diagnose runtime <type>` (issue #194).
   if (group === 'diagnose' && action === 'runtime') {
     return {
       runtime: requirePositional(rest[0] ?? (flags.runtime as string | undefined), 'runtime', 'diagnose runtime', 'runtime'),
@@ -2932,12 +2932,12 @@ function buildRequestBody(
   }
 
   // Generative UI widget readme. Accept any of:
-  //   myagents widget                         → action='list',    rest=[]           → modules=[]
-  //   myagents widget readme                  → action='readme',  rest=[]           → modules=[]
-  //   myagents widget readme chart            → action='readme',  rest=['chart']    → modules=['chart']
-  //   myagents widget readme chart interactive → rest=['chart','interactive']       → modules=['chart','interactive']
-  //   myagents widget chart                   → action='chart',   rest=[]           → modules=['chart']
-  //   myagents widget chart interactive       → action='chart',   rest=['interactive'] → modules=['chart','interactive']
+  //   blexagent widget                         → action='list',    rest=[]           → modules=[]
+  //   blexagent widget readme                  → action='readme',  rest=[]           → modules=[]
+  //   blexagent widget readme chart            → action='readme',  rest=['chart']    → modules=['chart']
+  //   blexagent widget readme chart interactive → rest=['chart','interactive']       → modules=['chart','interactive']
+  //   blexagent widget chart                   → action='chart',   rest=[]           → modules=['chart']
+  //   blexagent widget chart interactive       → action='chart',   rest=['interactive'] → modules=['chart','interactive']
   // Modules = positional args AFTER `widget`, minus any leading `readme`/`list` keyword.
   if (group === 'widget') {
     const candidates = [action, ...rest].filter(Boolean);
@@ -3010,11 +3010,11 @@ function buildRequestBody(
     return {};
   }
 
-  // Task Center (v0.1.69) — covers all `myagents task <action>` subcommands.
+  // Task Center (v0.1.69) — covers all `blexagent task <action>` subcommands.
   //
   // The `actor` / `source` trust fields are NOT settable via the CLI; the
   // admin-api handler derives them from the calling process environment
-  // (MYAGENTS_PORT present → agent subprocess; otherwise user terminal).
+  // (BLEXAGENT_PORT present → agent subprocess; otherwise user terminal).
   if (group === 'task') {
     if (action === 'list') {
       return {
@@ -3090,9 +3090,9 @@ function buildRequestBody(
       const currentSessionId =
         typeof flags.currentSessionId === 'string' && flags.currentSessionId.trim()
           ? flags.currentSessionId.trim()
-          : process.env.MYAGENTS_SESSION_ID;
+          : process.env.BLEXAGENT_SESSION_ID;
       if (!currentSessionId) {
-        console.error('Error: task create-attached requires MYAGENTS_SESSION_ID. Run it from inside a MyAgents AI session.');
+        console.error('Error: task create-attached requires BLEXAGENT_SESSION_ID. Run it from inside a BlexAgent AI session.');
         process.exit(2);
       }
       const source = (flags.source as string | undefined) ?? 'space-issue';
@@ -3221,7 +3221,7 @@ function buildRequestBody(
     return {};
   }
 
-  // Thought (v0.1.69) — `myagents thought <list|create>`
+  // Thought (v0.1.69) — `blexagent thought <list|create>`
   if (group === 'thought') {
     if (action === 'list') {
       return {
@@ -3231,7 +3231,7 @@ function buildRequestBody(
       };
     }
     if (action === 'create') {
-      // Issue #149: on Windows the AI-emitted `myagents thought create '<text>'`
+      // Issue #149: on Windows the AI-emitted `blexagent thought create '<text>'`
       // sometimes loses the positional argument (root cause not reproducible
       // from macOS — likely a shell-quoting interaction in
       // git-bash → cmd.exe → node argv). The result was a silent
@@ -3278,7 +3278,7 @@ function buildRequestBody(
     return {};
   }
 
-  // ===== Session events (PRD 0.2.37) — `myagents session send/watch` =====
+  // ===== Session events (PRD 0.2.37) — `blexagent session send/watch` =====
   if (group === 'session') {
     if (action === 'send') {
       // Positional: <sessionId>
@@ -3321,7 +3321,7 @@ function buildRequestBody(
 
       if (!promptText || promptText.length === 0) {
         console.error('Error: session send requires --prompt "<text>" or --prompt-file <path>');
-        console.error('  → Tip: see `myagents session send --help` for usage examples');
+        console.error('  → Tip: see `blexagent session send --help` for usage examples');
         process.exit(3);
       }
 
@@ -3333,13 +3333,13 @@ function buildRequestBody(
         if (promptText.includes('\n')) {
           console.error('Error: -p / --prompt content contains newlines (\\n) — Windows cmd.exe truncates flags after \\n,');
           console.error('       which would drop subsequent flags. Write the content to a file and use --prompt-file instead:');
-          console.error('         myagents session send <sid> --prompt-file <path>');
+          console.error('         blexagent session send <sid> --prompt-file <path>');
           process.exit(3);
         }
         if (promptText.length > MAX_PROMPT_BYTES) {
           console.error(`Error: -p / --prompt content is ${promptText.length} bytes, exceeds ${MAX_PROMPT_BYTES} (4 KB) limit.`);
           console.error('       Write the content to a file and use --prompt-file instead:');
-          console.error('         myagents session send <sid> --prompt-file <path>');
+          console.error('         blexagent session send <sid> --prompt-file <path>');
           process.exit(3);
         }
       }
@@ -3360,7 +3360,7 @@ function buildRequestBody(
       const unsupportedFlag = ['prompt', 'promptFile', 'then', 'thenFile', 'thenPrompt', 'thenPromptFile']
         .find((key) => flags[key] !== undefined);
       if (unsupportedFlag) {
-        console.error('Error: session watch does not accept prompt/then flags. Use `myagents session send` to ask the target session to do new work.');
+        console.error('Error: session watch does not accept prompt/then flags. Use `blexagent session send` to ask the target session to do new work.');
         process.exit(3);
       }
       if (rest.length > 1) {
@@ -3611,7 +3611,7 @@ function parseMcpEnabledServersFlag(raw: unknown): string[] | undefined {
  * to `{ desktop: true }` via serde so omitting it is the right behavior.
  *
  * Flags supported:
- *   --notificationBotChannelId <bot-id>     IM bot id (see `myagents im channels`)
+ *   --notificationBotChannelId <bot-id>     IM bot id (see `blexagent im channels`)
  *   --notificationBotThread <chat-id>       Override bot routing thread / channel
  *   --notificationDesktop true|false        Toggle desktop notification (default true)
  *   --notificationEvents done,blocked,...   Comma-separated event filter
@@ -3654,7 +3654,7 @@ function buildNotificationFromFlags(
     // non-empty string so the AI / user gets a clear error instead of a
     // confused router that says "no such bot 'true'".
     if (typeof channel !== 'string' || channel.length === 0) {
-      console.error('Error: --notificationBotChannelId requires a bot id (e.g. --notificationBotChannelId feishu_main). See: myagents im channels');
+      console.error('Error: --notificationBotChannelId requires a bot id (e.g. --notificationBotChannelId feishu_main). See: blexagent im channels');
       process.exit(2);
     }
     out.botChannelId = channel;

@@ -210,7 +210,7 @@ const PORT_RANGE: u16 = 500;
 pub const GLOBAL_SIDECAR_ID: &str = "__global__";
 // Process identification marker (used to identify our sidecar processes)
 // This marker is added to all sidecar commands for reliable process identification
-const SIDECAR_MARKER: &str = "--myagents-sidecar";
+const SIDECAR_MARKER: &str = "--blexagent-sidecar";
 
 // Port file for CLI discovery — written when Global Sidecar starts,
 // read by `cli.rs` to know which port to connect to.

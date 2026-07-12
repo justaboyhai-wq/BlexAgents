@@ -3,7 +3,7 @@
  *
  * Sandbox iframes cannot inherit parent CSS variables, so we compute
  * the current theme values and inject them into the iframe's :root.
- * Widget code uses --widget-* variables that map to MyAgents design tokens.
+ * Widget code uses --widget-* variables that map to BlexAgent design tokens.
  *
  * Covers: text, background, border, accent, semantic, radius.
  * Supports light/dark mode detection from the parent page.

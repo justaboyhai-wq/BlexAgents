@@ -47,14 +47,14 @@ impl RuntimeIdentity {
     }
 }
 
-/// Look up the `runtime` field from the agent config in ~/.myagents/config.json
+/// Look up the `runtime` field from the agent config in ~/.blexagent/config.json
 /// matching the given workspace path. Returns None for "builtin" (the default).
 /// Used for NEW sessions (the agent config decides the default runtime for new conversations)
 /// and for IM/Agent sidecar paths that don't have a session_id yet.
 pub(super) fn resolve_agent_runtime_identity_from_config(
     workspace_path: &std::path::Path,
 ) -> Option<RuntimeIdentity> {
-    let config_path = dirs::home_dir()?.join(".myagents").join("config.json");
+    let config_path = dirs::home_dir()?.join(".blexagent").join("config.json");
     let content = std::fs::read_to_string(&config_path).ok()?;
     let cfg: serde_json::Value = serde_json::from_str(strip_bom(&content)).ok()?;
 
@@ -139,7 +139,7 @@ fn workspace_paths_match(agent_path: &str, workspace_path: &std::path::Path) -> 
         == crate::cron_task::normalize_path(&workspace_path.to_string_lossy())
 }
 
-/// Look up the `runtime` field from session metadata in ~/.myagents/sessions.json.
+/// Look up the `runtime` field from session metadata in ~/.blexagent/sessions.json.
 /// Returns Some("builtin") for builtin/missing-runtime sessions that are found,
 /// and None only when no authoritative session metadata is available.
 ///
@@ -148,14 +148,14 @@ fn workspace_paths_match(agent_path: &str, workspace_path: &std::path::Path) -> 
 /// Agent config (resolve_agent_runtime_from_config) decides the default for NEW sessions
 /// and is gated by `multiAgentRuntime`; session metadata is stable once created and is
 /// read regardless of that gate so an existing runtime-A history is never reopened as
-/// runtime B under the same MyAgents session_id.
+/// runtime B under the same BlexAgent session_id.
 #[allow(dead_code)]
 pub fn resolve_session_runtime_identity(session_id: &str) -> Option<String> {
     resolve_session_runtime_identity_full(session_id).map(|identity| identity.runtime)
 }
 
 pub fn resolve_session_runtime_identity_full(session_id: &str) -> Option<RuntimeIdentity> {
-    let sessions_path = dirs::home_dir()?.join(".myagents").join("sessions.json");
+    let sessions_path = dirs::home_dir()?.join(".blexagent").join("sessions.json");
     let content = std::fs::read_to_string(&sessions_path).ok()?;
     resolve_session_runtime_identity_full_from_json(session_id, &content)
 }
@@ -190,7 +190,7 @@ pub(super) fn resolve_session_runtime_identity_full_from_json(
 /// Lazy validation for tab restore (Issue #232 / PRD 0.2.25).
 ///
 /// A restored "cold" chat tab is only activatable if (a) its session still
-/// exists in `~/.myagents/sessions.json` and (b) its workspace directory still
+/// exists in `~/.blexagent/sessions.json` and (b) its workspace directory still
 /// exists on disk. This is read-only and reads the disk directly — it does NOT
 /// depend on the global sidecar being up (which is async + flaky on startup),
 /// matching the PRD's "validate lazily at first activation, decoupled from
@@ -209,7 +209,7 @@ pub fn cmd_can_restore_session(sessionId: String, agentDir: String) -> bool {
     if crate::workspace_files::path_safety::validate_workspace_root(&agentDir).is_err() {
         return false;
     }
-    let Some(sessions_path) = dirs::home_dir().map(|h| h.join(".myagents").join("sessions.json"))
+    let Some(sessions_path) = dirs::home_dir().map(|h| h.join(".blexagent").join("sessions.json"))
     else {
         return false;
     };
@@ -238,7 +238,7 @@ pub fn cmd_can_restore_session(sessionId: String, agentDir: String) -> bool {
 ///
 /// Under the v0.1.69 layered-snapshot model, a session's `runtime` is part of
 /// its immutable identity (stamped at creation in sessions.json). The Sidecar
-/// was spawned with MYAGENTS_RUNTIME derived from the owner-aware priority
+/// was spawned with BLEXAGENT_RUNTIME derived from the owner-aware priority
 /// chain. These two MUST stay aligned for the lifetime of the Sidecar — a
 /// cross-runtime session switch opens a new Tab (Scenario 1.5 / T12), it
 /// doesn't swap the runtime under a live Sidecar.

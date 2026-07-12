@@ -529,12 +529,12 @@ async fn sync_ai_config_to_port(
 /// Read lastActiveAt for all sessions into a lookup map.
 /// Used to detect recently active sessions that should not be interrupted by memory updates.
 fn read_session_last_active_map() -> std::collections::HashMap<String, DateTime<Utc>> {
-    let myagents_dir = match dirs::home_dir() {
-        Some(home) => home.join(".myagents"),
+    let blexagent_dir = match dirs::home_dir() {
+        Some(home) => home.join(".blexagent"),
         None => return Default::default(),
     };
 
-    let sessions_path = myagents_dir.join("sessions.json");
+    let sessions_path = blexagent_dir.join("sessions.json");
     let content = match std::fs::read_to_string(&sessions_path) {
         Ok(c) => c,
         Err(e) => {
@@ -633,13 +633,13 @@ fn collect_qualifying_sessions(
     workspace_path: &str,
     config: &MemoryAutoUpdateConfig,
 ) -> Vec<String> {
-    let myagents_dir = match dirs::home_dir() {
-        Some(home) => home.join(".myagents"),
+    let blexagent_dir = match dirs::home_dir() {
+        Some(home) => home.join(".blexagent"),
         None => return vec![],
     };
 
     // Read sessions.json
-    let sessions_path = myagents_dir.join("sessions.json");
+    let sessions_path = blexagent_dir.join("sessions.json");
     let sessions_content = match std::fs::read_to_string(&sessions_path) {
         Ok(c) => c,
         Err(_) => return vec![],
@@ -680,7 +680,7 @@ fn collect_qualifying_sessions(
         }
 
         // Filter: query count >= threshold
-        let query_count = count_queries_since_last_update(&myagents_dir, &session.id);
+        let query_count = count_queries_since_last_update(&blexagent_dir, &session.id);
         if query_count < config.query_threshold {
             continue;
         }
@@ -692,8 +692,8 @@ fn collect_qualifying_sessions(
 }
 
 /// Count user queries since the last <MEMORY_UPDATE> marker in a session's JSONL
-fn count_queries_since_last_update(myagents_dir: &Path, session_id: &str) -> u32 {
-    let jsonl_path = myagents_dir
+fn count_queries_since_last_update(blexagent_dir: &Path, session_id: &str) -> u32 {
+    let jsonl_path = blexagent_dir
         .join("sessions")
         .join(format!("{}.jsonl", session_id));
     let content = match std::fs::read_to_string(&jsonl_path) {
@@ -816,7 +816,7 @@ async fn update_config_field<R: Runtime>(
     let result = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let config_path = dirs::home_dir()
             .ok_or("No home dir")?
-            .join(".myagents")
+            .join(".blexagent")
             .join("config.json");
 
         with_config_lock(&config_path, false, |config| {

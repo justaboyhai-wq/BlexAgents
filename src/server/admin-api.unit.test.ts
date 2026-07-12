@@ -46,7 +46,7 @@ function writeJson(path: string, value: unknown): void {
 }
 
 function readConfig(): Record<string, unknown> {
-  return JSON.parse(readFileSync(join(scratch, '.myagents', 'config.json'), 'utf-8')) as Record<string, unknown>;
+  return JSON.parse(readFileSync(join(scratch, '.blexagent', 'config.json'), 'utf-8')) as Record<string, unknown>;
 }
 
 function readJson(path: string): Record<string, unknown>[] {
@@ -54,8 +54,8 @@ function readJson(path: string): Record<string, unknown>[] {
 }
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'myagents-admin-api-'));
-  mkdirSync(join(scratch, '.myagents'), { recursive: true });
+  scratch = mkdtempSync(join(tmpdir(), 'blexagent-admin-api-'));
+  mkdirSync(join(scratch, '.blexagent'), { recursive: true });
   prevHome = process.env.HOME;
   prevUserProfile = process.env.USERPROFILE;
   process.env.HOME = scratch;
@@ -76,14 +76,14 @@ afterEach(() => {
 });
 
 describe('admin-api help registry', () => {
-  it('documents the official vision command group for myagents vision --help', async () => {
+  it('documents the official vision command group for blexagent vision --help', async () => {
     const { handleHelp } = await import('./admin-api');
 
     const result = handleHelp({ path: ['vision'] });
     const text = (result.data as { text?: string } | undefined)?.text ?? '';
 
     expect(result.success).toBe(true);
-    expect(text).toContain('myagents vision');
+    expect(text).toContain('blexagent vision');
     expect(text).toContain('analyze');
     expect(text).not.toContain('Unknown command group');
   });
@@ -104,7 +104,7 @@ describe('admin-api MCP project scope', () => {
   it('fails project-only enable when the current workspace is not registered', async () => {
     const { handleMcpEnable } = await import('./admin-api');
     agentSessionMocks.agentDir = 'c:/users/me/project/';
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [{
         id: 'win-custom',
         name: 'Windows Custom',
@@ -113,7 +113,7 @@ describe('admin-api MCP project scope', () => {
       }],
       mcpEnabledServers: [],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), []);
+    writeJson(join(scratch, '.blexagent', 'projects.json'), []);
 
     const result = await handleMcpEnable({ id: 'win-custom', scope: 'project' });
 
@@ -125,7 +125,7 @@ describe('admin-api MCP project scope', () => {
   it('keeps global enable effective when project scope is skipped for an unregistered workspace', async () => {
     const { handleMcpEnable } = await import('./admin-api');
     agentSessionMocks.agentDir = 'c:/users/me/project/';
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [{
         id: 'win-custom',
         name: 'Windows Custom',
@@ -134,7 +134,7 @@ describe('admin-api MCP project scope', () => {
       }],
       mcpEnabledServers: [],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), []);
+    writeJson(join(scratch, '.blexagent', 'projects.json'), []);
 
     const result = await handleMcpEnable({ id: 'win-custom', scope: 'both' });
 
@@ -159,7 +159,7 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('removes HTTP MCP definitions from global config and Agent legacy payloads', async () => {
     const { handleMcpRemove } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [remoteHttp],
       mcpEnabledServers: ['yuandian-law'],
       mcpServerEnv: { 'yuandian-law': { TOKEN: 'secret' } },
@@ -191,7 +191,7 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('removes Agent-only legacy HTTP MCP servers after Admin API load-boundary promotion', async () => {
     const { handleMcpRemove } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [],
       mcpEnabledServers: [],
       agents: [{
@@ -219,7 +219,7 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('cascades custom MCP remove across config, projects, sessions, legacy Bot payloads, and Rust stores', async () => {
     const { handleMcpRemove } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [remoteHttp],
       mcpEnabledServers: ['yuandian-law', 'keep'],
       mcpServerEnv: { 'yuandian-law': { TOKEN: 'secret' } },
@@ -241,13 +241,13 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
         mcpServersJson: JSON.stringify([remoteHttp]),
       }],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Project',
       path: '/tmp/workspace',
       mcpEnabledServers: ['yuandian-law'],
     }]);
-    writeJson(join(scratch, '.myagents', 'sessions.json'), [{
+    writeJson(join(scratch, '.blexagent', 'sessions.json'), [{
       id: 'session-1',
       agentDir: '/tmp/workspace',
       createdAt: new Date().toISOString(),
@@ -258,8 +258,8 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
     const result = await handleMcpRemove({ id: 'yuandian-law' });
     const config = readConfig();
-    const project = readJson(join(scratch, '.myagents', 'projects.json'))[0];
-    const session = readJson(join(scratch, '.myagents', 'sessions.json'))[0];
+    const project = readJson(join(scratch, '.blexagent', 'projects.json'))[0];
+    const session = readJson(join(scratch, '.blexagent', 'sessions.json'))[0];
     const agent = (config.agents as Array<Record<string, unknown>>)[0];
     const bot = (config.imBotConfigs as Array<Record<string, unknown>>)[0];
 
@@ -281,11 +281,11 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('keeps AppConfig definition when Rust Task/Cron cleanup fails', async () => {
     const { handleMcpRemove } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [remoteHttp],
       mcpEnabledServers: ['yuandian-law'],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Project',
       path: '/tmp/workspace',
@@ -294,15 +294,15 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
     managementApiMocks.managementApi.mockResolvedValueOnce({
       ok: false,
       error: 'Task store unavailable',
-      recoveryHint: { recoveryCommand: 'myagents status', message: 'retry later' },
+      recoveryHint: { recoveryCommand: 'blexagent status', message: 'retry later' },
     });
 
     const result = await handleMcpRemove({ id: 'yuandian-law' });
     const config = readConfig();
-    const project = readJson(join(scratch, '.myagents', 'projects.json'))[0];
+    const project = readJson(join(scratch, '.blexagent', 'projects.json'))[0];
 
     expect(result.success).toBe(false);
-    expect(result.recoveryHint).toEqual({ recoveryCommand: 'myagents status', message: 'retry later' });
+    expect(result.recoveryHint).toEqual({ recoveryCommand: 'blexagent status', message: 'retry later' });
     expect((config.mcpServers as Array<Record<string, unknown>>).map(s => s.id)).toEqual(['yuandian-law']);
     expect(config.mcpEnabledServers).toEqual(['yuandian-law']);
     expect(project.mcpEnabledServers).toEqual([]);
@@ -310,19 +310,19 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('keeps AppConfig definition when session snapshot cleanup cannot be written', async () => {
     const { handleMcpRemove } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [remoteHttp],
       mcpEnabledServers: ['yuandian-law'],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), []);
-    writeJson(join(scratch, '.myagents', 'sessions.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), []);
+    writeJson(join(scratch, '.blexagent', 'sessions.json'), [{
       id: 'session-1',
       agentDir: '/tmp/workspace',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       mcpEnabledServers: ['yuandian-law'],
     }]);
-    mkdirSync(join(scratch, '.myagents', 'sessions.json.tmp'));
+    mkdirSync(join(scratch, '.blexagent', 'sessions.json.tmp'));
 
     const result = await handleMcpRemove({ id: 'yuandian-law' });
     const config = readConfig();
@@ -335,14 +335,14 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('does not delete a new same-id definition added during cleanup-only remove', async () => {
     const { handleMcpRemove } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [],
       mcpEnabledServers: ['yuandian-law'],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), []);
-    writeJson(join(scratch, '.myagents', 'sessions.json'), []);
+    writeJson(join(scratch, '.blexagent', 'projects.json'), []);
+    writeJson(join(scratch, '.blexagent', 'sessions.json'), []);
     managementApiMocks.managementApi.mockImplementationOnce(async () => {
-      writeJson(join(scratch, '.myagents', 'config.json'), {
+      writeJson(join(scratch, '.blexagent', 'config.json'), {
         mcpServers: [remoteHttp],
         mcpEnabledServers: ['yuandian-law'],
       });
@@ -360,7 +360,7 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 
   it('disables Agent-only legacy HTTP MCP servers without letting promotion re-enable them', async () => {
     const { handleMcpDisable } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [],
       mcpEnabledServers: [],
       agents: [{
@@ -387,7 +387,7 @@ describe('admin-api MCP remove/disable legacy HTTP servers', () => {
 describe('admin-api Agent workspace archive', () => {
   it('archives a linked agent workspace and pauses proactive agent state', async () => {
     const { handleAgentArchive, handleAgentList } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       agents: [{
         id: 'agent-1',
         name: 'Workspace',
@@ -396,7 +396,7 @@ describe('admin-api Agent workspace archive', () => {
         channels: [{ id: 'channel-1', type: 'telegram', enabled: true }],
       }],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Workspace',
       path: '/tmp/workspace',
@@ -410,7 +410,7 @@ describe('admin-api Agent workspace archive', () => {
     expect(result.success).toBe(true);
     const config = readConfig();
     expect((config.agents as Array<Record<string, unknown>>)[0].enabled).toBe(false);
-    const projects = readJson(join(scratch, '.myagents', 'projects.json'));
+    const projects = readJson(join(scratch, '.blexagent', 'projects.json'));
     expect(projects[0].archivedAt).toEqual(expect.any(String));
     expect(projects[0].archivedAgentEnabledBeforeArchive).toBe(true);
     expect(projects[0]).not.toHaveProperty('pinnedAt');
@@ -430,7 +430,7 @@ describe('admin-api Agent workspace archive', () => {
 
   it('keeps restore intent when archive is called repeatedly', async () => {
     const { handleAgentArchive, handleAgentUnarchive } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       agents: [{
         id: 'agent-1',
         name: 'Workspace',
@@ -439,7 +439,7 @@ describe('admin-api Agent workspace archive', () => {
         channels: [],
       }],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Workspace',
       path: '/tmp/workspace',
@@ -448,19 +448,19 @@ describe('admin-api Agent workspace archive', () => {
 
     expect((await handleAgentArchive({ id: 'agent-1' })).success).toBe(true);
     expect((await handleAgentArchive({ id: 'agent-1' })).success).toBe(true);
-    let projects = readJson(join(scratch, '.myagents', 'projects.json'));
+    let projects = readJson(join(scratch, '.blexagent', 'projects.json'));
     expect(projects[0].archivedAgentEnabledBeforeArchive).toBe(true);
 
     expect((await handleAgentUnarchive({ id: 'agent-1' })).success).toBe(true);
     const config = readConfig();
     expect((config.agents as Array<Record<string, unknown>>)[0].enabled).toBe(true);
-    projects = readJson(join(scratch, '.myagents', 'projects.json'));
+    projects = readJson(join(scratch, '.blexagent', 'projects.json'));
     expect(projects[0]).not.toHaveProperty('archivedAt');
   });
 
   it('rejects plain enable for archived agent workspaces', async () => {
     const { handleAgentEnable } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       agents: [{
         id: 'agent-1',
         name: 'Workspace',
@@ -469,7 +469,7 @@ describe('admin-api Agent workspace archive', () => {
         channels: [],
       }],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Workspace',
       path: '/tmp/workspace',
@@ -483,7 +483,7 @@ describe('admin-api Agent workspace archive', () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain('archived workspace');
     expect(result.recoveryHint).toMatchObject({
-      recoveryCommand: 'myagents agent unarchive agent-1',
+      recoveryCommand: 'blexagent agent unarchive agent-1',
     });
     const config = readConfig();
     expect((config.agents as Array<Record<string, unknown>>)[0].enabled).toBe(false);
@@ -491,7 +491,7 @@ describe('admin-api Agent workspace archive', () => {
 
   it('unarchives a workspace and restores proactive state only when recorded', async () => {
     const { handleAgentUnarchive } = await import('./admin-api');
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       agents: [{
         id: 'agent-1',
         name: 'Workspace',
@@ -500,7 +500,7 @@ describe('admin-api Agent workspace archive', () => {
         channels: [],
       }],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Workspace',
       path: '/tmp/workspace',
@@ -514,7 +514,7 @@ describe('admin-api Agent workspace archive', () => {
     expect(result.success).toBe(true);
     const config = readConfig();
     expect((config.agents as Array<Record<string, unknown>>)[0].enabled).toBe(true);
-    const projects = readJson(join(scratch, '.myagents', 'projects.json'));
+    const projects = readJson(join(scratch, '.blexagent', 'projects.json'));
     expect(projects[0]).not.toHaveProperty('archivedAt');
     expect(projects[0]).not.toHaveProperty('archivedAgentEnabledBeforeArchive');
   });

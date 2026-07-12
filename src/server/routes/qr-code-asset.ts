@@ -19,7 +19,7 @@ import { cancellableFetch } from '../utils/cancellation';
 import { FileBusyError, withFileLock } from '../utils/file-lock';
 import { ensureDirSync } from '../utils/fs-utils';
 
-const QR_CODE_URL = 'https://download.myagents.io/assets/feedback_qr_code.png';
+const QR_CODE_URL = 'https://download.blexagent.com/assets/feedback_qr_code.png';
 const CACHE_MAX_AGE_MS = 60 * 60 * 1000;
 const LOCK_MAX_AGE_MS = 30_000;
 const DOWNLOAD_TIMEOUT_MS = 10_000;
@@ -70,7 +70,7 @@ function imageMimeFromBytes(buffer: Buffer): string {
 }
 
 function defaultCacheDir(): string {
-  return join(homedir(), '.myagents', 'cache', 'assets');
+  return join(homedir(), '.blexagent', 'cache', 'assets');
 }
 
 function ensurePrivateCacheDir(cacheDir: string): void {

@@ -109,8 +109,8 @@ export function ToolboxSection({
                       {t('toolbox.tools.needsVisionModel')}
                     </p>
                   )}
-                  <p className="mt-2 truncate font-mono text-xs text-[var(--ink-muted)]" title="myagents vision analyze --image <path>">
-                    myagents vision analyze --image &lt;path&gt;
+                  <p className="mt-2 truncate font-mono text-xs text-[var(--ink-muted)]" title="blexagent vision analyze --image <path>">
+                    blexagent vision analyze --image &lt;path&gt;
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">

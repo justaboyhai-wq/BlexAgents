@@ -288,7 +288,7 @@ isLegacyPreQueryManagedCodexDraft(meta, messageProbe)
 优先级：
 
 1. **最佳**：一次性迁移，把符合 predicate 的 legacy 行标记为 `materializationState:'prepared'`，之后 Node/Rust/list/search 都走现有 prepared 语义。
-2. 如果迁移需要跨 Node/Rust 竞争写 `sessions.json`，必须使用同一个锁：Node `SessionStore` 使用 `~/.myagents/sessions.lock`；Rust 如写盘必须用 `utils::file_lock::with_file_lock_blocking` 锁同一路径。禁止无锁读改写 `sessions.json`。
+2. 如果迁移需要跨 Node/Rust 竞争写 `sessions.json`，必须使用同一个锁：Node `SessionStore` 使用 `~/.blexagent/sessions.lock`；Rust 如写盘必须用 `utils::file_lock::with_file_lock_blocking` 锁同一路径。禁止无锁读改写 `sessions.json`。
 3. 如果无法安全地在 Rust early list 前完成迁移，则 Node list、Rust list、Rust search 必须在数据边界共享同一份概念 predicate 的镜像实现。不要把兼容逻辑下沉到 React 组件。
 
 迁移应只隐藏，不删除。删除留给 GC。

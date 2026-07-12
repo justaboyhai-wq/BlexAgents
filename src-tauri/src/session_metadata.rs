@@ -3,9 +3,9 @@ use std::path::Path;
 use serde_json::Value;
 
 fn sessions_path() -> Result<std::path::PathBuf, String> {
-    crate::app_dirs::myagents_data_dir()
+    crate::app_dirs::blexagent_data_dir()
         .map(|dir| dir.join("sessions.json"))
-        .ok_or_else(|| "无法定位 MyAgents 数据目录".to_string())
+        .ok_or_else(|| "无法定位 BlexAgent 数据目录".to_string())
 }
 
 fn redact_session_metadata(mut session: Value) -> Option<Value> {

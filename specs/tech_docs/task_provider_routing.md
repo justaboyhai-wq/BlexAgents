@@ -39,7 +39,7 @@ Task 执行    =  每次 tick 派生 session（live re-derive）
 ┌─────────────────────────────────────────────────────────────┐
 │ Layer 3：执行层 (TS sidecar /cron/execute(-sync))           │
 │   每次 tick 调 resolveProviderEnv(providerId)               │
-│   从 ~/.myagents/config.json (live) 拿 apiKey/aliases       │
+│   从 ~/.blexagent/config.json (live) 拿 apiKey/aliases       │
 │   provider 不存在或缺 credential → 拒绝 + 标 Blocked        │
 └─────────────────────────────────────────────────────────────┘
 ```

@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('os', () => ({
-  homedir: () => '/tmp/myagents-analytics-test',
+  homedir: () => '/tmp/blexagent-analytics-test',
 }));
 
 vi.mock('fs', () => ({

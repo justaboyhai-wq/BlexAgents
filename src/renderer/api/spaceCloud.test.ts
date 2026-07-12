@@ -29,7 +29,7 @@ describe('spaceCloud API errors', () => {
     const { spaceCommentIssue, spaceErrorMessage } = await loadSpaceCloud();
     mocks.invoke.mockRejectedValueOnce(
       new Error(
-        'Space API request failed: error sending request for url (https://space.myagents.io/api/issues/iss_123/comments)',
+        'Space API request failed: error sending request for url (https://space.blexagent.com/api/issues/iss_123/comments)',
       ),
     );
 
@@ -42,14 +42,14 @@ describe('spaceCloud API errors', () => {
     const message = thrown instanceof Error ? thrown.message : String(thrown);
     expect(message).toBe('评论发送失败，请检查网络或稍后重试');
     expect(spaceErrorMessage(thrown)).toBe('评论发送失败，请检查网络或稍后重试');
-    expect(message).not.toContain('https://space.myagents.io');
+    expect(message).not.toContain('https://space.blexagent.com');
   });
 
   it('redacts URLs, bearer tokens, and local paths from debug details', async () => {
     const { normalizeSpaceError } = await loadSpaceCloud();
     const normalized = normalizeSpaceError(
       new Error(
-        'Space API request failed: Bearer secret.token /Users/ethan/.myagents/space/session.json https://space.myagents.io/api/issues',
+        'Space API request failed: Bearer secret.token /Users/ethan/.blexagent/space/session.json https://space.blexagent.com/api/issues',
       ),
       { method: 'POST', path: '/api/issues/iss_123/comments' },
     );
@@ -57,7 +57,7 @@ describe('spaceCloud API errors', () => {
     expect(normalized.userMessage).toBe('评论发送失败，请检查网络或稍后重试');
     expect(normalized.debugMessage).not.toContain('secret.token');
     expect(normalized.debugMessage).not.toContain('/Users/ethan');
-    expect(normalized.debugMessage).not.toContain('https://space.myagents.io');
+    expect(normalized.debugMessage).not.toContain('https://space.blexagent.com');
   });
 
   it('normalizes issue comment business errors from the Space envelope', async () => {
@@ -74,14 +74,14 @@ describe('spaceCloud API errors', () => {
       error: 'Not authenticated',
       code: 'NOT_AUTHENTICATED',
       requestId: 'req_123',
-      recoveryHint: { message: 'Login with Google from MyAgents Cloud Space.' },
+      recoveryHint: { message: 'Login with Google from BlexAgent Cloud Space.' },
     };
     mocks.invoke.mockResolvedValueOnce(envelope);
 
-    await expect(spaceCommentIssue('iss_123', 'hello')).rejects.toThrow('评论发送失败：请重新登录 MyAgents 社区');
+    await expect(spaceCommentIssue('iss_123', 'hello')).rejects.toThrow('评论发送失败：请重新登录 BlexAgent 社区');
 
     const normalized = normalizeSpaceError(envelope, { method: 'POST', path: '/api/issues/iss_123/comments' });
-    expect(normalized.userMessage).toBe('评论发送失败：请重新登录 MyAgents 社区');
+    expect(normalized.userMessage).toBe('评论发送失败：请重新登录 BlexAgent 社区');
     expect(normalized.debugMessage).toContain('NOT_AUTHENTICATED');
     expect(normalized.debugMessage).toContain('req_123');
   });

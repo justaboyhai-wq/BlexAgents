@@ -6,7 +6,7 @@
 //! - `cmd_workspace_open_with_default` — workspace-relative path, hands off
 //!   to the OS default-app dispatcher.
 //! - `cmd_open_path_external` (Phase D.5) — absolute path, used by the
-//!   Skill/Command detail panels to reveal `~/.myagents/skills/...` files
+//!   Skill/Command detail panels to reveal `~/.blexagent/skills/...` files
 //!   that live OUTSIDE any chat workspace. Validated against `home_dir` /
 //!   `tmp_dir` prefix (mirrors sidecar `/agent/open-path`) so a malicious
 //!   absolute path can't escape into `/etc` or similar.
@@ -57,7 +57,7 @@ use crate::process_cmd;
 /// Optional workspace context passed by the renderer to widen the
 /// trusted-roots whitelist beyond home/tmp. `None` for callers that
 /// have no workspace concept (e.g. a global skill at
-/// `~/.myagents/skills/<name>/`); `Some(path)` for callers that know the
+/// `~/.blexagent/skills/<name>/`); `Some(path)` for callers that know the
 /// path being opened belongs to a specific chat workspace (BrowserPanel
 /// preview, project-scope SkillDetailPanel / CommandDetailPanel).
 type WorkspaceArg = Option<String>;
@@ -103,7 +103,7 @@ pub async fn cmd_workspace_open_with_default(
 }
 
 /// Reveal an **absolute** path in the OS file manager. Used by the
-/// Skill/Command detail panels to open `~/.myagents/skills/<name>/SKILL.md`
+/// Skill/Command detail panels to open `~/.blexagent/skills/<name>/SKILL.md`
 /// (which lives outside any chat workspace).
 ///
 /// Security model: the path must canonicalize to somewhere under the user's
@@ -623,7 +623,7 @@ mod tests {
         if !ssh_dir.is_dir() {
             return; // Skip on systems without ~/.ssh.
         }
-        let stub = ssh_dir.join(format!("myagents_ws_bypass_test_{}", std::process::id()));
+        let stub = ssh_dir.join(format!("blexagent_ws_bypass_test_{}", std::process::id()));
         if std::fs::write(&stub, b"x").is_err() {
             return;
         }
@@ -860,7 +860,7 @@ mod tests {
         let home = std::env::var_os("HOME").map(PathBuf::from);
         let Some(home) = home else { return };
         let ssh_dir = home.join(".ssh");
-        let stub = ssh_dir.join(format!("myagents_test_stub_{}", std::process::id()));
+        let stub = ssh_dir.join(format!("blexagent_test_stub_{}", std::process::id()));
         // Skip if we can't create (no .ssh dir, permission, etc.) — rather
         // than trying to mkdir which would touch real config.
         if !ssh_dir.is_dir() {
@@ -931,7 +931,7 @@ mod tests {
         // /var/folders/... which trips the `/var` system blacklist before
         // we even get to canonicalize-and-prefix-check).
         let Some(home) = home_dir() else { return };
-        let ws_root = home.join(format!(".myagents-test-ws-sym-out-{}", std::process::id()));
+        let ws_root = home.join(format!(".blexagent-test-ws-sym-out-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&ws_root);
         std::fs::create_dir_all(&ws_root).unwrap();
         let lure = ws_root.join("leak");
@@ -965,7 +965,7 @@ mod tests {
         use std::os::unix::fs::symlink;
 
         let Some(home) = home_dir() else { return };
-        let ws_root = home.join(format!(".myagents-test-ws-sym-in-{}", std::process::id()));
+        let ws_root = home.join(format!(".blexagent-test-ws-sym-in-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&ws_root);
         std::fs::create_dir_all(ws_root.join("versions/v1")).unwrap();
         std::fs::write(ws_root.join("versions/v1/file.txt"), "hi").unwrap();

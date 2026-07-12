@@ -30,7 +30,7 @@ function project(index: number): Project {
     return {
         id: `p${index}`,
         name: `Project ${index}`,
-        displayName: index === 1 ? 'MyAgents' : `Project ${index}`,
+        displayName: index === 1 ? 'BlexAgent' : `Project ${index}`,
         path: `/Users/zhihu/Documents/project/project-${index}`,
         providerId: null,
         permissionMode: null,
@@ -111,7 +111,7 @@ function renderRail(options: {
 
 describe('LauncherRightRail', () => {
     beforeEach(() => {
-        window.localStorage.removeItem('myagents.launcher.showAutomationHistorySessions');
+        window.localStorage.removeItem('blexagent.launcher.showAutomationHistorySessions');
         Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
             configurable: true,
             value: vi.fn(function scrollTo(this: HTMLElement, options: ScrollToOptions) {

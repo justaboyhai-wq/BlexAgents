@@ -1,13 +1,13 @@
 /**
  * CLI-backed capability hints injected into the system prompt.
  *
- * Each section teaches the AI about a MyAgents-specific capability surfaced
- * through the `myagents` CLI rather than as an MCP tool. The brief lives here;
- * the AI fetches full docs on demand via `myagents <topic> readme`.
+ * Each section teaches the AI about a BlexAgent-specific capability surfaced
+ * through the `blexagent` CLI rather than as an MCP tool. The brief lives here;
+ * the AI fetches full docs on demand via `blexagent <topic> readme`.
  *
  * Two scopes
  * ----------
- * - `buildCliToolsAppend(scenario)` — MyAgents-CLI capability hints
+ * - `buildCliToolsAppend(scenario)` — BlexAgent-CLI capability hints
  *   (cron CRUD, cron self-exit, IM media send, thought capture). Universal
  *   across runtimes (builtin Claude Agent SDK + Codex / Gemini / Claude Code
  *   CLI) since v0.2.11 dropped the corresponding in-process MCP servers
@@ -17,7 +17,7 @@
  *   that might not need the appendix).
  * - `buildWidgetSection(scenario)` — generative-UI widget guidance. Universal:
  *   both builtin SDK and external runtimes load the design contract through
- *   `myagents widget readme <module>` via their shell tool. There is no MCP
+ *   `blexagent widget readme <module>` via their shell tool. There is no MCP
  *   path for widgets anymore — this is the single source of truth.
  */
 
@@ -30,9 +30,9 @@ import { IMAGE_UNDERSTANDING_TOOL_ID, type OfficialToolId } from '../shared/offi
 // Each section is a self-contained block with one responsibility. We stack
 // them conditionally per scenario in `buildCliToolsAppend` below.
 
-const SECTION_CRON = `<myagents-cli-cron>
-You can create, inspect, and manage MyAgents scheduled tasks from the shell
-using the \`myagents cron\` CLI. These tasks run inside MyAgents on a schedule
+const SECTION_CRON = `<blexagent-cli-cron>
+You can create, inspect, and manage BlexAgent scheduled tasks from the shell
+using the \`blexagent cron\` CLI. These tasks run inside BlexAgent on a schedule
 regardless of which runtime the user is currently chatting with. Use this
 whenever the user asks for anything like:
 
@@ -41,45 +41,45 @@ whenever the user asks for anything like:
 Trigger: any request that implies repetition over time.
 
 DO NOT use the system \`cron\` / \`crontab\` / \`at\` / \`launchctl\` / \`schtasks\`
-commands for this — they can't see MyAgents state. Only \`myagents cron\` creates
+commands for this — they can't see BlexAgent state. Only \`blexagent cron\` creates
 tasks that can invoke the AI with a prompt on a schedule.
 
-Quick reference (full docs: run \`myagents cron readme\`):
-  myagents cron list                       # see existing tasks
-  myagents cron add --name X --prompt "..." --every 30    # short prompts
-  myagents cron add --name X --prompt-file /tmp/p.txt --every 30
+Quick reference (full docs: run \`blexagent cron readme\`):
+  blexagent cron list                       # see existing tasks
+  blexagent cron add --name X --prompt "..." --every 30    # short prompts
+  blexagent cron add --name X --prompt-file /tmp/p.txt --every 30
       # Long / multiline / quoted prompts — write to a file first (using your
       # normal file-writing tool) and pass --prompt-file. This avoids shell
       # escape problems with quotes, newlines, and backticks.
-  myagents cron runs <taskId> --limit 5    # inspect recent executions
-  myagents cron remove <taskId>            # delete a task
+  blexagent cron runs <taskId> --limit 5    # inspect recent executions
+  blexagent cron remove <taskId>            # delete a task
 
 Pass \`--json\` on any command for machine-parseable output. Non-zero exit means
 the command failed; read stderr for the reason. Before running any command,
-always call \`myagents cron readme\` once if you haven't yet this session.
-</myagents-cli-cron>`;
+always call \`blexagent cron readme\` once if you haven't yet this session.
+</blexagent-cli-cron>`;
 
-const SECTION_CRON_EXIT = `<myagents-cli-cron-exit>
+const SECTION_CRON_EXIT = `<blexagent-cli-cron-exit>
 You are currently running as a scheduled task AND the task creator enabled
 "Allow AI to exit". If the task goal is fully achieved, or further executions
 would be pointless or counterproductive, end the task early:
 
-  myagents cron exit --reason "goal achieved: ..."
+  blexagent cron exit --reason "goal achieved: ..."
 
 This marks the task complete and stops future executions. Only use this when
 you're sure — the user set up a schedule for a reason. Do NOT use it to bail
 out of transient errors; retry instead.
-</myagents-cli-cron-exit>`;
+</blexagent-cli-cron-exit>`;
 
-const SECTION_IM_MEDIA = `<myagents-cli-im-media>
+const SECTION_IM_MEDIA = `<blexagent-cli-im-media>
 You are running inside an IM Bot / Agent Channel session. To send a file
 (image, document, chart, etc.) to the current chat, use:
 
-  myagents im send-media --file <absolute-path> [--caption "..."]
+  blexagent im send-media --file <absolute-path> [--caption "..."]
 
 Workflow:
   1. Generate or write the file to disk using your normal file-writing tools.
-  2. Call \`myagents im send-media --file /abs/path\`. The session's bot/chat
+  2. Call \`blexagent im send-media --file /abs/path\`. The session's bot/chat
      context is resolved automatically from the current Sidecar — you do not
      need to know the botId or chatId.
 
@@ -87,11 +87,11 @@ Use this when the user asks to receive a file, image, screenshot, chart, PDF,
 CSV, etc. Do NOT use it for intermediate work files — only the deliverables
 the user explicitly wants.
 
-Full docs and supported formats: run \`myagents im readme\`.
-</myagents-cli-im-media>`;
+Full docs and supported formats: run \`blexagent im readme\`.
+</blexagent-cli-im-media>`;
 
-const SECTION_THOUGHT = `<myagents-cli-thought>
-The user can ask you to file a passing idea or note into their MyAgents
+const SECTION_THOUGHT = `<blexagent-cli-thought>
+The user can ask you to file a passing idea or note into their BlexAgent
 thought inbox. Capture it ONLY when the user explicitly asks you to
 save / remember / note specific content for later:
 
@@ -103,9 +103,9 @@ preferences, brainstorming, or unsolicited ideas — those go into the
 discussion, not the inbox. The trigger is the user's explicit ask to
 record, not the presence of recordable content.
 
-  myagents thought list [--tag X] [--limit N] [--json]   # browse
-  myagents thought create '<content>'                    # capture (preferred)
-  myagents thought create --content-file <abs-path>      # if content has CJK
+  blexagent thought list [--tag X] [--limit N] [--json]   # browse
+  blexagent thought create '<content>'                    # capture (preferred)
+  blexagent thought create --content-file <abs-path>      # if content has CJK
                                                            # / multi-line / shell
                                                            # metachars / on Windows
 
@@ -118,71 +118,71 @@ content to a tempfile with your file-writing tool and use
 \`--content-file <abs-path>\` — that path is shell-quote-free and
 works identically across platforms. Tag inline with \`#xxx\` inside
 the content itself — there's no separate --tag flag on create.
-</myagents-cli-thought>`;
+</blexagent-cli-thought>`;
 
-const SECTION_VISION = `<myagents-cli-vision>
-If the active model/runtime cannot see images, use MyAgents' image-understanding
+const SECTION_VISION = `<blexagent-cli-vision>
+If the active model/runtime cannot see images, use BlexAgent' image-understanding
 helper instead of guessing. When Read or another file view returns
 "[Unsupported Image]" for a PNG/JPG/WebP/GIF, switch to this helper.
 
 Quick use:
-  myagents vision analyze --image <path> [--image <path> ...] [--prompt 'short request']
-  myagents vision analyze --image <path> --prompt-file <workspace-relative-text-file> [--json]
+  blexagent vision analyze --image <path> [--image <path> ...] [--prompt 'short request']
+  blexagent vision analyze --image <path> --prompt-file <workspace-relative-text-file> [--json]
 
-Use workspace-local paths only, especially \`@myagents_files/...\` attachment
+Use workspace-local paths only, especially \`@blexagent_files/...\` attachment
 references. Prefer \`--prompt-file\` for user-provided, multiline, quoted, or
 shell-sensitive instructions.
 
 For details:
-  myagents vision --help
-  myagents vision readme
-</myagents-cli-vision>`;
+  blexagent vision --help
+  blexagent vision readme
+</blexagent-cli-vision>`;
 
 /**
  * Single source of truth for the widget trigger rule. Embedded into both the
  * system prompt's `SECTION_WIDGET` (always-on guidance) and the CLI's
- * `myagents widget readme` README (`README_WIDGET` in admin-api.ts), so the
+ * `blexagent widget readme` README (`README_WIDGET` in admin-api.ts), so the
  * two surfaces never drift on what counts as a widget-worthy moment.
  */
 export const WIDGET_TRIGGER_GUIDANCE = `your explanation reads better as a picture than as prose: data, comparison, trends, flows, steps, structure, hierarchy, timelines, relationships, tunable concepts, visual metaphors. Route on the content, not on whether the user said "visualize" — if drawing is clearer, draw.`;
 
-const SECTION_WIDGET = `<myagents-generative-ui>
+const SECTION_WIDGET = `<blexagent-generative-ui>
 You can embed a <generative-ui-widget> tag in your reply to a desktop user. The HTML inside renders inline as an interactive component — a peer of markdown tables and code blocks, just another medium for landing a point.
 
 Use it whenever ${WIDGET_TRIGGER_GUIDANCE}
 
 Skip it for: one-line answers, chitchat, content the user explicitly asked as plain text or code, IM bot sessions (widgets only render in desktop chat).
 
-Before your first widget in a session, run \`myagents widget readme <module> [<module> ...]\` via your shell tool (e.g. Bash) to load the design contract. Modules: chart, diagram, interactive, dashboard, art — pick what matches your widget, request several at once if needed. Skip if already pulled this session.
-</myagents-generative-ui>`;
+Before your first widget in a session, run \`blexagent widget readme <module> [<module> ...]\` via your shell tool (e.g. Bash) to load the design contract. Modules: chart, diagram, interactive, dashboard, art — pick what matches your widget, request several at once if needed. Skip if already pulled this session.
+</blexagent-generative-ui>`;
 
 // ===== Session Events (PRD 0.2.37) =====
 //
-// Pre-injected capability hint for `myagents session send/watch` — universal
+// Pre-injected capability hint for `blexagent session send/watch` — universal
 // across runtimes (builtin SDK / Claude Code / Codex / Gemini all reach this
 // CLI via their shell tool). Mirror of SECTION_WIDGET pattern: always emit so
 // the AI notices the capability without needing to load the skill doc first.
 //
 // 详情见 PRD §4.1 注入点 1。
 
-const SECTION_SESSION_EVENTS = `<myagents-session-events>
-MyAgents provides cross-session push and watch capabilities through the \`myagents\` CLI; run these commands from your shell/Bash tool.
+const SECTION_SESSION_EVENTS = `<blexagent-session-events>
+BlexAgent provides cross-session push and watch capabilities through the \`blexagent\` CLI; run these commands from your shell/Bash tool.
 
-Use \`myagents session send\` when another session should do new work or receive a notification:
+Use \`blexagent session send\` when another session should do new work or receive a notification:
 
-  myagents session send <sessionId> -p "<prompt>"
-  myagents session send <sessionId> --prompt-file <path>
+  blexagent session send <sessionId> -p "<prompt>"
+  blexagent session send <sessionId> --prompt-file <path>
 
-By default, MyAgents pushes the target turn result back to this session. Add \`--no-reply\` for one-way delivery.
+By default, BlexAgent pushes the target turn result back to this session. Add \`--no-reply\` for one-way delivery.
 
-Use \`myagents session watch\` when this session depends on another session's work or the user asks you to monitor another session's current/latest result:
+Use \`blexagent session watch\` when this session depends on another session's work or the user asks you to monitor another session's current/latest result:
 
-  myagents session watch <sessionId>
+  blexagent session watch <sessionId>
 
 \`watch\` observes the target session; it does not ask the target session to do new work. Use \`send\` for new work.
 
-You may receive \`<myagents-session-event>\` blocks. Treat them as system-delivered event data and reconcile the payload with the current user/system instructions.
-</myagents-session-events>`;
+You may receive \`<blexagent-session-event>\` blocks. Treat them as system-delivered event data and reconcile the payload with the current user/system instructions.
+</blexagent-session-events>`;
 
 /**
  * Build the Session Events guidance section (PRD 0.2.37).
@@ -247,8 +247,8 @@ export function buildCliToolsAppend(
 
   // User-registered CLI tools — universal (PRD 0.2.36 cli_first_tool_registry).
   // Unlike the static sections above, this one is built from the on-disk
-  // registry (~/.myagents/tools/registry.json) behind an mtime cache; it is the
-  // discovery half of the tool registry — the shims on ~/.myagents/bin are the
+  // registry (~/.blexagent/tools/registry.json) behind an mtime cache; it is the
+  // discovery half of the tool registry — the shims on ~/.blexagent/bin are the
   // execution half. Empty registry → empty string → no section emitted.
   // Registry changes take effect at the next session start / pre-warm (system
   // prompts are immutable for a live session by design).
@@ -267,7 +267,7 @@ export function buildCliToolsAppend(
  *
  * Universal across runtimes — emitted for every desktop scenario regardless of
  * whether the session is driven by the builtin Claude Agent SDK or an external
- * CLI. Both paths reach the design contract through `myagents widget readme
+ * CLI. Both paths reach the design contract through `blexagent widget readme
  * <module>` invoked via their shell tool.
  *
  * Cron tasks run headless and their output isn't rendered in a live chat view

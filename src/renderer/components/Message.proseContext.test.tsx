@@ -86,14 +86,14 @@ describe('assistant 正文 prose 上下文接线（ai-message-content）', () =>
 
 describe('Space issue system-reminder user bubble', () => {
     it('hides the operational payload and renders the Space issue badge with visible text', () => {
-        const visibleText = 'MyAgents Space 已投递一个 Issue 通知，Registered Agent 开始处理。';
+        const visibleText = 'BlexAgent Space 已投递一个 Issue 通知，Registered Agent 开始处理。';
         const content = [
             '<system-reminder>',
             `<${SPACE_ISSUE_CONTEXT_TAG}>`,
-            '<myagents-space-event version="1" type="issue-delivery">',
+            '<blexagent-space-event version="1" type="issue-delivery">',
             '<issue-instruction>hidden issue instructions</issue-instruction>',
             '<issue id="issue_1">hidden issue facts</issue>',
-            '</myagents-space-event>',
+            '</blexagent-space-event>',
             `</${SPACE_ISSUE_CONTEXT_TAG}>`,
             '</system-reminder>',
             visibleText,
@@ -111,10 +111,10 @@ describe('Space issue system-reminder user bubble', () => {
         const content = [
             '<system-reminder>',
             `<${SPACE_ISSUE_CONTEXT_TAG}>`,
-            '<myagents-space-event version="1" type="issue-delivery">',
+            '<blexagent-space-event version="1" type="issue-delivery">',
             '<issue-instruction>hidden issue instructions</issue-instruction>',
             '<issue id="issue_1">hidden issue facts</issue>',
-            '</myagents-space-event>',
+            '</blexagent-space-event>',
             `</${SPACE_ISSUE_CONTEXT_TAG}>`,
             '</system-reminder>',
         ].join('\n');

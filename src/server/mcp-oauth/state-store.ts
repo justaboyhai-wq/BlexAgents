@@ -4,7 +4,7 @@
  * Persists all OAuth state (discovery, registration, tokens) to disk.
  * Handles atomic writes and migration from legacy mcp_oauth_tokens.json.
  *
- * File: ~/.myagents/mcp_oauth_state.json (mode 0o600)
+ * File: ~/.blexagent/mcp_oauth_state.json (mode 0o600)
  */
 
 import { existsSync, readFileSync, writeFileSync, renameSync } from 'fs';
@@ -16,7 +16,7 @@ import { ensureDirSync } from '../utils/fs-utils';
 import { withFileLock } from '../utils/file-lock';
 
 export function getOAuthConfigDir(): string {
-  return process.env.MYAGENTS_CONFIG_DIR || join(homedir(), '.myagents');
+  return process.env.BLEXAGENT_CONFIG_DIR || join(homedir(), '.blexagent');
 }
 
 function getStateFile(): string {

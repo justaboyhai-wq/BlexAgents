@@ -17,7 +17,7 @@ describe('buildCronTaskReminder', () => {
     expect(wrapped).toBe([
       '<system-reminder>',
       '<CRON_TASK>',
-      'You are running inside a MyAgents scheduled task execution.',
+      'You are running inside a BlexAgent scheduled task execution.',
       'The user-visible text after this reminder is the task prompt for this execution.',
       '',
       'cronTaskId: cron_123',
@@ -27,8 +27,8 @@ describe('buildCronTaskReminder', () => {
       'intervalMinutes: 30',
       'allowExit: true',
       '',
-      'If this MyAgents scheduled task goal is complete and future executions should stop, run:',
-      '  myagents cron exit --reason "<brief reason>"',
+      'If this BlexAgent scheduled task goal is complete and future executions should stop, run:',
+      '  blexagent cron exit --reason "<brief reason>"',
       '',
       'The command is bound to the current cron execution context; do not pass a task id.',
       '</CRON_TASK>',
@@ -45,6 +45,6 @@ describe('buildCronTaskReminder', () => {
     });
 
     expect(wrapped).toContain('allowExit: false');
-    expect(wrapped).not.toContain('myagents cron exit');
+    expect(wrapped).not.toContain('blexagent cron exit');
   });
 });

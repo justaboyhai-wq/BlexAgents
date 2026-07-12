@@ -1,6 +1,6 @@
 # Claude Agent SDK Custom Tools Guide
 
-> 技术文档：如何在 MyAgents 中使用 Claude Agent SDK 创建自定义 MCP 工具
+> 技术文档：如何在 BlexAgent 中使用 Claude Agent SDK 创建自定义 MCP 工具
 
 ## 概述
 
@@ -13,8 +13,8 @@ Claude Agent SDK 提供了 `createSdkMcpServer` 和 `tool` 函数，允许开发
 | MCP Server | Tool Name | 完整调用名 | 文件 | 注册条件 |
 |------------|-----------|-----------|------|---------|
 | `cron-tools` | `exit_cron_task` | `mcp__cron-tools__exit_cron_task` | `src/server/tools/cron-tools.ts` | 定时任务执行上下文 (`cronContext.taskId`) |
-| `im-cron` | `cron` | `mcp__im-cron__cron` | `src/server/tools/im-cron-tool.ts` | IM Bot 上下文 + `MYAGENTS_MANAGEMENT_PORT` |
-| `im-media` | `send_media` | `mcp__im-media__send_media` | `src/server/tools/im-media-tool.ts` | IM Bot 上下文 + `MYAGENTS_MANAGEMENT_PORT` |
+| `im-cron` | `cron` | `mcp__im-cron__cron` | `src/server/tools/im-cron-tool.ts` | IM Bot 上下文 + `BLEXAGENT_MANAGEMENT_PORT` |
+| `im-media` | `send_media` | `mcp__im-media__send_media` | `src/server/tools/im-media-tool.ts` | IM Bot 上下文 + `BLEXAGENT_MANAGEMENT_PORT` |
 
 ### 工具注册位置
 
@@ -32,13 +32,13 @@ function buildSdkMcpServers() {
 
   // 2. IM Bot 上下文 + Management API 可用时注册
   const imCronCtx = getImCronContext();
-  if (imCronCtx && process.env.MYAGENTS_MANAGEMENT_PORT) {
+  if (imCronCtx && process.env.BLEXAGENT_MANAGEMENT_PORT) {
     result['im-cron'] = imCronToolServer;
   }
 
   // 3. IM Bot 上下文 + Management API 可用时注册
   const imMediaCtx = getImMediaContext();
-  if (imMediaCtx && process.env.MYAGENTS_MANAGEMENT_PORT) {
+  if (imMediaCtx && process.env.BLEXAGENT_MANAGEMENT_PORT) {
     result['im-media'] = imMediaToolServer;
   }
 
@@ -560,7 +560,7 @@ async (args) => {
 2. **检查工具调用**：在 `canUseTool` 回调中记录工具调用
 3. **验证参数**：在工具处理函数开头记录收到的参数
 4. **SSE 事件跟踪**：监听 `chat:tool-use` 事件查看工具调用详情
-5. **IM 工具调试**：查看 `~/.myagents/logs/unified-{today}.log`，搜索 `[im-cron]` `[im-media]` `[cron-tools]`
+5. **IM 工具调试**：查看 `~/.blexagent/logs/unified-{today}.log`，搜索 `[im-cron]` `[im-media]` `[cron-tools]`
 
 ## 相关文档
 

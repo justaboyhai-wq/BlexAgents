@@ -103,7 +103,7 @@ pub(super) fn runtime_display_name(runtime: &str) -> &'static str {
         "codex" => "Codex",
         "claude-code" => "Claude Code CLI",
         "gemini" => "Gemini CLI",
-        _ => "MyAgents Builtin SDK",
+        _ => "BlexAgent Builtin SDK",
     }
 }
 

@@ -330,8 +330,8 @@ function withFloatingCorrelation(sessionId: string, options: RequestInit = {}): 
         ...options,
         headers: {
             ...headerRecord(options.headers),
-            'X-MyAgents-Session-Id': sessionId,
-            'X-MyAgents-Tab-Id': OWNER_ID,
+            'X-BlexAgent-Session-Id': sessionId,
+            'X-BlexAgent-Tab-Id': OWNER_ID,
         },
     };
 }

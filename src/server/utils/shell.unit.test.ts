@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildFallbackPath, getFallbackPaths } from './shell';
 
 describe('external runtime shell PATH fallback', () => {
-  it('includes MyAgents-managed CLI locations on Windows', () => {
+  it('includes BlexAgent-managed CLI locations on Windows', () => {
     const env = {
       USERPROFILE: 'C:\\Users\\tester',
       LOCALAPPDATA: 'C:\\Users\\tester\\AppData\\Local',
@@ -15,14 +15,14 @@ describe('external runtime shell PATH fallback', () => {
     const paths = getFallbackPaths({
       platform: 'win32',
       env,
-      bundledNodeDir: 'C:\\Users\\tester\\AppData\\Local\\MyAgents\\nodejs',
+      bundledNodeDir: 'C:\\Users\\tester\\AppData\\Local\\BlexAgent\\nodejs',
     });
 
     expect(paths).toContain(
-      'C:\\Users\\tester\\AppData\\Local\\MyAgents\\nodejs',
+      'C:\\Users\\tester\\AppData\\Local\\BlexAgent\\nodejs',
     );
-    expect(paths).toContain('C:\\Users\\tester\\.myagents\\npm-global');
-    expect(paths).toContain('C:\\Users\\tester\\.myagents\\bin');
+    expect(paths).toContain('C:\\Users\\tester\\.blexagent\\npm-global');
+    expect(paths).toContain('C:\\Users\\tester\\.blexagent\\bin');
   });
 
   it('prepends fallback paths before the inherited Windows PATH', () => {
@@ -33,27 +33,27 @@ describe('external runtime shell PATH fallback', () => {
         LOCALAPPDATA: 'C:\\Users\\tester\\AppData\\Local',
         Path: 'C:\\Windows\\System32',
       },
-      bundledNodeDir: 'C:\\Users\\tester\\AppData\\Local\\MyAgents\\nodejs',
+      bundledNodeDir: 'C:\\Users\\tester\\AppData\\Local\\BlexAgent\\nodejs',
     });
 
     expect(
-      fallback.indexOf('C:\\Users\\tester\\AppData\\Local\\MyAgents\\nodejs'),
+      fallback.indexOf('C:\\Users\\tester\\AppData\\Local\\BlexAgent\\nodejs'),
     ).toBeLessThan(fallback.indexOf('C:\\Windows\\System32'));
   });
 
-  it('includes MyAgents npm-global before the app CLI on Unix-like platforms', () => {
+  it('includes BlexAgent npm-global before the app CLI on Unix-like platforms', () => {
     const paths = getFallbackPaths({
       platform: 'darwin',
       env: { HOME: '/Users/tester', PATH: '/usr/bin' },
       bundledNodeDir:
-        '/Applications/MyAgents.app/Contents/Resources/nodejs/bin',
+        '/Applications/BlexAgent.app/Contents/Resources/nodejs/bin',
       exists: () => false,
     });
 
-    expect(paths).toContain('/Users/tester/.myagents/npm-global/bin');
-    expect(paths).toContain('/Users/tester/.myagents/bin');
+    expect(paths).toContain('/Users/tester/.blexagent/npm-global/bin');
+    expect(paths).toContain('/Users/tester/.blexagent/bin');
     expect(
-      paths.indexOf('/Users/tester/.myagents/npm-global/bin'),
-    ).toBeLessThan(paths.indexOf('/Users/tester/.myagents/bin'));
+      paths.indexOf('/Users/tester/.blexagent/npm-global/bin'),
+    ).toBeLessThan(paths.indexOf('/Users/tester/.blexagent/bin'));
   });
 });

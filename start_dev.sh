@@ -1,5 +1,5 @@
-#!/bin/bash
-# MyAgents 开发启动脚本 (v0.2.0+)
+﻿#!/bin/bash
+# BlexAgent 开发启动脚本 (v0.2.0+)
 #
 # 不依赖 Bun。使用 bundled Node.js + tsx ESM loader 直跑 src/server/index.ts，
 # 文件变动自动重启。前端走 Vite。
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🤖 MyAgents 开发模式${NC}"
+echo -e "${BLUE}🤖 BlexAgent 开发模式${NC}"
 echo ""
 
 AGENT_DIR="${1:-$DEFAULT_AGENT_DIR}"
@@ -63,16 +63,16 @@ kill_existing() {
         kill -9 $pid_5173 2>/dev/null || true
     fi
 
-    local LOCK_FILE="$HOME/.myagents/app.lock"
+    local LOCK_FILE="$HOME/.blexagent/app.lock"
     if [ -f "$LOCK_FILE" ]; then
         local OLD_PID=$(cat "$LOCK_FILE" 2>/dev/null)
         if [[ "$OLD_PID" =~ ^[1-9][0-9]*$ ]] && kill -0 "$OLD_PID" 2>/dev/null; then
-            echo -e "  停止 MyAgents 桌面版 (PID $OLD_PID)..."
+            echo -e "  停止 BlexAgent 桌面版 (PID $OLD_PID)..."
             kill -9 "$OLD_PID" 2>/dev/null || true
         fi
         rm -f "$LOCK_FILE"
     fi
-    pkill -9 -f "MyAgents.app" 2>/dev/null || true
+    pkill -9 -f "BlexAgent.app" 2>/dev/null || true
     pkill -f "node.*src/server/index.ts" 2>/dev/null || true
     pkill -f "node.*server-dist.js" 2>/dev/null || true
     pkill -f "vite" 2>/dev/null || true

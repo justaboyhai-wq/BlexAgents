@@ -80,7 +80,7 @@ function renderDropdown(
 describe('SessionHistoryDropdown row actions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        window.localStorage.removeItem('myagents.chat.showAutomationHistorySessions');
+        window.localStorage.removeItem('blexagent.chat.showAutomationHistorySessions');
         mocks.getSessions.mockResolvedValue([SESSION]);
         mocks.getWorkspaceCronTasks.mockResolvedValue([]);
         mocks.getBackgroundSessions.mockResolvedValue([]);

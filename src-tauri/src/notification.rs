@@ -183,7 +183,7 @@ pub struct NotificationClickPayload {
 /// when the target may need to open a session that has no live Tab yet.
 ///
 /// Sound is gated by the `notificationSound` user preference, read disk-first
-/// from `~/.myagents/config.json` (defaults to enabled if missing). The
+/// from `~/.blexagent/config.json` (defaults to enabled if missing). The
 /// preference flows through to the platform-specific sound API:
 ///   - Windows: `Toast::sound(None)` for silent, `Sound::Default` for default.
 ///   - macOS: `NSUserNotificationDefaultSoundName` (default mac chime).
@@ -332,7 +332,7 @@ fn default_sound_name() -> Option<&'static str> {
     Some("message-new-instant")
 }
 
-/// User notification preferences read from `~/.myagents/config.json`.
+/// User notification preferences read from `~/.blexagent/config.json`.
 ///
 /// Both fields default to `true` (fail-open) when the config file is missing
 /// or unparseable — silently disabling notifications because we couldn't read
@@ -368,7 +368,7 @@ fn read_notification_prefs() -> NotificationPrefs {
 
     // Use the project-canonical data-dir helper rather than `dirs::home_dir()`
     // so future dev/prod isolation in `app_dirs.rs` reaches us automatically.
-    let parsed: Option<PartialAppConfig> = crate::app_dirs::myagents_data_dir()
+    let parsed: Option<PartialAppConfig> = crate::app_dirs::blexagent_data_dir()
         .and_then(|dir| std::fs::read_to_string(dir.join("config.json")).ok())
         .and_then(|content| serde_json::from_str(strip_bom(&content)).ok());
 
@@ -392,7 +392,7 @@ fn read_notification_prefs() -> NotificationPrefs {
 /// shortcut AUMID); on failure (portable EXE, custom install, missing
 /// shortcut) retry with PowerShell's well-known AUMID. The retry preserves
 /// `on_activated`, so click activation still works — the only visible
-/// difference is the toast attribution ("PowerShell" instead of "MyAgents").
+/// difference is the toast attribution ("PowerShell" instead of "BlexAgent").
 /// This beats falling back to plugin-notification, which would render a toast
 /// with *no* click handler at all.
 #[cfg(target_os = "windows")]
@@ -472,7 +472,7 @@ fn build_and_show_toast<R: Runtime>(
 ///
 /// In production: `app.config().identifier` matches the AUMID NSIS sets on
 /// the Start Menu shortcut via `SetLnkAppUserModelId` — required for WinRT
-/// to render a toast attributed to MyAgents.
+/// to render a toast attributed to BlexAgent.
 ///
 /// In dev (`cargo run`, `tauri dev`): `tauri::is_dev()` is true and we use
 /// PowerShell's AUMID — toast still shows but attributed to PowerShell.
@@ -513,7 +513,7 @@ fn handle_toast_click<R: Runtime>(app: &AppHandle<R>, navigation: Option<Notific
 /// click), drain the pending latch.
 ///
 /// **Tradeoff (acknowledged)**: any external activation drains the latch,
-/// not strictly toast clicks — alt-tab back to MyAgents within 30s of a
+/// not strictly toast clicks — alt-tab back to BlexAgent within 30s of a
 /// notification will navigate to the queued tab even though the user didn't
 /// click the toast. Mitigations:
 ///   - The latch is `Ambiguous` (no-route) when ≥2 notifications stacked

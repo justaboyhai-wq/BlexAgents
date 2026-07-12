@@ -103,8 +103,8 @@ import {
     setNativeFloatingBallEnabled,
 } from '@/floating-ball/nativeFloatingBall';
 import {
-    MYAGENTS_GITHUB_URL,
-    MYAGENTS_RELEASES_URL,
+    BLEXAGENT_GITHUB_URL,
+    BLEXAGENT_RELEASES_URL,
     PLAYWRIGHT_DEVICE_PRESETS,
 } from './settingsSections';
 import {
@@ -609,7 +609,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                 });
         } else {
             // Browser mode: Direct CDN URL
-            setQrCodeDataUrl('https://download.myagents.io/assets/feedback_qr_code.png');
+            setQrCodeDataUrl('https://download.blexagent.com/assets/feedback_qr_code.png');
             setQrCodeLoading(false);
         }
 
@@ -786,7 +786,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
     // Track which MCP servers need configuration (missing required fields)
     const [mcpNeedsConfig, setMcpNeedsConfig] = useState<Record<string, boolean>>({});
 
-    // Official MyAgents CLI tools shown in the same Toolbox list as MCP.
+    // Official BlexAgent CLI tools shown in the same Toolbox list as MCP.
     const [officialToolEnabling, setOfficialToolEnabling] = useState<Record<string, boolean>>({});
     const [visionToolSettingsOpen, setVisionToolSettingsOpen] = useState(false);
     const [visionToolDraftValue, setVisionToolDraftValue] = useState('');
@@ -901,11 +901,11 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
         path: string;
     } | null>(null);
 
-    // Shared helper: reload storage state info from ~/.myagents/browser-storage-state.json
+    // Shared helper: reload storage state info from ~/.blexagent/browser-storage-state.json
     const reloadStorageStateInfo = async () => {
         try {
             const home = await homeDir();
-            const ssPath = await join(home, '.myagents', 'browser-storage-state.json');
+            const ssPath = await join(home, '.blexagent', 'browser-storage-state.json');
             const { exists: fileExists, readTextFile, stat: fsStat } = await import('@tauri-apps/plugin-fs');
             if (await fileExists(ssPath)) {
                 const content = await readTextFile(ssPath);
@@ -1366,7 +1366,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
         }
         try {
             const home = await homeDir();
-            const ssPath = await join(home, '.myagents', 'browser-storage-state.json');
+            const ssPath = await join(home, '.blexagent', 'browser-storage-state.json');
             const { exists: fileExists, readTextFile, writeTextFile } = await import('@tauri-apps/plugin-fs');
 
             // Load existing or create new
@@ -1404,10 +1404,10 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                 });
             }
 
-            // Ensure ~/.myagents/ exists (writeTextFile may fail if dir missing)
-            const myagentsDir = await join(home, '.myagents');
+            // Ensure ~/.blexagent/ exists (writeTextFile may fail if dir missing)
+            const blexagentDir = await join(home, '.blexagent');
             const { mkdir } = await import('@tauri-apps/plugin-fs');
-            await mkdir(myagentsDir, { recursive: true }).catch(() => {});
+            await mkdir(blexagentDir, { recursive: true }).catch(() => {});
             await writeTextFile(ssPath, JSON.stringify(storageState, null, 2));
 
             setCookieForm(null);
@@ -1424,7 +1424,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
     const handleDeleteCookie = async (idx: number) => {
         try {
             const home = await homeDir();
-            const ssPath = await join(home, '.myagents', 'browser-storage-state.json');
+            const ssPath = await join(home, '.blexagent', 'browser-storage-state.json');
             const { readTextFile, writeTextFile } = await import('@tauri-apps/plugin-fs');
             const storageState = JSON.parse(await readTextFile(ssPath));
             storageState.cookies.splice(idx, 1);
@@ -4608,7 +4608,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                         className="brand-title text-[3rem] text-[var(--ink)] cursor-default select-none"
                                         onClick={handleLogoTap}
                                     >
-                                        MyAgents
+                                        BlexAgent
                                     </h1>
                                     <div className="mt-1 flex items-center gap-2">
                                         <p className="text-sm font-medium text-[var(--ink-muted)]">
@@ -4643,7 +4643,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                             </button>
                                         )}
                                         <ExternalLink
-                                            href={MYAGENTS_RELEASES_URL}
+                                            href={BLEXAGENT_RELEASES_URL}
                                             className="rounded-lg bg-[var(--paper-inset)] px-2 py-0.5 text-xs text-[var(--ink-secondary)] transition-colors hover:bg-[var(--paper-elevated)]"
                                         >
                                             {tSettings('about.releaseNotes')}
@@ -4806,28 +4806,28 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-wider text-[var(--ink-muted)]">Website</p>
                                         <ExternalLink
-                                            href="https://myagents.io"
+                                            href="https://blexagent.com"
                                             className="mt-1 block text-[var(--accent)] hover:underline"
                                         >
-                                            myagents.io
+                                            blexagent.com
                                         </ExternalLink>
                                     </div>
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-wider text-[var(--ink-muted)]">Contact</p>
                                         <ExternalLink
-                                            href="mailto:myagents.io@gmail.com"
+                                            href="mailto:team@blexagent.com"
                                             className="mt-1 block text-[var(--accent)] hover:underline"
                                         >
-                                            myagents.io@gmail.com
+                                            team@blexagent.com
                                         </ExternalLink>
                                     </div>
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-wider text-[var(--ink-muted)]">GitHub</p>
                                         <ExternalLink
-                                            href={MYAGENTS_GITHUB_URL}
+                                            href={BLEXAGENT_GITHUB_URL}
                                             className="mt-1 block text-[var(--accent)] hover:underline"
                                         >
-                                            github.com/hAcKlyc/MyAgents
+                                            github.com/justaboyhai-wq/BlexAgents
                                         </ExternalLink>
                                     </div>
                                 </div>

@@ -489,13 +489,13 @@ pub struct SessionSidecar {
     /// Reserved for future use (e.g., TTL-based cleanup)
     #[allow(dead_code)]
     pub created_at: std::time::Instant,
-    /// MYAGENTS_RUNTIME env var value this Sidecar was spawned with.
+    /// BLEXAGENT_RUNTIME env var value this Sidecar was spawned with.
     /// Used for drift detection on Agent-owner reuse: when the agent's
     /// runtime config changes (e.g. codex → gemini), subsequent IM messages
     /// for the same peer session must not reuse a Sidecar that's still
     /// running the old runtime. None = builtin (no env var injected).
     pub runtime: Option<String>,
-    /// MYAGENTS_RUNTIME_SOURCE env var value this Sidecar was spawned with.
+    /// BLEXAGENT_RUNTIME_SOURCE env var value this Sidecar was spawned with.
     /// Missing external runtime source is treated as system-cli.
     pub runtime_source: Option<String>,
 }

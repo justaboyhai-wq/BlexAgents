@@ -21,12 +21,12 @@ import {
   updateExternalRuntimeConfig,
 } from './external-session';
 
-const originalRuntime = process.env.MYAGENTS_RUNTIME;
+const originalRuntime = process.env.BLEXAGENT_RUNTIME;
 
 describe('external runtime config snapshot guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.MYAGENTS_RUNTIME = 'codex';
+    process.env.BLEXAGENT_RUNTIME = 'codex';
     mocks.data = { messages: [] };
     mocks.metadata = {
       id: 'snapshot-session',
@@ -42,9 +42,9 @@ describe('external runtime config snapshot guard', () => {
 
   afterEach(() => {
     if (originalRuntime === undefined) {
-      delete process.env.MYAGENTS_RUNTIME;
+      delete process.env.BLEXAGENT_RUNTIME;
     } else {
-      process.env.MYAGENTS_RUNTIME = originalRuntime;
+      process.env.BLEXAGENT_RUNTIME = originalRuntime;
     }
   });
 

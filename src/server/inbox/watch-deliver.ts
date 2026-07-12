@@ -12,9 +12,9 @@ export async function deliverSessionWatchEvents(
   const watches = listPendingSessionWatches();
   if (watches.length === 0) return;
 
-  const managementPort = process.env.MYAGENTS_MANAGEMENT_PORT;
+  const managementPort = process.env.BLEXAGENT_MANAGEMENT_PORT;
   if (!managementPort) {
-    console.error('[session-watch] MYAGENTS_MANAGEMENT_PORT not set — cannot push watch events');
+    console.error('[session-watch] BLEXAGENT_MANAGEMENT_PORT not set — cannot push watch events');
     return;
   }
 

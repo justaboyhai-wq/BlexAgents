@@ -1,5 +1,5 @@
 /**
- * Unified log retention policy for `~/.myagents/logs/`.
+ * Unified log retention policy for `~/.blexagent/logs/`.
  *
  * Single source of truth for retention across all log sources the Sidecar
  * writes. Replaces v0.2.7's split between `UnifiedLogger.cleanupOldUnifiedLogs`
@@ -20,7 +20,7 @@
  *                  user with hundreds of sessions could fill disk silently.
  *                  Now bounded.
  *
- * Crash logs (`~/.myagents/logs/crash/*.log`) are managed in
+ * Crash logs (`~/.blexagent/logs/crash/*.log`) are managed in
  * `index.ts` with a count-based eviction (`CRASH_LOG_MAX_FILES = 20`)
  * and are intentionally NOT touched here — they're rare, valuable, and
  * each crash file is small.
@@ -155,7 +155,7 @@ export interface SweepOptions {
   activeFilePaths?: ReadonlySet<string>;
   /**
    * Override the logs directory. Defaults to the project's LOGS_DIR
-   * (`~/.myagents/logs/`). Tests pass a scratch dir.
+   * (`~/.blexagent/logs/`). Tests pass a scratch dir.
    */
   logsDir?: string;
   /**

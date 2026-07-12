@@ -1,6 +1,6 @@
 ---
 description: >
-  记忆维护指令 — MyAgents 在夜间将会使用该指令自动注入到活跃 session 执行。
+  记忆维护指令 — BlexAgent 在夜间将会使用该指令自动注入到活跃 session 执行。
   此指令基于预设 Agent 模板 - Mino 的记忆结构设计。
   如果你的 Agent 的记忆机制不同，请自由修改为合适的指令。
 ---

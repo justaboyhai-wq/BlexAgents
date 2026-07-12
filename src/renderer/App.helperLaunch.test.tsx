@@ -7,7 +7,7 @@ import { CUSTOM_EVENTS } from '../shared/constants';
 const mocks = vi.hoisted(() => {
   const project = {
     id: 'helper-project',
-    path: '/Users/me/.myagents',
+    path: '/Users/me/.blexagent',
     displayName: 'MA Helper',
     agentId: 'helper-agent',
   };

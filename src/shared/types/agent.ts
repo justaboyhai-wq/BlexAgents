@@ -128,7 +128,7 @@ export interface AgentConfig {
    *  this Agent inherit this list as their initial selection; per-Tab UI can
    *  override transiently. Mirrors mcpEnabledServers semantics exactly. */
   enabledPluginIds?: string[];
-  /** MyAgents official CLI tools enabled for this Agent. Separate from MCP/plugin ids. */
+  /** BlexAgent official CLI tools enabled for this Agent. Separate from MCP/plugin ids. */
   enabledOfficialToolIds?: OfficialToolId[];
 
   // Heartbeat (Agent-level, shared across channels)

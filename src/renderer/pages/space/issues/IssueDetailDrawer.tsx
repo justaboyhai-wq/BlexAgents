@@ -32,7 +32,7 @@ function basename(path: string): string {
 }
 
 function buildAttachmentDownloadCommand(attachmentId: string): string {
-  return `myagents space attachment download ${attachmentId}`;
+  return `blexagent space attachment download ${attachmentId}`;
 }
 
 function IssueMarkdown({ children }: { children: string }) {

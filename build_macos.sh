@@ -1,5 +1,5 @@
-#!/bin/bash
-# MyAgents macOS 正式发布构建脚本
+﻿#!/bin/bash
+# BlexAgent macOS 正式发布构建脚本
 # 构建签名+公证的 DMG 安装包用于分发
 # 支持 ARM (M1/M2)、Intel 构建
 
@@ -20,7 +20,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC}  ${GREEN}🤖 MyAgents macOS 签名发布构建${NC}                      ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${GREEN}🤖 BlexAgent macOS 签名发布构建${NC}                      ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${BLUE}Version: ${VERSION}${NC}                                      ${CYAN}║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
@@ -102,7 +102,7 @@ echo ""
 echo -e "${BLUE}[准备] 清理残留进程...${NC}"
 pkill -f "node.*src/server/index.ts" 2>/dev/null || true
 pkill -f "node.*server-dist.js" 2>/dev/null || true
-pkill -f "MyAgents.app" 2>/dev/null || true
+pkill -f "BlexAgent.app" 2>/dev/null || true
 sleep 1
 echo -e "${GREEN}✓ 进程已清理${NC}"
 echo ""
@@ -194,7 +194,7 @@ echo ""
 
 # 下载最新 cuse 二进制 (computer-use MCP)
 # 每次构建都拉取最新 release —— cuse 私有仓库的 release.yml 自动构建并发到 GH Release，
-# 维护者再跑 MyAgents-Cuse/publish_r2.sh 把产物镜像到 R2（`download.myagents.io/cuse/...`），
+# 维护者再跑 BlexAgent-Cuse/publish_r2.sh 把产物镜像到 R2（`download.blexagent.com/cuse/...`），
 # 此脚本从 R2 公网拉取，无需 gh CLI / 无需访问私有仓库。
 echo -e "${BLUE}[4.5/7] 拉取最新 cuse 二进制...${NC}"
 if ! "${PROJECT_DIR}/scripts/download_cuse.sh"; then
@@ -251,13 +251,13 @@ ensure_host_esbuild
 # Sidecar / Bridge / CLI 三件套都走 `npm run build:*` —— 后台是
 # `node scripts/esbuild-bundle.mjs <target>`。单一配置入口（entry /
 # banner / format / external / target），不再让 shell 引号介入。
-# Driver 内部包含 post-build 步骤：cli 复制 myagents.cmd，server 校验
+# Driver 内部包含 post-build 步骤：cli 复制 blexagent.cmd，server 校验
 # 无硬编码 __dirname 路径——这两步以前在每个平台脚本里各抄一遍，现已合并。
 echo -e "  ${CYAN}打包服务端代码...${NC}"
 npm run build:server
 echo -e "  ${CYAN}打包 Plugin Bridge...${NC}"
 npm run build:bridge
-echo -e "  ${CYAN}打包 myagents CLI...${NC}"
+echo -e "  ${CYAN}打包 blexagent CLI...${NC}"
 npm run build:cli
 
 # SDK native binary 按架构在 per-target loop 里拷贝（见下方 Tauri 构建循环）。

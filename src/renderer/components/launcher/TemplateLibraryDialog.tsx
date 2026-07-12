@@ -70,7 +70,7 @@ export default memo(function TemplateLibraryDialog({
             // Set default target dir
             try {
                 const home = await homeDir();
-                const defaultDir = await join(home, '.myagents', 'projects');
+                const defaultDir = await join(home, '.blexagent', 'projects');
                 if (!cancelled) setTargetDir(defaultDir);
             } catch {
                 // Fallback

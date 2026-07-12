@@ -6,16 +6,16 @@ import { isCliToolRegistryEnabled, loadConfig as loadAdminConfig } from './admin
 import { ensureDirSync, isDirEntry } from './fs-utils';
 import { getCrossPlatformEnv, isSkillBlockedOnPlatform } from './platform';
 
-const MYAGENTS_USER_DIR = '.myagents';
+const BLEXAGENT_USER_DIR = '.blexagent';
 
 /**
- * Get the MyAgents user directory path.
+ * Get the BlexAgent user directory path.
  * All user configs (MCP, providers, projects, etc.) are stored here.
  */
-export function getMyAgentsUserDir(): string {
+export function getBlexAgentUserDir(): string {
   const { home, temp } = getCrossPlatformEnv();
   const homeDir = home || temp;
-  return join(homeDir, MYAGENTS_USER_DIR);
+  return join(homeDir, BLEXAGENT_USER_DIR);
 }
 
 export interface ProjectUserConfigSyncOptions {
@@ -60,18 +60,18 @@ export function trySyncProjectUserConfigFiles(
  * Sync user-level skills and commands into a project's .claude/ as symlinks.
  *
  * This is the shared disk bridge used by builtin Claude SDK sessions and
- * external runtimes that want to consume the same MyAgents-managed project
- * protocol. It only mutates symlinks that point back into ~/.myagents and
+ * external runtimes that want to consume the same BlexAgent-managed project
+ * protocol. It only mutates symlinks that point back into ~/.blexagent and
  * never overwrites real project skill/command entries.
  */
 export function syncProjectUserConfigFiles(
   projectDir: string,
   options: ProjectUserConfigSyncOptions = {},
 ): void {
-  const myagentsDir = getMyAgentsUserDir();
+  const blexagentDir = getBlexAgentUserDir();
   const isWin = process.platform === 'win32';
 
-  const userSkillsDir = join(myagentsDir, 'skills');
+  const userSkillsDir = join(blexagentDir, 'skills');
   const projectSkillsDir = join(projectDir, '.claude', 'skills');
 
   if (existsSync(userSkillsDir)) {
@@ -79,7 +79,7 @@ export function syncProjectUserConfigFiles(
 
     let disabled: string[] = [];
     try {
-      const configPath = join(myagentsDir, 'skills-config.json');
+      const configPath = join(blexagentDir, 'skills-config.json');
       if (existsSync(configPath)) {
         const raw = JSON.parse(readFileSync(configPath, 'utf-8'));
         disabled = Array.isArray(raw?.disabled) ? raw.disabled : [];
@@ -149,7 +149,7 @@ export function syncProjectUserConfigFiles(
     }
   }
 
-  const userCommandsDir = join(myagentsDir, 'commands');
+  const userCommandsDir = join(blexagentDir, 'commands');
   const projectCommandsDir = join(projectDir, '.claude', 'commands');
 
   if (existsSync(userCommandsDir)) {

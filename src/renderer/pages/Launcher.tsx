@@ -1,5 +1,5 @@
 /**
- * Launcher - Main entry page for MyAgents
+ * Launcher - Main entry page for BlexAgent
  * Two-column layout: Brand section (left 60%) + Workspaces (right 40%)
  * Responsive: stacks vertically below 768px
  */
@@ -103,7 +103,7 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
         toastRef.current = toast;
     }, [toast]);
 
-    // Filter out internal projects (e.g. ~/.myagents diagnostic workspace).
+    // Filter out internal projects (e.g. ~/.blexagent diagnostic workspace).
     // Archived projects stay user-visible for the right rail restore affordance,
     // but they are excluded from launch selectors and default workspace choice.
     const userVisibleProjects = useMemo(() => projects.filter(isProjectVisibleToUser), [projects]);
@@ -712,7 +712,7 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
                 // PRD 0.2.9 — Collapsed-writer path. Send `providerId` only
                 // and let the sidecar live-resolve the env (apiKey, baseUrl,
                 // authType, modelAliases, ...) on every tick. This avoids
-                // duplicating credentials into ~/.myagents/cron_tasks.json
+                // duplicating credentials into ~/.blexagent/cron_tasks.json
                 // and makes API key rotation propagate without user action.
                 //
                 // External runtimes don't carry a providerId (they manage
@@ -933,7 +933,7 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
             const normalizedPath = path.replace(/\\/g, '/');
             const parentDir = normalizedPath.split('/').slice(0, -1).join('/');
             if (parentDir) {
-                localStorage.setItem('myagents:lastProjectDir', parentDir);
+                localStorage.setItem('blexagent:lastProjectDir', parentDir);
             }
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : String(err);

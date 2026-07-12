@@ -1,12 +1,12 @@
-# MyAgents 构建与发布指南
+# BlexAgent 构建与发布指南
 
-本文档描述 MyAgents 的构建流程、发布流程以及分发渠道的完整信息。
+本文档描述 BlexAgent 的构建流程、发布流程以及分发渠道的完整信息。
 
 ---
 
 ## 概览
 
-MyAgents 支持 **macOS** 和 **Windows** 平台：
+BlexAgent 支持 **macOS** 和 **Windows** 平台：
 
 | 平台 | 架构 | 构建脚本 | 发布脚本 |
 |------|------|---------|---------|
@@ -26,22 +26,22 @@ MyAgents 支持 **macOS** 和 **Windows** 平台：
 
 ### 存储位置
 
-所有发布文件存储在 **Cloudflare R2**，通过自定义域名 `download.myagents.io` 提供访问。
+所有发布文件存储在 **Cloudflare R2**，通过自定义域名 `download.blexagent.com` 提供访问。
 
 ```
-myagents-releases/
+blexagent-releases/
 ├── update/
 │   ├── darwin-aarch64.json    # ARM 自动更新清单
 │   ├── darwin-x86_64.json     # Intel 自动更新清单
 │   └── latest.json            # 官网下载 API
 └── releases/
     └── v{VERSION}/
-        ├── MyAgents_{VERSION}_aarch64.dmg         # ARM DMG
-        ├── MyAgents_{VERSION}_x64.dmg             # Intel DMG
-        ├── MyAgents_{VERSION}_aarch64.app.tar.gz  # ARM 更新包
-        ├── MyAgents_{VERSION}_aarch64.app.tar.gz.sig  # ARM 签名
-        ├── MyAgents_{VERSION}_x64.app.tar.gz      # Intel 更新包
-        └── MyAgents_{VERSION}_x64.app.tar.gz.sig  # Intel 签名
+        ├── BlexAgent_{VERSION}_aarch64.dmg         # ARM DMG
+        ├── BlexAgent_{VERSION}_x64.dmg             # Intel DMG
+        ├── BlexAgent_{VERSION}_aarch64.app.tar.gz  # ARM 更新包
+        ├── BlexAgent_{VERSION}_aarch64.app.tar.gz.sig  # ARM 签名
+        ├── BlexAgent_{VERSION}_x64.app.tar.gz      # Intel 更新包
+        └── BlexAgent_{VERSION}_x64.app.tar.gz.sig  # Intel 签名
 ```
 
 ---
@@ -146,14 +146,14 @@ myagents-releases/
   │  物料清单 - v0.1.0                                      │
   ├─────────────────────────────────────────────────────────┤
   │  Apple Silicon (ARM64)                                  │
-  │    ✓ DMG:    MyAgents_0.1.0_aarch64.dmg              │
-  │    ✓ tar.gz: MyAgents.app.tar.gz                      │
-  │    ✓ 签名:   MyAgents.app.tar.gz.sig                  │
+  │    ✓ DMG:    BlexAgent_0.1.0_aarch64.dmg              │
+  │    ✓ tar.gz: BlexAgent.app.tar.gz                      │
+  │    ✓ 签名:   BlexAgent.app.tar.gz.sig                  │
   │                                                         │
   │  Intel (x86_64)                                         │
-  │    ✓ DMG:    MyAgents_0.1.0_x64.dmg                   │
-  │    ✓ tar.gz: MyAgents.app.tar.gz                      │
-  │    ✓ 签名:   MyAgents.app.tar.gz.sig                  │
+  │    ✓ DMG:    BlexAgent_0.1.0_x64.dmg                   │
+  │    ✓ tar.gz: BlexAgent.app.tar.gz                      │
+  │    ✓ 签名:   BlexAgent.app.tar.gz.sig                  │
   └─────────────────────────────────────────────────────────┘
 ```
 
@@ -179,7 +179,7 @@ myagents-releases/
 
 ### publish_managed_codex_runtime.sh
 
-**用途**：单独打包并上传 MyAgents 托管的 Codex Runtime 到 R2。它是开发 / 发版准备阶段的资源发布入口，不属于桌面 App 的 `publish_release.sh` / `publish_windows.ps1` 流程。
+**用途**：单独打包并上传 BlexAgent 托管的 Codex Runtime 到 R2。它是开发 / 发版准备阶段的资源发布入口，不属于桌面 App 的 `publish_release.sh` / `publish_windows.ps1` 流程。
 
 桌面 App 客户端会锁定一个固定的 runtime set manifest 地址，例如 `runtimes/codex/sets/codex-0.142.2/...`。多个 App 版本可以复用同一个 runtime set；只有决定升级内置 Codex runtime 时，才上传新的 runtime set 并在客户端代码里改 manifest base URL。脚本默认会检查远端 manifest，发现同一个 runtime set 已存在时拒绝覆盖；只有显式传 `--force-republish` 才允许重发同一路径。
 
@@ -194,7 +194,7 @@ myagents-releases/
 ./publish_managed_codex_runtime.sh --runtime-set codex-0.142.2
 ```
 
-脚本复用 `.env` 凭证、R2 bucket、`download.myagents.io` 域名、Cloudflare purge 和上传后 HTTP 验证。正式上传仍要求 `scripts/package-managed-codex-runtime.mjs` 完成 manifest/artifact 签名校验；开发用 unsigned 包只应使用 `npm run package:managed-codex` 本地生成，不应上传到正式 R2 路径。
+脚本复用 `.env` 凭证、R2 bucket、`download.blexagent.com` 域名、Cloudflare purge 和上传后 HTTP 验证。正式上传仍要求 `scripts/package-managed-codex-runtime.mjs` 完成 manifest/artifact 签名校验；开发用 unsigned 包只应使用 `npm run package:managed-codex` 本地生成，不应上传到正式 R2 路径。
 
 Runtime set 是按平台分片补发的：macOS 主机默认发布 `darwin-arm64,darwin-x64`，Windows 主机使用 `publish_managed_codex_runtime.ps1` 发布 `win32-x64`。两边上传到同一个 `sets/<runtime-set>/` 前缀，默认只允许新增缺失平台；如果同平台 manifest 已存在会拒绝覆盖。
 
@@ -212,15 +212,15 @@ Runtime set 是按平台分片补发的：macOS 主机默认发布 `darwin-arm64
 {
   "version": "0.1.0",
   "pub_date": "2026-01-24T10:00:00Z",
-  "release_notes": "MyAgents v0.1.0",
+  "release_notes": "BlexAgent v0.1.0",
   "downloads": {
     "mac_arm64": {
       "name": "Apple Silicon",
-      "url": "https://download.myagents.io/releases/v0.1.0/MyAgents_0.1.0_aarch64.dmg"
+      "url": "https://download.blexagent.com/releases/v0.1.0/BlexAgent_0.1.0_aarch64.dmg"
     },
     "mac_intel": {
       "name": "Intel Mac",
-      "url": "https://download.myagents.io/releases/v0.1.0/MyAgents_0.1.0_x64.dmg"
+      "url": "https://download.blexagent.com/releases/v0.1.0/BlexAgent_0.1.0_x64.dmg"
     }
   }
 }
@@ -228,7 +228,7 @@ Runtime set 是按平台分片补发的：macOS 主机默认发布 `darwin-arm64
 
 **官网使用示例**：
 ```typescript
-const res = await fetch('https://download.myagents.io/update/latest.json');
+const res = await fetch('https://download.blexagent.com/update/latest.json');
 const data = await res.json();
 
 // 根据用户设备选择下载链接
@@ -243,12 +243,12 @@ const downloadUrl = isMacARM
 ```json
 {
   "version": "0.1.0",
-  "notes": "MyAgents v0.1.0",
+  "notes": "BlexAgent v0.1.0",
   "pub_date": "2026-01-24T10:00:00Z",
   "platforms": {
     "darwin-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6...",
-      "url": "https://download.myagents.io/releases/v0.1.0/MyAgents.app.tar.gz"
+      "url": "https://download.blexagent.com/releases/v0.1.0/BlexAgent.app.tar.gz"
     }
   }
 }
@@ -261,7 +261,7 @@ const downloadUrl = isMacARM
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6...",
       "endpoints": [
-        "https://download.myagents.io/update/{{target}}.json"
+        "https://download.blexagent.com/update/{{target}}.json"
       ]
     }
   }
@@ -308,10 +308,10 @@ const downloadUrl = isMacARM
 
 ```bash
 # 检查官网 API
-curl -s https://download.myagents.io/update/latest.json | jq .
+curl -s https://download.blexagent.com/update/latest.json | jq .
 
 # 检查自动更新清单
-curl -s https://download.myagents.io/update/darwin-aarch64.json | jq .
+curl -s https://download.blexagent.com/update/darwin-aarch64.json | jq .
 ```
 
 ### 6. 提交代码和打 Tag
@@ -356,7 +356,7 @@ R2_ACCOUNT_ID="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ### 生成 Tauri 签名密钥
 
 ```bash
-npx tauri signer generate -w ~/.tauri/myagents.key
+npx tauri signer generate -w ~/.tauri/blexagent.key
 ```
 
 生成后：
@@ -390,7 +390,7 @@ npx tauri signer generate -w ~/.tauri/myagents.key
 ### 自动更新问题
 
 **更新检查失败**
-- 检查 CSP 配置是否允许 `download.myagents.io`
+- 检查 CSP 配置是否允许 `download.blexagent.com`
 - 查看 Rust 日志 `[Updater]` 前缀
 
 **签名验证失败**

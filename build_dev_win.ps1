@@ -1,5 +1,5 @@
 ﻿#!/usr/bin/env pwsh
-# MyAgents Windows Dev 构建脚本
+# BlexAgent Windows Dev 构建脚本
 # 构建带 DevTools 的调试版本，启动时自动打开控制台
 # 默认只构建可直接运行的 Debug exe（不打安装包，便于快速测试）
 # 如需验证安装器，可传入 -BundleNsis 构建 Debug NSIS 安装包。
@@ -38,7 +38,7 @@ function Write-ColorOutput {
 
 Write-Host ""
 Write-ColorOutput "╔═══════════════════════════════════════════════════════╗" "Cyan"
-Write-ColorOutput "║  🤖 MyAgents Windows Dev 构建                         ║" "Cyan"
+Write-ColorOutput "║  🤖 BlexAgent Windows Dev 构建                         ║" "Cyan"
 Write-ColorOutput "║  ⚠ DevTools 启用 + $BUILD_MODE_LABEL                 ║" "Cyan"
 Write-ColorOutput "╚═══════════════════════════════════════════════════════╝" "Cyan"
 Write-Host ""
@@ -71,18 +71,18 @@ if ($PKG_VERSION -ne $TAURI_VERSION -or $PKG_VERSION -ne $CARGO_VERSION) {
 # 杀死残留进程（避免"旧代码"问题）
 Write-ColorOutput "[准备] 杀死残留进程..." "Blue"
 
-$appProcesses = Get-Process | Where-Object { $_.ProcessName -eq "MyAgents" }
+$appProcesses = Get-Process | Where-Object { $_.ProcessName -eq "BlexAgent" }
 
 if ($appProcesses) {
     $appProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-    Write-Host "  清理了 $($appProcesses.Count) 个 MyAgents 进程" -ForegroundColor Gray
+    Write-Host "  清理了 $($appProcesses.Count) 个 BlexAgent 进程" -ForegroundColor Gray
 }
 
 # 验证进程清理完成（最多等待 2 秒）
 $maxWait = 20  # 20 * 100ms = 2s
 $waited = 0
 while ($waited -lt $maxWait) {
-    $remainingApp = Get-Process -Name "MyAgents" -ErrorAction SilentlyContinue
+    $remainingApp = Get-Process -Name "BlexAgent" -ErrorAction SilentlyContinue
     if (-not $remainingApp) {
         break
     }
@@ -122,7 +122,7 @@ foreach ($dir in $dirsToClean) {
 }
 
 # 创建占位符资源目录（满足 Tauri bundle 阶段的资源校验）。
-# server-dist.js / plugin-bridge-dist.mjs / cli/myagents.js 在下面的
+# server-dist.js / plugin-bridge-dist.mjs / cli/blexagent.js 在下面的
 # [2/3] 步骤显式生成；Tauri build 阶段会禁掉 beforeBuildCommand，避免重复打包。
 #   - claude-agent-sdk/ : SDK native binary 占位目录
 #   - sharp-runtime/ : sharp 在 dev 走 walk-up 加载，目录只是 bundler 的资源指针
@@ -208,7 +208,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 & npm run build:cli
 if ($LASTEXITCODE -ne 0) {
-    Write-ColorOutput "✗ myagents CLI 打包失败" "Red"
+    Write-ColorOutput "✗ blexagent CLI 打包失败" "Red"
     exit 1
 }
 Write-ColorOutput "✓ 前端和运行时资源构建完成" "Green"
@@ -231,14 +231,14 @@ $mainFile = Join-Path $PROJECT_DIR "src-tauri/src/main.rs"
 Write-ColorOutput "[3/3] 构建 Tauri 应用 ($BUILD_MODE_LABEL)..." "Blue"
 
 # 强制移除旧的可执行文件，防止 cargo 偷懒不重新链接
-$oldExe = Join-Path $PROJECT_DIR "src-tauri/target/x86_64-pc-windows-msvc/debug/myagents.exe"
+$oldExe = Join-Path $PROJECT_DIR "src-tauri/target/x86_64-pc-windows-msvc/debug/blexagent.exe"
 if (Test-Path $oldExe) {
     Remove-Item $oldExe -Force
 }
 
 Write-ColorOutput "这可能需要几分钟..." "Yellow"
 
-$fastConfig = Join-Path $env:TEMP "myagents-tauri-dev-fast-$PID.json"
+$fastConfig = Join-Path $env:TEMP "blexagent-tauri-dev-fast-$PID.json"
 $fastConfigJson = @'
 {
   "build": {
@@ -282,7 +282,7 @@ try {
 
 # 查找输出
 $DEBUG_DIR = Join-Path $PROJECT_DIR "src-tauri/target/x86_64-pc-windows-msvc/debug"
-$EXE_PATH = Join-Path $DEBUG_DIR "myagents.exe"
+$EXE_PATH = Join-Path $DEBUG_DIR "blexagent.exe"
 $BUNDLE_DIR = Join-Path $DEBUG_DIR "bundle/nsis"
 $SETUP_EXE = if ($BundleNsis) {
     Get-ChildItem -Path $BUNDLE_DIR -Filter "*-setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1

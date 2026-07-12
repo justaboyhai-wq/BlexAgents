@@ -10,21 +10,21 @@ function isWindowsPlatform(platform = process.platform): boolean {
   return platform === 'win32';
 }
 
-export function getMyAgentsNpmGlobalPrefix(
+export function getBlexAgentNpmGlobalPrefix(
   home: string,
   platform = process.platform,
 ): string | null {
   if (!home) return null;
   return isWindowsPlatform(platform)
-    ? pathWin32.resolve(home, '.myagents', 'npm-global')
-    : `${home}/.myagents/npm-global`;
+    ? pathWin32.resolve(home, '.blexagent', 'npm-global')
+    : `${home}/.blexagent/npm-global`;
 }
 
-export function getMyAgentsNpmGlobalBinDir(
+export function getBlexAgentNpmGlobalBinDir(
   home: string,
   platform = process.platform,
 ): string | null {
-  const prefix = getMyAgentsNpmGlobalPrefix(home, platform);
+  const prefix = getBlexAgentNpmGlobalPrefix(home, platform);
   if (!prefix) return null;
   // npm on Windows puts command shims under prefix root, not prefix/bin.
   return isWindowsPlatform(platform) ? prefix : `${prefix}/bin`;
@@ -42,16 +42,16 @@ function samePath(a: string, b: string, platform = process.platform): boolean {
   return normalizeForCompare(a, platform) === normalizeForCompare(b, platform);
 }
 
-export function scrubMyAgentsNpmPrefixEnv(
+export function scrubBlexAgentNpmPrefixEnv(
   env: NodeJS.ProcessEnv,
-  myAgentsPrefix: string | null,
+  blexAgentPrefix: string | null,
   platform = process.platform,
 ): void {
-  if (!myAgentsPrefix) return;
+  if (!blexAgentPrefix) return;
 
   for (const key of NPM_PREFIX_ENV_KEYS) {
     const value = env[key];
-    if (value && samePath(value, myAgentsPrefix, platform)) {
+    if (value && samePath(value, blexAgentPrefix, platform)) {
       delete env[key];
     }
   }

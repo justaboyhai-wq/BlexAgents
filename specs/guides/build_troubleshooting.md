@@ -51,7 +51,7 @@ if (Test-Path $resourcesDir) {
 - 覆盖的 CSP 缺少关键指令：
   - ❌ `asset:` 协议
   - ❌ `http://ipc.localhost` （Windows Tauri IPC 必需，由 `connect-src` 放行）
-  - ❌ `https://download.myagents.io`
+  - ❌ `https://download.blexagent.com`
 
 **修复**（commit a23cdf3）：
 - 移除错误的 CSP 覆盖逻辑
@@ -253,7 +253,7 @@ package，避免再次污染根 `node_modules`。
 {
   "app": {
     "security": {
-      "csp": "default-src 'self' ipc: tauri: asset: http://ipc.localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: tauri: asset: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://download.myagents.io; img-src 'self' data: blob: asset: https://download.myagents.io;"
+      "csp": "default-src 'self' ipc: tauri: asset: http://ipc.localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: tauri: asset: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://download.blexagent.com; img-src 'self' data: blob: asset: https://download.blexagent.com;"
     }
   }
 }
@@ -272,7 +272,7 @@ $conf = Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json
 $csp = $conf.app.security.csp
 
 # 验证关键部分
-$requiredParts = @("http://ipc.localhost", "asset:", "connect-src", "https://download.myagents.io")
+$requiredParts = @("http://ipc.localhost", "asset:", "connect-src", "https://download.blexagent.com")
 foreach ($part in $requiredParts) {
     if ($csp -notlike "*$part*") {
         Write-Host "缺少: $part" -ForegroundColor Red
@@ -386,7 +386,7 @@ let client = reqwest::Client::builder()
 - [ ] TypeScript 类型检查通过（`npm run typecheck`）
 - [ ] CSP 配置完整（`connect-src` 包含 `http://ipc.localhost`）
 - [ ] 清理旧的 resources 缓存
-- [ ] 杀死残留进程（node sidecar, MyAgents）
+- [ ] 杀死残留进程（node sidecar, BlexAgent）
 
 ### 构建后验证
 

@@ -420,7 +420,7 @@ function applySnapshotToExternalSendContext(
     reasoningEffort: snapshot.reasoningEffort === '' ? 'default' : snapshot.reasoningEffort,
   };
 }
-// Pre-warm can create a runtime thread before MyAgents has a durable
+// Pre-warm can create a runtime thread before BlexAgent has a durable
 // sessions.json entry. Keep that narrow "birth" state explicit so the first
 // real user turn may materialize metadata, while missing metadata for ordinary
 // resume/delete races still fails closed.
@@ -896,12 +896,12 @@ function flushAllPending(): void {
 // reset-on-activity setTimeout, which fired on resume because its deadline
 // elapsed in wall-clock during sleep — a turn the runtime never actually hung.)
 const WATCHDOG_INTERVAL_MS = 30 * 1000;
-const MANAGED_CODEX_STRUCTURED_USER_INPUT_DISABLED_PROMPT = `<myagents-managed-codex-interaction-limits>
+const MANAGED_CODEX_STRUCTURED_USER_INPUT_DISABLED_PROMPT = `<blexagent-managed-codex-interaction-limits>
 This session is running on Managed Codex. The structured user-input tools are intentionally disabled here.
 
 Do not call request_user_input, AskUserQuestion, or MCP elicitation/form tools to ask the IM user a question.
 If you need clarification or a choice from the user, ask it as normal chat text and wait for the user's next message.
-</myagents-managed-codex-interaction-limits>`;
+</blexagent-managed-codex-interaction-limits>`;
 
 function isManagedCodexStructuredUserInputDisabled(
   runtimeType: RuntimeType,
@@ -1619,7 +1619,7 @@ export async function handleExternalProxyConfigChange(input: {
     runtimeType === 'codex' && runtimeSource === 'managed-provider';
   const usesProcessProxyEnv =
     runtimeSource !== 'managed-provider' &&
-    (activeExternalEnvPolicy?.proxy ?? 'myagents') === 'myagents';
+    (activeExternalEnvPolicy?.proxy ?? 'blexagent') === 'blexagent';
   const oldKey = usesManagedProviderProxy
     ? input.oldManagedProviderKey
     : input.oldProcessEnvKey;
@@ -1628,7 +1628,7 @@ export async function handleExternalProxyConfigChange(input: {
     : input.newProcessEnvKey;
 
   if (!usesManagedProviderProxy && !usesProcessProxyEnv) {
-    return { success: true, skipped: 'proxy-not-owned-by-myagents' };
+    return { success: true, skipped: 'proxy-not-owned-by-blexagent' };
   }
   if (oldKey === newKey) {
     return { success: true, skipped: 'unchanged' };
@@ -1745,7 +1745,7 @@ export async function startExternalSession(options: {
   analyticsOrigin?: SessionOrigin;
   birthOrigin?: SessionOrigin;
   resumeSessionId?: string;
-  /** Issue #194 — per-agent env policy (proxy: myagents/terminal/direct). */
+  /** Issue #194 — per-agent env policy (proxy: blexagent/terminal/direct). */
   envPolicy?: import('../../shared/types/runtime').RuntimeEnvPolicy;
   /** IM-router birth marker; allows first-turn metadata materialization. */
   metadataBirthPending?: boolean;
@@ -1804,12 +1804,12 @@ async function _doStartExternalSession(options: {
     ?? await resolveAgentEnvPolicy(options.workspacePath);
   activeExternalEnvPolicy = resolvedEnvPolicy;
 
-  // Build system prompt using MyAgents' three-layer architecture.
+  // Build system prompt using BlexAgent' three-layer architecture.
   // Pass the current runtime so L1 identity text reports the correct CLI
   // (e.g. "Google Gemini CLI" instead of the builtin default).
   //
-  // cliToolsEnabled: true — teach the AI about `myagents cron …` / `myagents
-  // im send-media` / `myagents im wake|channels` via a progressive-disclosure
+  // cliToolsEnabled: true — teach the AI about `blexagent cron …` / `blexagent
+  // im send-media` / `blexagent im wake|channels` via a progressive-disclosure
   // appendix. v0.2.11+ also enables this on the builtin path (agent-session.ts)
   // because the corresponding in-process MCP servers (`cron-tools`, `im-cron`,
   // `im-media`) were retired in favour of the CLI surface — single source of
@@ -2100,7 +2100,7 @@ async function _doStartExternalSession(options: {
  * Rationale:
  *   - Each external runtime has its own modality contract (Codex blocks
  *     images, Gemini accepts image+video+audio, CC CLI accepts images).
- *   - External runtime models aren't in MyAgents' PRESET_PROVIDERS registry,
+ *   - External runtime models aren't in BlexAgent' PRESET_PROVIDERS registry,
  *     so `lookupModelCapability` would return undefined → optimistic
  *     default-allow → effectively no filter, just runtime overhead.
  *   - The frontend toast in `SimpleChatInput` is gated behind
@@ -2319,7 +2319,7 @@ export async function sendExternalMessage(
   // Case 2: Previous process exited — resume (CC -p mode multi-turn)
   const activeProcess = getExternalActiveProcess();
   if (!activeProcess || activeProcess.exited) {
-    // CC supports custom session IDs (--session-id) — resume with our MyAgents session ID.
+    // CC supports custom session IDs (--session-id) — resume with our BlexAgent session ID.
     // Codex doesn't support custom IDs — resume with Codex's own threadId (lastRuntimeSessionId).
     const runtimeType = getCurrentRuntimeType();
     const lifecycleSessionId = getExternalLifecycleSessionId();
@@ -2341,7 +2341,7 @@ export async function sendExternalMessage(
         analyticsSource: turnAnalyticsSource,
         analyticsOrigin: turnAnalyticsOrigin,
         birthOrigin: context?.birthOrigin,
-        resumeSessionId: resumeId, // CC: --resume <myagents-session-id>; Codex: --resume <threadId>
+        resumeSessionId: resumeId, // CC: --resume <blexagent-session-id>; Codex: --resume <threadId>
         metadataBirthPending: context?.metadataBirthPending,
         recordConfigState: !hasQueuedExternalConfigOperation(),
       });

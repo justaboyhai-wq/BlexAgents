@@ -48,7 +48,7 @@ export class ConfigBusyError extends Error {
 
 // ============= Constants =============
 
-export const CONFIG_DIR_NAME = '.myagents';
+export const CONFIG_DIR_NAME = '.blexagent';
 export const CONFIG_FILE = 'config.json';
 export const PROJECTS_FILE = 'projects.json';
 export const PROVIDERS_DIR = 'providers';

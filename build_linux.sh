@@ -1,5 +1,5 @@
-#!/bin/bash
-# MyAgents Linux 构建脚本 (v0.2.0+)
+﻿#!/bin/bash
+# BlexAgent Linux 构建脚本 (v0.2.0+)
 #
 # 产出 AppImage + deb 到 src-tauri/target/release/bundle/{appimage,deb}。
 # 所需系统依赖（Ubuntu 22.04+ / Debian 12+）：
@@ -27,7 +27,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║${NC}  ${GREEN}🤖 MyAgents Linux 构建 (AppImage + deb)${NC}            ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${GREEN}🤖 BlexAgent Linux 构建 (AppImage + deb)${NC}            ${CYAN}║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -64,7 +64,7 @@ if command -v dpkg >/dev/null 2>&1; then
         if [ "${ID:-}" = "ubuntu" ] && [ -n "${VERSION_ID:-}" ]; then
             major=$(echo "$VERSION_ID" | cut -d. -f1)
             if [ "${major:-0}" -lt 22 ] 2>/dev/null; then
-                echo -e "${YELLOW}⚠ 检测到 Ubuntu ${VERSION_ID}。MyAgents 需要 Ubuntu 22.04+ (libwebkit2gtk-4.1)。${NC}"
+                echo -e "${YELLOW}⚠ 检测到 Ubuntu ${VERSION_ID}。BlexAgent 需要 Ubuntu 22.04+ (libwebkit2gtk-4.1)。${NC}"
                 echo -e "${YELLOW}  20.04 仍使用 libwebkit2gtk-4.0，Tauri 2 不支持。升级系统或使用 22.04+ 构建机。${NC}"
                 exit 1
             fi
@@ -121,7 +121,7 @@ echo ""
 
 # Sidecar + Bridge + CLI 打包 —— 三件套统一通过 `npm run build:*`
 # (`node scripts/esbuild-bundle.mjs <target>`)。Driver 内部 post-build：
-# - cli: 复制 myagents.cmd 到 resources/cli/
+# - cli: 复制 blexagent.cmd 到 resources/cli/
 # - server: 校验产物不含硬编码 __dirname 路径
 echo -e "${BLUE}[3/6] 打包 Sidecar / Bridge / CLI ...${NC}"
 npm run build:server

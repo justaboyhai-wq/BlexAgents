@@ -1,6 +1,6 @@
 # 第三方 LLM 供应商集成指南
 
-本文档总结了在 MyAgents 中集成第三方 LLM 供应商（DeepSeek、智谱、Moonshot、MiniMax 等）的关键技术经验。
+本文档总结了在 BlexAgent 中集成第三方 LLM 供应商（DeepSeek、智谱、Moonshot、MiniMax 等）的关键技术经验。
 
 ---
 
@@ -44,14 +44,14 @@ if (currentProviderEnv?.baseUrl) {
 
 ### 2.1 Anthropic 订阅的 OAuth owner 是 Claude Code native
 
-`anthropic-sub` 不由 MyAgents 读取、刷新或写回 OAuth token。Claude Code native 自己读取本机官方 credential store（macOS Keychain `Claude Code-credentials`，Linux/Windows `~/.claude/.credentials.json`），这正是独立 `claude` CLI 登录后 MyAgents 应能直接复用的能力。
+`anthropic-sub` 不由 BlexAgent 读取、刷新或写回 OAuth token。Claude Code native 自己读取本机官方 credential store（macOS Keychain `Claude Code-credentials`，Linux/Windows `~/.claude/.credentials.json`），这正是独立 `claude` CLI 登录后 BlexAgent 应能直接复用的能力。
 
 `buildClaudeSessionEnv()` 必须按 provider 分流：
 
 - `providerId === 'anthropic-sub'`：删除/不设置 `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST`，让 native Claude Code 自主管理 OAuth。
-- 其它 API provider：继续设置 `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST=1`，阻止 `~/.claude.json` / settings-sourced provider env（cc-switch、Claude Code Router 等）静默劫持 MyAgents 的 provider 路由。
+- 其它 API provider：继续设置 `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST=1`，阻止 `~/.claude.json` / settings-sourced provider env（cc-switch、Claude Code Router 等）静默劫持 BlexAgent 的 provider 路由。
 
-不要给订阅 query 传 `getOAuthToken`，也不要新增 MyAgents 私有的 subscription token adapter；否则会和本机 Claude Code CLI/桌面端抢 OAuth refresh / Keychain 生命周期。
+不要给订阅 query 传 `getOAuthToken`，也不要新增 BlexAgent 私有的 subscription token adapter；否则会和本机 Claude Code CLI/桌面端抢 OAuth refresh / Keychain 生命周期。
 
 ### 3. API Key 存储与读取
 
@@ -138,11 +138,11 @@ interface Provider {
 
 OpenAI-protocol providers use the bridge as the only request-shape owner for both egress formats: `upstreamFormat:'responses'` and Chat Completions (`upstreamFormat:'chat_completions'` / default). Active builtin sessions attach anonymous cache affinity via `agent-session.ts::resolveActiveSessionUpstreamConfig()`:
 
-- active session：`cacheAffinity: { sessionId, promptCacheKeyMode:'session' }`，由 `openai-bridge/prompt-cache.ts` hash 成 protocol-scoped `prompt_cache_key`（`myagents:responses:<hash>` / `myagents:chat_completions:<hash>`），不包含 raw `sessionId`、workspace path、apiKey、baseUrl、prompt 内容。
+- active session：`cacheAffinity: { sessionId, promptCacheKeyMode:'session' }`，由 `openai-bridge/prompt-cache.ts` hash 成 protocol-scoped `prompt_cache_key`（`blexagent:responses:<hash>` / `blexagent:chat_completions:<hash>`），不包含 raw `sessionId`、workspace path、apiKey、baseUrl、prompt 内容。
 - one-shot bridge（provider verify / title / supported-model probing / vision 等）：不设置 `cacheAffinity`，避免短生命周期调用污染 chat session cache routing。
 - 不支持 `prompt_cache_key` 的上游：`openai-bridge/handler.ts` 只在 400/422 且错误明确表示 unknown / unsupported / unrecognized / unexpected `prompt_cache_key` 参数时，去掉该字段重试一次，并在当前 bridge token 的 registry entry 上禁用后续注入；不写入 provider 全局配置。
 - 默认不发送 `store:true`、`previous_response_id`、`conversation`、`prompt_cache_retention`。这些属于 provider capability / 数据保留语义，不是缓存命中率修复的默认路径。
-- 错误日志和 SDK/UI 透出的 upstream error body 必须先脱敏：不得输出 `myagents:responses:<hash>` / `myagents:chat_completions:<hash>`、apiKey、raw session id 或被上游回显的 request body / prompt。
+- 错误日志和 SDK/UI 透出的 upstream error body 必须先脱敏：不得输出 `blexagent:responses:<hash>` / `blexagent:chat_completions:<hash>`、apiKey、raw session id 或被上游回显的 request body / prompt。
 
 ### Runtime-backed Provider（Managed Codex）
 
@@ -150,7 +150,7 @@ OpenAI-protocol providers use the bridge as the only request-shape owner for bot
 
 边界规则：
 
-- Chat session birth 保存 runtime projection：`runtime:'codex'` + `runtimeSource:'managed-provider'` + `providerExecutionIdentity`；Task/Cron 执行 override 保存 `runtimeConfig.source:'managed-provider'` + 选中的 Codex model。这样 Rust spawn Sidecar 时能注入 `MYAGENTS_RUNTIME=codex` 与 runtime source。
+- Chat session birth 保存 runtime projection：`runtime:'codex'` + `runtimeSource:'managed-provider'` + `providerExecutionIdentity`；Task/Cron 执行 override 保存 `runtimeConfig.source:'managed-provider'` + 选中的 Codex model。这样 Rust spawn Sidecar 时能注入 `BLEXAGENT_RUNTIME=codex` 与 runtime source。
 - IM / Agent Channel session birth 只保存 runtime identity：`runtime:'codex'` + `runtimeSource:'managed-provider'`。model / provider / permission / MCP 继续每条消息 live resolve 当前 Agent 配置；session drift、heartbeat、`/model` 命令唤醒 Sidecar 时必须比较并传递完整 identity。
 - Agent/Channel 默认值保存用户的 Provider 选择：`providerId:'codex-sub'` + model，`runtime` 仍保持 `builtin`，且不得把 `runtimeConfig.source/model` 写进 Agent 默认配置。否则 Codex 订阅会和用户手动安装的 Codex CLI runtime 混成同一种身份。
 - `codex-sub` 的可见性由 `managedCodexProviderDevGate` 控制；可选择性还要求 managed runtime 已安装到要求版本、managed Codex auth 有效（`chatgpt` 或兼容的 `access-token`），并且 provider 未被 `disabledProviderIds` 禁用。
@@ -398,7 +398,7 @@ function checkDecorativeToolText(text: string): { filtered: boolean; reason?: st
 
 ## 自定义供应商
 
-用户可通过 Settings 或 Admin API 添加自定义 OpenAI 兼容供应商。自定义供应商配置持久化到 `~/.myagents/providers/{id}.json`。
+用户可通过 Settings 或 Admin API 添加自定义 OpenAI 兼容供应商。自定义供应商配置持久化到 `~/.blexagent/providers/{id}.json`。
 
 ### modelAliases 默认值
 

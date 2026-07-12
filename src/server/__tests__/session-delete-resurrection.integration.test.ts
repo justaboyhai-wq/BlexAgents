@@ -14,7 +14,7 @@
  * (legacy orphans keep accumulating their data rather than losing it).
  *
  * HOME is redirected to a temp dir BEFORE a fresh (vi.resetModules) dynamic
- * import of SessionStore, so the module-level ~/.myagents paths bind to the
+ * import of SessionStore, so the module-level ~/.blexagent paths bind to the
  * sandbox. A guard test asserts the binding before anything destructive runs.
  */
 
@@ -30,9 +30,9 @@ let home: string;
 let store: SessionStoreModule;
 let originalHome: string | undefined;
 
-const sessionsDir = () => join(home, '.myagents', 'sessions');
-const sessionsJson = () => join(home, '.myagents', 'sessions.json');
-const sessionsTmpJson = () => join(home, '.myagents', 'sessions.json.tmp');
+const sessionsDir = () => join(home, '.blexagent', 'sessions');
+const sessionsJson = () => join(home, '.blexagent', 'sessions.json');
+const sessionsTmpJson = () => join(home, '.blexagent', 'sessions.json.tmp');
 const jsonlPath = (id: string) => join(sessionsDir(), `${id}.jsonl`);
 
 function msg(id: number) {
@@ -57,7 +57,7 @@ function sessionMeta(id: string, agentDir: string): SessionMetadata {
 }
 
 beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), 'myagents-336-'));
+    home = mkdtempSync(join(tmpdir(), 'blexagent-336-'));
     originalHome = process.env.HOME;
     process.env.HOME = home;
     vi.resetModules();
@@ -86,10 +86,10 @@ describe('issue #336 — delete vs persist resurrection', () => {
         const recovered = store.getSessionMetadata(meta.id);
         expect(recovered?.id).toBe(meta.id);
 
-        const backupNames = readdirSync(join(home, '.myagents'))
+        const backupNames = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-'));
         expect(backupNames.length).toBeGreaterThan(0);
-        expect(readFileSync(join(home, '.myagents', backupNames[0]), 'utf-8')).toBe('{"truncated"');
+        expect(readFileSync(join(home, '.blexagent', backupNames[0]), 'utf-8')).toBe('{"truncated"');
 
         const persistResult = await store.saveSessionMessages(meta.id, [msg(10)]);
         expect(persistResult.ok).toBe(true);
@@ -97,7 +97,7 @@ describe('issue #336 — delete vs persist resurrection', () => {
     });
 
     it('salvages valid metadata from a malformed sessions.json array before metadata creation', async () => {
-        const beforeBackups = readdirSync(join(home, '.myagents'))
+        const beforeBackups = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-')).length;
         const preserved = sessionMeta('22222222-2222-2222-2222-222222222222', '/tmp/workspace-preserved-malformed');
         writeFileSync(sessionsJson(), JSON.stringify([preserved, null], null, 2), 'utf-8');
@@ -107,12 +107,12 @@ describe('issue #336 — delete vs persist resurrection', () => {
         expect(store.getSessionMetadata(meta.id)?.id).toBe(meta.id);
         expect(store.getSessionMetadata(preserved.id)?.id).toBe(preserved.id);
 
-        const backupNames = readdirSync(join(home, '.myagents'))
+        const backupNames = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-'));
         expect(backupNames.length).toBe(beforeBackups + 1);
         const latestBackup = backupNames.sort().at(-1);
         expect(latestBackup).toBeTruthy();
-        expect(readFileSync(join(home, '.myagents', latestBackup!), 'utf-8')).toContain(preserved.id);
+        expect(readFileSync(join(home, '.blexagent', latestBackup!), 'utf-8')).toContain(preserved.id);
 
         const repaired = JSON.parse(readFileSync(sessionsJson(), 'utf-8')) as Array<{ id: string }>;
         expect(repaired.some(s => s.id === preserved.id)).toBe(true);
@@ -120,7 +120,7 @@ describe('issue #336 — delete vs persist resurrection', () => {
     });
 
     it('salvages complete metadata objects from truncated sessions.json before metadata creation', async () => {
-        const beforeBackups = readdirSync(join(home, '.myagents'))
+        const beforeBackups = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-')).length;
         const preserved = sessionMeta('33333333-3333-3333-3333-333333333333', '/tmp/workspace-preserved-truncated');
         const corruptContent = `[\n${JSON.stringify(preserved, null, 2)},\n{"id":`;
@@ -131,12 +131,12 @@ describe('issue #336 — delete vs persist resurrection', () => {
         expect(store.getSessionMetadata(meta.id)?.id).toBe(meta.id);
         expect(store.getSessionMetadata(preserved.id)?.id).toBe(preserved.id);
 
-        const backupNames = readdirSync(join(home, '.myagents'))
+        const backupNames = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-'));
         expect(backupNames.length).toBe(beforeBackups + 1);
         const latestBackup = backupNames.sort().at(-1);
         expect(latestBackup).toBeTruthy();
-        expect(readFileSync(join(home, '.myagents', latestBackup!), 'utf-8')).toBe(corruptContent);
+        expect(readFileSync(join(home, '.blexagent', latestBackup!), 'utf-8')).toBe(corruptContent);
 
         const repaired = JSON.parse(readFileSync(sessionsJson(), 'utf-8')) as Array<{ id: string }>;
         expect(repaired.some(s => s.id === preserved.id)).toBe(true);
@@ -144,7 +144,7 @@ describe('issue #336 — delete vs persist resurrection', () => {
     });
 
     it('writes a repaired index even when the metadata operation is a no-op', async () => {
-        const beforeBackups = readdirSync(join(home, '.myagents'))
+        const beforeBackups = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-')).length;
         const preserved = sessionMeta('44444444-4444-4444-4444-444444444444', '/tmp/workspace-preserved-noop');
         writeFileSync(sessionsJson(), JSON.stringify([preserved, null], null, 2), 'utf-8');
@@ -152,7 +152,7 @@ describe('issue #336 — delete vs persist resurrection', () => {
         const deleted = await store.deleteSession('55555555-5555-5555-5555-555555555555');
         expect(deleted).toBe(false);
 
-        const backupNames = readdirSync(join(home, '.myagents'))
+        const backupNames = readdirSync(join(home, '.blexagent'))
             .filter(name => name.startsWith('sessions.json.corrupt-'));
         expect(backupNames.length).toBe(beforeBackups + 1);
         expect(existsSync(sessionsJson())).toBe(true);

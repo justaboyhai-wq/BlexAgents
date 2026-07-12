@@ -396,9 +396,9 @@ export interface Project {
   /** PRD 0.2.17 — Claude plugins enabled for this workspace (subset of globally
    *  visible plugins). Mirrors mcpEnabledServers semantics exactly. */
   enabledPluginIds?: string[];
-  /** MyAgents official CLI tools enabled for this workspace. Separate from MCP ids. */
+  /** BlexAgent official CLI tools enabled for this workspace. Separate from MCP ids. */
   enabledOfficialToolIds?: OfficialToolId[];
-  /** Internal projects (e.g. ~/.myagents diagnostic workspace) hidden from Launcher */
+  /** Internal projects (e.g. ~/.blexagent diagnostic workspace) hidden from Launcher */
   internal?: boolean;
   /** Custom emoji icon for display, defaults to FolderOpen if absent */
   icon?: string;
@@ -452,7 +452,7 @@ export interface WorkspaceTemplate {
   description: string;  // Description (can be empty)
   icon?: string;        // Phosphor icon ID (e.g. "sparkle") or emoji fallback; defaults to cube icon if absent
   isBuiltin: boolean;   // true = preset template bundled with app
-  path?: string;        // User template: absolute path under ~/.myagents/templates/
+  path?: string;        // User template: absolute path under ~/.blexagent/templates/
   /** Product-level Agent defaults applied when creating a workspace from this template. */
   agentDefaults?: WorkspaceTemplateAgentDefaults;
 }
@@ -601,8 +601,8 @@ export const MANAGED_CODEX_REQUIRED_RUNTIME = {
   component: 'codex',
   version: '0.142.2',
   runtimeSet: 'codex-0.142.2',
-  manifestBaseUrl: 'https://download.myagents.io/runtimes/codex/sets/codex-0.142.2',
-  manifestPublicKeyId: 'myagents-runtime-manifest-ed25519-2026-06',
+  manifestBaseUrl: 'https://download.blexagent.com/runtimes/codex/sets/codex-0.142.2',
+  manifestPublicKeyId: 'blexagent-runtime-manifest-ed25519-2026-06',
 } as const;
 
 /** Check if verification has expired */
@@ -721,12 +721,12 @@ export interface AppConfig {
   multiAgentRuntime?: boolean; // 多 Agent Runtime 模式（开发者，默认关闭）
   experimentalSplitView?: boolean; // 实验性：文件预览在右侧分屏而非弹窗
   /** 实验室：用户注册 CLI 工具注册表（PRD 0.2.36）。默认关。
-   *  只控制工具箱里的 CLI 工具注册/管理/AI 自动发现；不影响 myagents CLI
+   *  只控制工具箱里的 CLI 工具注册/管理/AI 自动发现；不影响 blexagent CLI
    *  本身以及 cron / task / widget / thought 等已发布 CLI 能力。 */
   cliToolRegistryEnabled?: boolean;
   /** 隐藏开发者开关：桌面宠物功能门控。默认开；普通用户不可见。 */
   floatingBallDevGate?: boolean;
-  /** 开发者总门控：团队 Space（MyAgents Space / Cloud Space）。默认关。
+  /** 开发者总门控：团队 Space（BlexAgent Space / Cloud Space）。默认关。
    *  功能未完成前隐藏标题栏入口与已恢复的团队 tab。 */
   teamSpaceEnabled?: boolean;
   /** 悬浮球本体显隐开关；由桌面宠物设置页顶部开关控制。默认关。 */
@@ -830,13 +830,13 @@ export interface AppConfig {
 
   // ===== CLI Tool Registry (PRD 0.2.36) =====
   // Per-tool environment variables (API keys etc.) for registered CLI tools
-  // (~/.myagents/tools/). Same shape as mcpServerEnv. The ~/.myagents/bin
+  // (~/.blexagent/tools/). Same shape as mcpServerEnv. The ~/.blexagent/bin
   // launcher shims read this at runtime, so env changes apply on next launch
   // without re-registration.
   cliToolEnv?: Record<string, Record<string, string>>;
 
   // ===== Official CLI Tools =====
-  // Global visibility gate for MyAgents-owned CLI tools (not user registry tools).
+  // Global visibility gate for BlexAgent-owned CLI tools (not user registry tools).
   enabledOfficialToolIds?: OfficialToolId[];
   officialToolSettings?: OfficialToolSettings;
 
@@ -866,7 +866,7 @@ export interface AppConfig {
 
   // ===== Claude Plugin Configuration (PRD 0.2.17) =====
   /** Installed Claude plugins. Each entry's installPath points at a directory
-   *  under ~/.myagents/plugins/<name>/ containing .claude-plugin/plugin.json.
+   *  under ~/.blexagent/plugins/<name>/ containing .claude-plugin/plugin.json.
    *  Disk is the source of truth; this is the index. */
   plugins?: import('./types/plugin').PluginEntry[];
   /** Global VISIBILITY gate keyed by PluginEntry.id ("<name>@local").
@@ -1706,7 +1706,7 @@ export const PRESET_MCP_SERVERS: McpServerDefinition[] = [
     // Sentinel resolved at MCP launch to the bundled cuse binary path —
     // see getBundledCusePath() in src/server/utils/runtime.ts.
     command: '__bundled_cuse__',
-    args: ['mcp', '--caller-app', 'MyAgents'],
+    args: ['mcp', '--caller-app', 'BlexAgent'],
     isBuiltin: true,
     isFree: true,
     platforms: ['darwin', 'win32'],

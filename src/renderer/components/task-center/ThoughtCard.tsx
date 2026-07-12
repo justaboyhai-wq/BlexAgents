@@ -102,7 +102,7 @@ export function ThoughtCard({
   const discussAnchorRef = useRef<HTMLButtonElement>(null);
 
   // Workspace list for the AI-discussion picker. Internal projects
-  // (the ~/.myagents helper workspace) and hidden system presets are hidden —
+  // (the ~/.blexagent helper workspace) and hidden system presets are hidden —
   // a thought belongs to user work, not the diagnostic sandbox. Sorted by
   // most-recently opened so the user's current work bubbles up.
   const { projects } = useConfig();

@@ -46,13 +46,13 @@
 ### W1 — 工具生成图片在 Windows 大概率全裂 🔴 `needs-verify`
 
 - **现象（预期）**：在 Windows 上让 AI 用工具产图（Codex 官方 `image_generation`，或 builtin gemini-image），工具卡里**图片不显示/裂图**；DevTools console 出现 `Refused to load the image 'http://127.0.0.1:PORT/api/attachment/tool/...' because it violates the following Content Security Policy directive: "img-src ..."`。**macOS 上同样的图能正常显示**（这正是跨端发散）。
-- **根因（WebKit vs Chromium）**：`src/renderer/utils/toolAttachment.ts:44` 在 Tauri 下把工具产物解析成 `http://127.0.0.1:${port}${refPath}`，喂给 `<img src>`（`ToolImageAttachment.tsx` → `ToolAttachmentGallery`，挂在 `Message.tsx`/`TaskTool.tsx`）。但 CSP `img-src`（`src-tauri/tauri.conf.json:15`）= `'self' data: blob: asset: myagents: http://myagents.localhost https://asset.localhost https://download.myagents.io https:` —— 有 `https:` 通配，**没有 `http:`、没有 `http://127.0.0.1:*`**（`http://127.0.0.1:*` 只在 `connect-src`，那管 `fetch`/XHR、不管 `<img>`）。`toolAttachment.ts:8-10` 注释"`img-src` already permits http(s)"是错的（把 CORS 当 CSP、把 `https:` 当 `http:`；`<img>` 默认 no-cors，CORS 头与显示无关，唯一闸门是 `img-src`）。按 CSP 规范两端都应拒；Mac 能出图 = WebKit 对 loopback 宽容（或只在 browser-dev 相对 URL 验证过）。**Chromium/WebView2 严格 → Windows 裂。**
+- **根因（WebKit vs Chromium）**：`src/renderer/utils/toolAttachment.ts:44` 在 Tauri 下把工具产物解析成 `http://127.0.0.1:${port}${refPath}`，喂给 `<img src>`（`ToolImageAttachment.tsx` → `ToolAttachmentGallery`，挂在 `Message.tsx`/`TaskTool.tsx`）。但 CSP `img-src`（`src-tauri/tauri.conf.json:15`）= `'self' data: blob: asset: blexagent: http://blexagent.localhost https://asset.localhost https://download.blexagent.com https:` —— 有 `https:` 通配，**没有 `http:`、没有 `http://127.0.0.1:*`**（`http://127.0.0.1:*` 只在 `connect-src`，那管 `fetch`/XHR、不管 `<img>`）。`toolAttachment.ts:8-10` 注释"`img-src` already permits http(s)"是错的（把 CORS 当 CSP、把 `https:` 当 `http:`；`<img>` 默认 no-cors，CORS 头与显示无关，唯一闸门是 `img-src`）。按 CSP 规范两端都应拒；Mac 能出图 = WebKit 对 loopback 宽容（或只在 browser-dev 相对 URL 验证过）。**Chromium/WebView2 严格 → Windows 裂。**
 - **验证步骤**：
   1. Windows debug build，开 DevTools console。
   2. 触发一次工具产图（让 AI 调 Codex `image_generation` 或 gemini-image）。
   3. 看工具卡是否显示图 + console 是否有 `img-src` 拒绝。
   4. 对照：同一操作在 macOS 上能显示（确认是跨端差异而非全坏）。
-- **确认后的修法（第零原则，Δcomplexity 负）**：把工具产物的 URL **从 `http://127.0.0.1:PORT` 改走已存在的 app-owned attachment protocol**（`src-tauri/src/attachment_protocol.rs`）：macOS/Linux 输出 `myagents://tool-attachment/<rel>`，Windows/WebView2 输出 Tauri 2 custom-protocol 的实际子资源形态 `http://myagents.localhost/tool-attachment/<rel>`；两端 `img-src`/`media-src` 都已列 `myagents:` + `http://myagents.localhost`，Rust handler 对两种 URL 形式都有测试。与用户上传路径（`attachmentUrl.ts`）同源。顺带删掉 per-session 端口查找（`getSessionPort`）。
+- **确认后的修法（第零原则，Δcomplexity 负）**：把工具产物的 URL **从 `http://127.0.0.1:PORT` 改走已存在的 app-owned attachment protocol**（`src-tauri/src/attachment_protocol.rs`）：macOS/Linux 输出 `blexagent://tool-attachment/<rel>`，Windows/WebView2 输出 Tauri 2 custom-protocol 的实际子资源形态 `http://blexagent.localhost/tool-attachment/<rel>`；两端 `img-src`/`media-src` 都已列 `blexagent:` + `http://blexagent.localhost`，Rust handler 对两种 URL 形式都有测试。与用户上传路径（`attachmentUrl.ts`）同源。顺带删掉 per-session 端口查找（`getSessionPort`）。
 - **D 不变量**：Mac 工具图逐像素不变；attachment-aware 权限/路径安全不被绕过；pending/error sentinel 行为不变。
 
 ---
@@ -111,7 +111,7 @@
 - PdfViewer DPR（`PdfViewer.tsx`/`pdfMetrics.ts` 正确读 `devicePixelRatio` + clamp + `deviceCanvasSize`，1.5× 不糊）；OS 浏览器 bounds（`browser.rs` 用 `LogicalPosition/LogicalSize`，分数 DPR 安全）。
 - 键盘快捷键（`appShortcuts.ts` 用 `modHeld(e,isMac)`、`isMac` 取自 `navigator.platform`）；close-layer（按平台 close-tab 触发）；发送键 + IME（W3C composition 三重守卫，Windows 拼音/微软 IME 一致）。
 - 字体栈（`index.css` 含 `Segoe UI` / `Cascadia Code`/`Consolas` / `Microsoft YaHei`，Windows 有正确 fallback、无 tofu）。
-- 媒体：音频走 `blob:`（`media-src` 含）；用户上传走 app-owned attachment protocol（macOS/Linux `myagents://attachment/...`，Windows/WebView2 `http://myagents.localhost/attachment/...`；两端 img-src/media-src 覆盖）；`/refs/:id` 走 `connect-src` + `Access-Control-Allow-Origin:*`；pdf worker 同源 `script-src 'self'`。无 `convertFileSrc`/`asset://`/`tauri://` 硬编码。
+- 媒体：音频走 `blob:`（`media-src` 含）；用户上传走 app-owned attachment protocol（macOS/Linux `blexagent://attachment/...`，Windows/WebView2 `http://blexagent.localhost/attachment/...`；两端 img-src/media-src 覆盖）；`/refs/:id` 走 `connect-src` + `Access-Control-Allow-Origin:*`；pdf worker 同源 `script-src 'self'`。无 `convertFileSrc`/`asset://`/`tauri://` 硬编码。
 
 ## 4. 环境性 / 预存（不修，仅记录）
 

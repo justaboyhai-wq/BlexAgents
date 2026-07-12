@@ -141,7 +141,7 @@ export async function handleAdminSessionWatch(
   const watcherMeta = getSessionMetadata(watcherSessionId);
   const watchId = randomUUID();
   const targetLabel = deriveLabel(targetSessionId, targetMeta);
-  const managementPort = process.env.MYAGENTS_MANAGEMENT_PORT;
+  const managementPort = process.env.BLEXAGENT_MANAGEMENT_PORT;
   if (!managementPort) {
     return {
       status: 500,
@@ -149,7 +149,7 @@ export async function handleAdminSessionWatch(
         watched: false,
         watchId,
         targetSessionId,
-        error: { code: 'watch_failed', message: 'MYAGENTS_MANAGEMENT_PORT not set' },
+        error: { code: 'watch_failed', message: 'BLEXAGENT_MANAGEMENT_PORT not set' },
       },
     };
   }

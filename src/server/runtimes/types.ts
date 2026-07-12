@@ -65,7 +65,7 @@ export interface SessionStartOptions {
   /**
    * Per-session env policy (issue #194). Resolved by the caller from
    * `agent.runtimeConfig.envPolicy`. When omitted, runtime adapters default
-   * to `{ proxy: 'myagents' }` — the legacy MyAgents-overrides-everything
+   * to `{ proxy: 'blexagent' }` — the legacy BlexAgent-overrides-everything
    * behaviour, preserving backwards compat.
    */
   envPolicy?: RuntimeEnvPolicy;
@@ -75,7 +75,7 @@ export interface SessionStartOptions {
    */
   runtimeSource?: RuntimeSource;
   /**
-   * Effective MyAgents MCP servers for runtimes that accept MCP at process
+   * Effective BlexAgent MCP servers for runtimes that accept MCP at process
    * startup. The builtin SDK path owns live setMcpServers; managed Codex
    * consumes this as app-server startup config.
    */
@@ -321,7 +321,7 @@ export interface AgentRuntime {
   /**
    * Append a user message to the currently active turn instead of starting a
    * new turn. Only runtimes whose protocol exposes same-turn steering should
-   * implement this; others fall back to MyAgents' turn-boundary queue.
+   * implement this; others fall back to BlexAgent' turn-boundary queue.
    */
   steerMessage?(
     process: RuntimeProcess,

@@ -1,4 +1,4 @@
-// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
+﻿// === AUTO-AUGMENT: drift-stubs from upstream openclaw — do not edit this block ===
 // Stubs for upstream openclaw exports the handwritten file below does not
 // implement. Regenerate via: npm run generate:sdk-shims
 export * from "./channel-reply-pipeline.auto.js";
@@ -6,7 +6,7 @@ export * from "./channel-reply-pipeline.auto.js";
 
 // Handwritten Bridge-mode implementation for createChannelReplyPipeline.
 //
-// In Bridge mode, the actual reply path is owned by MyAgents:
+// In Bridge mode, the actual reply path is owned by BlexAgent:
 // compat-runtime.ts::channel.reply.dispatchReplyWithBufferedBlockDispatcher
 // POSTs the inbound message to Rust's /api/im-bridge/message instead of
 // invoking the plugin's `dispatcherOptions.deliver` callback. So whatever

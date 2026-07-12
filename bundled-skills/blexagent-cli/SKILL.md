@@ -1,36 +1,36 @@
 ---
-name: myagents-cli
+name: blexagent-cli
 description: >-
-  你正在 MyAgents 这款 AI 产品里运行——MyAgents 自带一套"产品能力"（定时任务、任务中心、想法收集、MCP 工具接入、
-  模型 Provider、IM Bot 渠道、社区插件、Skills 安装、MyAgents Cloud Space、Generative UI Widget 等），全部通过内置 `myagents` CLI 暴露给你。
-  当用户的需求**落在 MyAgents 产品能力的射程内**，就加载并使用这个 skill，用 CLI 主动帮用户把事情做掉，
+  你正在 BlexAgent 这款 AI 产品里运行——BlexAgent 自带一套"产品能力"（定时任务、任务中心、想法收集、MCP 工具接入、
+  模型 Provider、IM Bot 渠道、社区插件、Skills 安装、BlexAgent Cloud Space、Generative UI Widget 等），全部通过内置 `blexagent` CLI 暴露给你。
+  当用户的需求**落在 BlexAgent 产品能力的射程内**，就加载并使用这个 skill，用 CLI 主动帮用户把事情做掉，
   而不是让用户去 GUI 点击。
   典型触发场景：用户说"每天 X 点帮我 Y"（→ cron）、"记一下这个想法"（→ thought）、"派发成任务"（→ task）、
   "接个 X 工具进来"（→ mcp）、"配 X 模型/Provider"（→ model）、"在飞书/钉钉/Telegram 里跟我聊"（→ agent channel）、
   "装个 X 插件 / 装个 X skill"（→ plugin / skill）、"处理 Space Issue / 下载附件 / 回复 Issue"（→ space）、
   "把图发到 IM 里"（→ im send-media）、"用已配置的读图模型理解图片"（→ vision analyze）、"做个图表/仪表盘"
   （→ widget readme）、"看下我有啥任务/定时/Runtime/版本"（→ list / status / version）、"改下应用设置"（→ config）。
-  即使用户没说"用 MyAgents 做"几个字，只要意图能映射到上述能力之一，就该走这个 skill。
+  即使用户没说"用 BlexAgent 做"几个字，只要意图能映射到上述能力之一，就该走这个 skill。
   反向边界：纯业务任务（写代码、查资料、读文件）不归这里；用户自己会话里给 AI 排任务用 im-cron MCP，不是这里。
-author: MyAgents
+author: BlexAgent
 ---
 
-# myagents-cli — MyAgents 产品能力的 CLI 入口
+# blexagent-cli — BlexAgent 产品能力的 CLI 入口
 
-你正运行在 MyAgents 产品内。MyAgents 不只是一个 chat UI，它是一套带状态的 Agent 平台：定时任务、任务中心、IM Bot、MCP、Provider、插件、Skill、Cloud Space、Widget——这些都是产品能力，由内置 `myagents` CLI 一站暴露给你。
+你正运行在 BlexAgent 产品内。BlexAgent 不只是一个 chat UI，它是一套带状态的 Agent 平台：定时任务、任务中心、IM Bot、MCP、Provider、插件、Skill、Cloud Space、Widget——这些都是产品能力，由内置 `blexagent` CLI 一站暴露给你。
 
-**这个 skill 不只是"管理工具"，它是 MyAgents 产品能力的执行入口**。用户表达的需求只要能映射到产品能力，就该用 CLI 主动帮用户做掉，而不是给用户一堆操作步骤让他自己去 Settings 点。这份文档列出全部能力以及"什么时候应该用哪条命令"。
+**这个 skill 不只是"管理工具"，它是 BlexAgent 产品能力的执行入口**。用户表达的需求只要能映射到产品能力，就该用 CLI 主动帮用户做掉，而不是给用户一堆操作步骤让他自己去 Settings 点。这份文档列出全部能力以及"什么时候应该用哪条命令"。
 
 ## 前置：CLI 是否可用
 
-CLI 通过 `~/.myagents/bin/myagents` 暴露，你的 SDK 子进程 PATH 已注入这个目录，直接 `myagents <command>` 就能跑。它通过 HTTP 走 Sidecar Admin API（端口由环境变量 `MYAGENTS_PORT` 注入）。
+CLI 通过 `~/.blexagent/bin/blexagent` 暴露，你的 SDK 子进程 PATH 已注入这个目录，直接 `blexagent <command>` 就能跑。它通过 HTTP 走 Sidecar Admin API（端口由环境变量 `BLEXAGENT_PORT` 注入）。
 
 - 遇到 `command not found`：让用户重启一次应用触发 CLI 同步
 - 遇到 `ECONNREFUSED`：Sidecar 没起来，让用户检查应用是否在运行
 
 ## 使用模式
 
-1. **探索先行**：不熟的命令组用 `myagents <group> --help`；不知道某个 runtime 支持什么 model/permissionMode 用 `myagents runtime describe <runtime>`，**不要靠猜**
+1. **探索先行**：不熟的命令组用 `blexagent <group> --help`；不知道某个 runtime 支持什么 model/permissionMode 用 `blexagent runtime describe <runtime>`，**不要靠猜**
 2. **预览写操作**：所有写命令支持 `--dry-run`，先给用户看会改什么再执行
 3. **机器可读**：加 `--json` 解析结构化输出
 4. **失败即恢复**：CLI 失败响应会带 `→ Run: <cmd>` 恢复提示，照着跑就行
@@ -53,21 +53,21 @@ CLI 通过 `~/.myagents/bin/myagents` 暴露，你的 SDK 子进程 PATH 已注�
 ### MCP 工具（mcp）
 
 ```bash
-myagents mcp list                                       # 看用户配了哪些 MCP
-myagents mcp show <id>                                  # 看某个 MCP 的完整配置（command/args/env/headers）
-myagents mcp add --id <id> --type <stdio|sse|http> ...  # 新增
-myagents mcp remove <id>                                # 删除
-myagents mcp enable <id> --scope <user|project|both>    # 启用
-myagents mcp disable <id> --scope <user|project|both>   # 禁用
-myagents mcp test <id>                                  # 实际握手测试连通性
-myagents mcp env <id> set KEY=val [KEY2=val2 ...]       # 设环境变量（覆盖）
-myagents mcp env <id> get [KEY ...]                     # 读环境变量
-myagents mcp env <id> delete KEY [KEY2 ...]             # 删环境变量
-myagents mcp oauth discover <id>                        # 探测 MCP server 是否支持 OAuth + 拿到 metadata
-myagents mcp oauth start <id> [--clientId X --clientSecret Y --scopes "..." --callbackPort N]
+blexagent mcp list                                       # 看用户配了哪些 MCP
+blexagent mcp show <id>                                  # 看某个 MCP 的完整配置（command/args/env/headers）
+blexagent mcp add --id <id> --type <stdio|sse|http> ...  # 新增
+blexagent mcp remove <id>                                # 删除
+blexagent mcp enable <id> --scope <user|project|both>    # 启用
+blexagent mcp disable <id> --scope <user|project|both>   # 禁用
+blexagent mcp test <id>                                  # 实际握手测试连通性
+blexagent mcp env <id> set KEY=val [KEY2=val2 ...]       # 设环境变量（覆盖）
+blexagent mcp env <id> get [KEY ...]                     # 读环境变量
+blexagent mcp env <id> delete KEY [KEY2 ...]             # 删环境变量
+blexagent mcp oauth discover <id>                        # 探测 MCP server 是否支持 OAuth + 拿到 metadata
+blexagent mcp oauth start <id> [--clientId X --clientSecret Y --scopes "..." --callbackPort N]
                                                         # 启动 OAuth 授权流程（会打开浏览器）
-myagents mcp oauth status <id>                          # 看授权状态（已授权 / token 是否过期）
-myagents mcp oauth revoke <id>                          # 撤销授权
+blexagent mcp oauth status <id>                          # 看授权状态（已授权 / token 是否过期）
+blexagent mcp oauth revoke <id>                          # 撤销授权
 ```
 
 **何时用：**
@@ -79,49 +79,49 @@ myagents mcp oauth revoke <id>                          # 撤销授权
 
 ### CLI 工具注册表（tool） — PRD 0.2.36，实验室开启后可用
 
-这是实验功能，默认关闭。使用前先运行 `myagents tool --help`：
+这是实验功能，默认关闭。使用前先运行 `blexagent tool --help`：
 
-- 如果 help 提示去「设置 → 关于&反馈 → 实验室 → CLI 工具注册表」开启，说明当前会话不能创建、注册或管理用户 CLI 工具；不要继续尝试 `tool-creator` / `myagents tool add`，转而完成一次性任务或请用户打开实验开关。
+- 如果 help 提示去「设置 → 关于&反馈 → 实验室 → CLI 工具注册表」开启，说明当前会话不能创建、注册或管理用户 CLI 工具；不要继续尝试 `tool-creator` / `blexagent tool add`，转而完成一次性任务或请用户打开实验开关。
 - 如果 help 返回完整 `list/add/remove/env` 用法，才按下面流程处理。
 
-注册的 CLI 工具会投 shim 到 `~/.myagents/bin/`（全 runtime + 终端的 PATH 上），
+注册的 CLI 工具会投 shim 到 `~/.blexagent/bin/`（全 runtime + 终端的 PATH 上），
 description 自动注入所有新 session 的上下文——未来的 AI 会自己发现并使用它。
 **写一个新工具**用 `tool-creator` skill（钉死 Agent-CLI 契约：非交互 / 退出码 /
 --json / readme 子命令 / ≤800 字 description）；这里只管注册与管理。
 
 ```bash
-myagents tool list                       # 注册表总览（含 enabled 状态 + 缺失 env key）
-myagents tool add <dir>                  # 注册（dir 须含 tool.json + 入口脚本；不在
-                                         #  ~/.myagents/tools/ 下会自动拷入）[--dry-run]
-myagents tool info <name>                # 看 manifest + enabled + 缺失 env
-myagents tool enable <name>              # 进新 session 的上下文
-myagents tool disable <name>             # 从上下文隐藏（shim 仍在 PATH，可手动调）
-myagents tool remove <name> [--purge]    # 反注册（--purge 连工具目录一起删）
-myagents tool env <name> set KEY=val     # 设 per-tool 环境变量（API key；工具启动时读）
-myagents tool env <name> get             # 读（值已脱敏）
-myagents tool env <name> delete KEY      # 删
+blexagent tool list                       # 注册表总览（含 enabled 状态 + 缺失 env key）
+blexagent tool add <dir>                  # 注册（dir 须含 tool.json + 入口脚本；不在
+                                         #  ~/.blexagent/tools/ 下会自动拷入）[--dry-run]
+blexagent tool info <name>                # 看 manifest + enabled + 缺失 env
+blexagent tool enable <name>              # 进新 session 的上下文
+blexagent tool disable <name>             # 从上下文隐藏（shim 仍在 PATH，可手动调）
+blexagent tool remove <name> [--purge]    # 反注册（--purge 连工具目录一起删）
+blexagent tool env <name> set KEY=val     # 设 per-tool 环境变量（API key；工具启动时读）
+blexagent tool env <name> get             # 读（值已脱敏）
+blexagent tool env <name> delete KEY      # 删
 ```
 
 **何时用：**
 - 用户说"把这个脚本/能力注册成工具、以后直接用" → 先走 `tool-creator` skill 把它规范化，再 `tool add`
 - "我有哪些自己的工具" → `tool list`
 - 工具报缺 API key（退出码 3）→ `tool env <name> set KEY=<用户提供的值>`
-- 注册名撞系统命令会被打回（`~/.myagents/bin` 在 PATH 前列，重名会遮蔽系统命令）→ 换带领域前缀的名字
+- 注册名撞系统命令会被打回（`~/.blexagent/bin` 在 PATH 前列，重名会遮蔽系统命令）→ 换带领域前缀的名字
 - 注册成功后 MUST 在回复中告知用户：工具名 + 干什么 + 可在 设置 → 工具箱 管理
 
 ### 官方图片理解工具（vision）
 
-这是 MyAgents 内置官方 CLI 工具，不属于 MCP，也不属于用户注册 `tool` 实验功能。它用于在当前会话启用“图片理解”工具时，让不支持多模态的主模型把本地工作区图片交给用户在「设置 → 工具箱」里配置好的读图模型分析。
+这是 BlexAgent 内置官方 CLI 工具，不属于 MCP，也不属于用户注册 `tool` 实验功能。它用于在当前会话启用“图片理解”工具时，让不支持多模态的主模型把本地工作区图片交给用户在「设置 → 工具箱」里配置好的读图模型分析。
 
 ```bash
-myagents vision readme
-myagents vision analyze --image <path> [--image <path> ...] [--prompt "what to inspect"]
-myagents vision analyze --image <path> --prompt-file <workspace-relative-text-file>
-myagents vision analyze --image @myagents_files/screenshot.png --prompt "Extract the error text and UI state"
+blexagent vision readme
+blexagent vision analyze --image <path> [--image <path> ...] [--prompt "what to inspect"]
+blexagent vision analyze --image <path> --prompt-file <workspace-relative-text-file>
+blexagent vision analyze --image @blexagent_files/screenshot.png --prompt "Extract the error text and UI state"
 ```
 
 **约束：**
-- 只接受当前 MyAgents 工作区内的本地图片路径；不要传 URL。
+- 只接受当前 BlexAgent 工作区内的本地图片路径；不要传 URL。
 - `--prompt` 是短指令；长/多行/含引号的检查指令写进当前 workspace 内的文本文件，再用 `--prompt-file`。
 - `--prompt-file` 路径也按当前 workspace 安全解析；不要传 URL、symlink 或 workspace 外路径。
 - 如果报“not enabled / not configured”，让用户在「设置 → 工具箱」启用图片理解并选择支持图片输入的模型。
@@ -133,12 +133,12 @@ myagents vision analyze --image @myagents_files/screenshot.png --prompt "Extract
 ### 模型 Provider（model）
 
 ```bash
-myagents model list                                     # 看所有 Provider + 验证状态
-myagents model add --id <id> --name <显示名> --base-url <url> --models <m1,m2,...> [其它]
-myagents model remove <id>                              # 删除自定义 Provider（内置的删不掉）
-myagents model set-key <id> <apiKey>                    # 设 API Key
-myagents model set-default <id>                         # 设为默认 Provider
-myagents model verify <id> [--model <某个具体模型>]      # 实际发一条测试消息验证
+blexagent model list                                     # 看所有 Provider + 验证状态
+blexagent model add --id <id> --name <显示名> --base-url <url> --models <m1,m2,...> [其它]
+blexagent model remove <id>                              # 删除自定义 Provider（内置的删不掉）
+blexagent model set-key <id> <apiKey>                    # 设 API Key
+blexagent model set-default <id>                         # 设为默认 Provider
+blexagent model verify <id> [--model <某个具体模型>]      # 实际发一条测试消息验证
 ```
 
 **何时用：**
@@ -150,21 +150,21 @@ myagents model verify <id> [--model <某个具体模型>]      # 实际发一条
 ### Agent + Channel（agent）
 
 ```bash
-myagents agent list                                     # 列出所有 Agent
-myagents agent list --active                            # 只列出未归档 Agent 工作区
-myagents agent list --archived                          # 只列出已归档 Agent 工作区
-myagents agent show <id>                                # 看某 Agent 的 effective 默认（runtime/model/permissionMode）
-myagents agent enable <id>                              # 启用
-myagents agent disable <id>                             # 禁用
-myagents agent archive <id>                             # 归档 Agent 工作区，并暂停 proactive Channel
-myagents agent unarchive <id>                           # 取消归档；若归档前是 proactive，会恢复启用
-myagents agent set <id> <key> <jsonValue>               # 改单个字段（key/value 形式，value 必须是合法 JSON）
+blexagent agent list                                     # 列出所有 Agent
+blexagent agent list --active                            # 只列出未归档 Agent 工作区
+blexagent agent list --archived                          # 只列出已归档 Agent 工作区
+blexagent agent show <id>                                # 看某 Agent 的 effective 默认（runtime/model/permissionMode）
+blexagent agent enable <id>                              # 启用
+blexagent agent disable <id>                             # 禁用
+blexagent agent archive <id>                             # 归档 Agent 工作区，并暂停 proactive Channel
+blexagent agent unarchive <id>                           # 取消归档；若归档前是 proactive，会恢复启用
+blexagent agent set <id> <key> <jsonValue>               # 改单个字段（key/value 形式，value 必须是合法 JSON）
                                                         # 受保护字段：id / channels（这俩用专用命令）
-myagents agent channel list <agentId>                   # 列出某 Agent 的所有 Channel
-myagents agent channel add <agentId> --type <平台> --<凭证flag> ...
+blexagent agent channel list <agentId>                   # 列出某 Agent 的所有 Channel
+blexagent agent channel add <agentId> --type <平台> --<凭证flag> ...
                                                         # 添加 Channel（平台 = telegram / dingtalk / openclaw:xxx）
-myagents agent channel remove <agentId> <channelId>     # 删除 Channel
-myagents agent runtime-status                           # 看所有 Agent 的实时连接状态（在线/离线/uptime/最近消息）
+blexagent agent channel remove <agentId> <channelId>     # 删除 Channel
+blexagent agent runtime-status                           # 看所有 Agent 的实时连接状态（在线/离线/uptime/最近消息）
 ```
 
 **何时用：**
@@ -180,31 +180,31 @@ myagents agent runtime-status                           # 看所有 Agent 的实
 ### Agent Runtime 发现（runtime）
 
 ```bash
-myagents runtime list                                   # 4 个 runtime（builtin/claude-code/codex/gemini）的装机情况 + 版本
-myagents runtime list --json                            # 机读：installed/version/path
-myagents runtime describe <runtime>                     # 某 runtime 的 model 清单 + permissionMode 枚举
-myagents runtime diagnose codex [--workspacePath PATH]  # Codex 的 auth/features/MCP/apps/effective-env 快照（issue #194）
-myagents diagnose runtime codex                         # 同上的 sugar 写法
+blexagent runtime list                                   # 4 个 runtime（builtin/claude-code/codex/gemini）的装机情况 + 版本
+blexagent runtime list --json                            # 机读：installed/version/path
+blexagent runtime describe <runtime>                     # 某 runtime 的 model 清单 + permissionMode 枚举
+blexagent runtime diagnose codex [--workspacePath PATH]  # Codex 的 auth/features/MCP/apps/effective-env 快照（issue #194）
+blexagent diagnose runtime codex                         # 同上的 sugar 写法
 ```
 
 **何时用：**
 - 在跑 `task create-direct --runtime X --model Y --permissionMode Z` **之前**先 `runtime describe X` 把合法值查清楚——`--help` 只列 flag，值靠这俩命令现场查，不会因为文档漂移而错
 - "我装了哪些 Agent CLI" → `runtime list`
 - 用户问"codex 支持什么 model" → `runtime describe codex`
-- 「@oai/artifact-tool 我从终端能调用、MyAgents 里就不行」/「Codex MCP 在 MyAgents 里看不到」/「Codex 是不是用错代理了」→ `runtime diagnose codex`。它 spawn 一个临时 codex app-server，跑 `getAuthStatus` / `experimentalFeature/list` / `mcpServerStatus/list` / `app/list` 四个 RPC，把 Codex 自己看到的状态原样吐出来，省得猜。effectiveEnv 节里能看到 MyAgents 注入的代理是不是真到了子进程，feature flag 是不是真生效。
+- 「@oai/artifact-tool 我从终端能调用、BlexAgent 里就不行」/「Codex MCP 在 BlexAgent 里看不到」/「Codex 是不是用错代理了」→ `runtime diagnose codex`。它 spawn 一个临时 codex app-server，跑 `getAuthStatus` / `experimentalFeature/list` / `mcpServerStatus/list` / `app/list` 四个 RPC，把 Codex 自己看到的状态原样吐出来，省得猜。effectiveEnv 节里能看到 BlexAgent 注入的代理是不是真到了子进程，feature flag 是不是真生效。
 
 每个外部 runtime 有自己的动态 model 清单（Codex/Gemini 会 spawn CLI 查）和自己的 permissionMode 枚举（`suggest` / `auto-edit` / `full-auto` ≠ 内置的 `auto` / `plan` / `fullAgency`）——别混。
 
 ### Skills（skill）
 
 ```bash
-myagents skill list                                     # 已装 skill（全局 + 项目级）
-myagents skill info <name>                              # 某 skill 的详情
-myagents skill add <url-or-spec> [--scope user|project] [--plugin X] [--skill Y] [--force] [--dry-run]
-myagents skill remove <name>                            # 删除
-myagents skill enable <name>                            # 启用
-myagents skill disable <name>                           # 禁用
-myagents skill sync                                     # 把 ~/.claude/skills 里用户自己装的同步过来
+blexagent skill list                                     # 已装 skill（全局 + 项目级）
+blexagent skill info <name>                              # 某 skill 的详情
+blexagent skill add <url-or-spec> [--scope user|project] [--plugin X] [--skill Y] [--force] [--dry-run]
+blexagent skill remove <name>                            # 删除
+blexagent skill enable <name>                            # 启用
+blexagent skill disable <name>                           # 禁用
+blexagent skill sync                                     # 把 ~/.claude/skills 里用户自己装的同步过来
 ```
 
 **`skill add` 输入形态**（同一 resolver 全吃）：
@@ -225,28 +225,28 @@ myagents skill sync                                     # 把 ~/.claude/skills �
 - "装 React 最佳实践" → `skill add vercel-labs/skills --skill react-best-practices`
 - 报错 `该仓库是 Claude Plugins 市场` → 按提示加 `--plugin <name>`，比如 `skill add anthropics/skills --plugin document-skills` 一次装 docx/pdf/pptx/xlsx
 - 报错 `技能 X 已存在` → 跟用户确认要不要 `--force` 覆盖
-- 用户在 `~/.claude/skills/` 自己塞了东西 MyAgents 看不见 → `skill sync`
+- 用户在 `~/.claude/skills/` 自己塞了东西 BlexAgent 看不见 → `skill sync`
 
 ### 定时任务（cron）
 
 ```bash
-myagents cron list                                      # 列出【当前工作区】的定时任务（按作用域过滤，非全局！）
+blexagent cron list                                      # 列出【当前工作区】的定时任务（按作用域过滤，非全局！）
                                                         # 空结果≠系统无任务——可能在别的工作区。响应带 scope+提示文案
-myagents cron list --workspace <abs>                    # 查看指定工作区的定时任务（跨工作区查看的唯一方式）
-myagents cron add --name "..." --prompt "..." --schedule "..." --workspace <abs>
+blexagent cron list --workspace <abs>                    # 查看指定工作区的定时任务（跨工作区查看的唯一方式）
+blexagent cron add --name "..." --prompt "..." --schedule "..." --workspace <abs>
                                                         # --schedule "0 18 * * *" 标准 cron / --every 15 每 N 分钟
                                                         # --prompt-file <path> 也行（多行 / 含 backtick 用这个，1MB 上限）
-myagents cron update <taskId> [--name X --prompt X --schedule X --every N --model X --permissionMode X]
+blexagent cron update <taskId> [--name X --prompt X --schedule X --every N --model X --permissionMode X]
                                                         # 改任意字段，没传的不动
-myagents cron start <taskId>                            # 启动已停止的任务
-myagents cron stop <taskId>                             # 停止运行中的任务
-myagents cron run-now <taskId>                          # 立即手动触发一次（不影响计划）
-myagents cron remove <taskId>                           # 删除
-myagents cron runs <taskId> [--limit N]                 # 看执行历史
-myagents cron status                                    # 概览：总数 / 运行中 / 下次执行（同样按【当前工作区】作用域，0 ≠ 全局无任务）
-myagents cron exit [--reason "..."]                     # 仅在 cron 任务自己的 session 内可用，且任务的 Allow AI to exit 必须开
+blexagent cron start <taskId>                            # 启动已停止的任务
+blexagent cron stop <taskId>                             # 停止运行中的任务
+blexagent cron run-now <taskId>                          # 立即手动触发一次（不影响计划）
+blexagent cron remove <taskId>                           # 删除
+blexagent cron runs <taskId> [--limit N]                 # 看执行历史
+blexagent cron status                                    # 概览：总数 / 运行中 / 下次执行（同样按【当前工作区】作用域，0 ≠ 全局无任务）
+blexagent cron exit [--reason "..."]                     # 仅在 cron 任务自己的 session 内可用，且任务的 Allow AI to exit 必须开
                                                         # AI 判断"该结束了"时主动退出当前轮
-myagents cron readme                                    # 拉 cron 工具的完整使用文档（progressive disclosure）
+blexagent cron readme                                    # 拉 cron 工具的完整使用文档（progressive disclosure）
 ```
 
 **何时用：**
@@ -260,29 +260,29 @@ myagents cron readme                                    # 拉 cron 工具的完�
 ### 任务中心（task / thought）
 
 ```bash
-myagents thought list [--tag X --query X --limit N]     # 列想法（用户先记下来、后续派发的轻量条目）
-myagents thought create '...'                           # 记一条想法（首选：单引号包裹防 shell 注入；
+blexagent thought list [--tag X --query X --limit N]     # 列想法（用户先记下来、后续派发的轻量条目）
+blexagent thought create '...'                           # 记一条想法（首选：单引号包裹防 shell 注入；
                                                         # 用 #xxx 内联打 tag —— 没有 --tag flag）
-myagents thought create --content "..."                 # 显式 flag 形态，跟单引号等价
-myagents thought create --content-file <abs-path>       # 内容含多行 / CJK / shell 元字符 /
+blexagent thought create --content "..."                 # 显式 flag 形态，跟单引号等价
+blexagent thought create --content-file <abs-path>       # 内容含多行 / CJK / shell 元字符 /
                                                         # Windows 下单引号失灵时的保底通道
 
-myagents task list [--status X --workspaceId X --tag X --includeDeleted]
-myagents task get <taskId>                              # 详情 + statusHistory + 各 .md 文档路径
-myagents task create-direct --name "..." --workspaceId <id> --workspacePath <abs> \
+blexagent task list [--status X --workspaceId X --tag X --includeDeleted]
+blexagent task get <taskId>                              # 详情 + statusHistory + 各 .md 文档路径
+blexagent task create-direct --name "..." --workspaceId <id> --workspacePath <abs> \
     [--taskMdFile <path> | --taskMdContent "..."] \
     [--runtime X --model X --permissionMode X --runtimeConfig <jsonStr> --mcpEnabledServers a,b] \
     [--executor agent --executionMode once --runMode X --tags x,y --sourceThoughtId X]
-myagents task create-from-alignment <alignmentSessionId> --name "..." [--run] [其它同 create-direct]
+blexagent task create-from-alignment <alignmentSessionId> --name "..." [--run] [其它同 create-direct]
                                                         # 从 AI 对齐会话物化任务（workspaceId/Path/sourceThoughtId 自动继承）
                                                         # --run 创建后立刻派发，省一步
-myagents task run <taskId>                              # 派发 todo 任务
-myagents task rerun <taskId>                            # 从 blocked/stopped/done 重新派发
-myagents task update-status <taskId> <status> [--message "..."]
+blexagent task run <taskId>                              # 派发 todo 任务
+blexagent task rerun <taskId>                            # 从 blocked/stopped/done 重新派发
+blexagent task update-status <taskId> <status> [--message "..."]
                                                         # 状态机：todo→running→verifying→done（或 →blocked/stopped）、done→archived
-myagents task append-session <taskId> <sessionId>       # 把一个聊天 session 关联到任务（任务过程中开了新会话用这个登记）
-myagents task archive <taskId> [--message "..."]        # 归档（仅用户可操作；AI 走会被拒）
-myagents task delete <taskId>                           # 软删除（30 天保留）
+blexagent task append-session <taskId> <sessionId>       # 把一个聊天 session 关联到任务（任务过程中开了新会话用这个登记）
+blexagent task archive <taskId> [--message "..."]        # 归档（仅用户可操作；AI 走会被拒）
+blexagent task delete <taskId>                           # 软删除（30 天保留）
 ```
 
 **任务级 runtime/model/permissionMode 覆盖**：`create-direct` / `create-from-alignment` 支持仅对该任务生效的覆盖 flag，**不会改 Agent 工作区默认**。典型场景："实现用 Claude Code、review 用 Codex" → 创两个任务，`--runtime` 不一样，工作区配置不变。
@@ -306,25 +306,25 @@ myagents task delete <taskId>                           # 软删除（30 天保�
 - "重新跑一遍" → `task rerun <taskId>`
 - 只读类 `task get` / `task list`：CLI 输出会带各 `.md` 文档路径（task.md / verify.md / progress.md / alignment.md），用 Read/Edit/Write 直接读改即可
 
-**验证与恢复**：CLI 在转发给 Rust 前会前置校验 `--runtime` / `--model` / `--permissionMode`，不合法直接拒绝并带 `→ Run: myagents runtime describe <rt>` 指引；输出会打印 `overridesRequested` vs `overridden`，传了 override 但没落到持久化态会明确提示 drift。
+**验证与恢复**：CLI 在转发给 Rust 前会前置校验 `--runtime` / `--model` / `--permissionMode`，不合法直接拒绝并带 `→ Run: blexagent runtime describe <rt>` 指引；输出会打印 `overridesRequested` vs `overridden`，传了 override 但没落到持久化态会明确提示 drift。
 
-### MyAgents Cloud Space（space）
+### BlexAgent Cloud Space（space）
 
 ```bash
-myagents space status
-myagents issue <issueId> --json [--comments-limit 5] [--comments-cursor <cursor>]
-myagents space issue get <issueId> --json [--comments-limit 5] [--comments-cursor <cursor>]
-myagents space issue comments <issueId> --json [--limit 20] [--cursor <cursor>]
-myagents space issue comment <issueId> (--body "..." | --body-file <path> | --stdin)
-myagents space issue status <issueId> --status <open|triaged|in_progress|resolved|closed|declined|duplicate|archived>
-myagents space attachment download <attachmentId> [--output myagents_files/space/file.bin]
+blexagent space status
+blexagent issue <issueId> --json [--comments-limit 5] [--comments-cursor <cursor>]
+blexagent space issue get <issueId> --json [--comments-limit 5] [--comments-cursor <cursor>]
+blexagent space issue comments <issueId> --json [--limit 20] [--cursor <cursor>]
+blexagent space issue comment <issueId> (--body "..." | --body-file <path> | --stdin)
+blexagent space issue status <issueId> --status <open|triaged|in_progress|resolved|closed|declined|duplicate|archived>
+blexagent space attachment download <attachmentId> [--output blexagent_files/space/file.bin]
 ```
 
 **何时用：**
-- 你是在 Cloud Space 派发出来的本地 Task 里工作，Task.md 说“你收到了一个 MyAgents Space Issue 通知” → 先 `myagents issue <issueId> --json` 拉完整 Issue；旧环境可用 `myagents space issue get <issueId> --json`。
-- Issue 里有附件 → 用 `myagents space attachment download <attachmentId>` 下载到当前工作区的 `myagents_files/space/`，再读取本地文件。
-- 需要回写结论 → `myagents space issue comment <issueId> --body-file result.md`，长内容优先走 `--body-file` 或 `--stdin`。
-- Goal 明确要求收口状态 → `myagents space issue status <issueId> --status resolved` 或其它合法状态。
+- 你是在 Cloud Space 派发出来的本地 Task 里工作，Task.md 说“你收到了一个 BlexAgent Space Issue 通知” → 先 `blexagent issue <issueId> --json` 拉完整 Issue；旧环境可用 `blexagent space issue get <issueId> --json`。
+- Issue 里有附件 → 用 `blexagent space attachment download <attachmentId>` 下载到当前工作区的 `blexagent_files/space/`，再读取本地文件。
+- 需要回写结论 → `blexagent space issue comment <issueId> --body-file result.md`，长内容优先走 `--body-file` 或 `--stdin`。
+- Goal 明确要求收口状态 → `blexagent space issue status <issueId> --status resolved` 或其它合法状态。
 
 **安全边界：**
 - CLI 会按当前 workspace 自动解析 Registered Agent token；不要要求用户把 Agent token 发给你。
@@ -334,9 +334,9 @@ myagents space attachment download <attachmentId> [--output myagents_files/space
 ### 社区插件（plugin）
 
 ```bash
-myagents plugin list                                    # 已装的 OpenClaw 社区插件
-myagents plugin install <npmSpec>                       # 从 npm 安装（如 @anthropic/wechat）
-myagents plugin remove <pluginId>                       # 卸载
+blexagent plugin list                                    # 已装的 OpenClaw 社区插件
+blexagent plugin install <npmSpec>                       # 从 npm 安装（如 @anthropic/wechat）
+blexagent plugin remove <pluginId>                       # 卸载
 ```
 
 **何时用：**
@@ -348,15 +348,15 @@ myagents plugin remove <pluginId>                       # 卸载
 ### Claude 插件（cc-plugin） — PRD 0.2.17
 
 ```bash
-myagents cc-plugin list                                 # 已装 Claude 插件 + 启停状态
-myagents cc-plugin install <source>                     # 来源：owner/repo / GitHub URL / 直链 zip / file:///abs
-myagents cc-plugin uninstall <name> [--purgeData]       # 卸载（数据目录默认保留）
-myagents cc-plugin enable <name>                        # 启用（下次 session 生效）
-myagents cc-plugin disable <name>                       # 禁用
-myagents cc-plugin show <id|name>                       # 详情（含 manifest + 组件清单）
+blexagent cc-plugin list                                 # 已装 Claude 插件 + 启停状态
+blexagent cc-plugin install <source>                     # 来源：owner/repo / GitHub URL / 直链 zip / file:///abs
+blexagent cc-plugin uninstall <name> [--purgeData]       # 卸载（数据目录默认保留）
+blexagent cc-plugin enable <name>                        # 启用（下次 session 生效）
+blexagent cc-plugin disable <name>                       # 禁用
+blexagent cc-plugin show <id|name>                       # 详情（含 manifest + 组件清单）
 ```
 
-**与上面 `plugin` 的区别：** `cc-plugin` 是 Anthropic 官方的 Claude Plugin 协议（自带 skills/agents/MCP/hooks 的目录），落在 `~/.myagents/plugins/<name>/`；启用后由 SDK 自动装载组件。`plugin`（无前缀）则是 OpenClaw 的 IM 渠道插件，两套体系不冲突。
+**与上面 `plugin` 的区别：** `cc-plugin` 是 Anthropic 官方的 Claude Plugin 协议（自带 skills/agents/MCP/hooks 的目录），落在 `~/.blexagent/plugins/<name>/`；启用后由 SDK 自动装载组件。`plugin`（无前缀）则是 OpenClaw 的 IM 渠道插件，两套体系不冲突。
 
 **何时用：**
 - "粘个 GitHub URL 装个插件" → `cc-plugin install owner/repo`
@@ -368,11 +368,11 @@ myagents cc-plugin show <id|name>                       # 详情（含 manifest 
 ### 通用配置 + 状态（config / status / version / reload）
 
 ```bash
-myagents config get <key>                               # 读，支持点号路径如 proxySettings.host
-myagents config set <key> <value> [--dry-run]           # 写，value 是 JSON 字面量（字符串要带引号）
-myagents status                                         # 应用整体运行状态
-myagents version                                        # 应用版本号
-myagents reload [--workspacePath <abs>]                 # 热加载配置（不重启进程）
+blexagent config get <key>                               # 读，支持点号路径如 proxySettings.host
+blexagent config set <key> <value> [--dry-run]           # 写，value 是 JSON 字面量（字符串要带引号）
+blexagent status                                         # 应用整体运行状态
+blexagent version                                        # 应用版本号
+blexagent reload [--workspacePath <abs>]                 # 热加载配置（不重启进程）
 ```
 
 **何时用：**
@@ -384,30 +384,30 @@ myagents reload [--workspacePath <abs>]                 # 热加载配置（不�
 ### IM 媒体下发（im）
 
 ```bash
-myagents im send-media --file <绝对路径> [--caption "..."]
+blexagent im send-media --file <绝对路径> [--caption "..."]
                                                         # 仅在 IM Bot / Agent Channel session 内可用
-myagents im readme                                      # 拉 IM 工具完整文档
+blexagent im readme                                      # 拉 IM 工具完整文档
 ```
 
 **何时用：**
 - 你正在某个 IM 渠道（Telegram / 飞书 / 钉钉 / OpenClaw）的会话里跟用户聊，要发图片 / 视频 / 文件给对方时用 `im send-media`
-- `--file` 必须是绝对路径，且路径白名单：必须落在 workspace / `/tmp` / MyAgents scratch 目录之一——这是为了防 prompt injection 把 `~/.ssh/id_rsa` 之类发给聊天对方
+- `--file` 必须是绝对路径，且路径白名单：必须落在 workspace / `/tmp` / BlexAgent scratch 目录之一——这是为了防 prompt injection 把 `~/.ssh/id_rsa` 之类发给聊天对方
 - 不在 IM session 内调用会返回 "No IM context"，正常——这命令本来就是 session-scoped
 
 ### Session 间通信（session, PRD 0.2.37）
 
 ```bash
 # 让另一个 session 做新工作或接收通知；从 shell/Bash 工具调用
-myagents session send <sessionId> -p "<prompt>"
-myagents session send <sessionId> --prompt-file <abs-path>   # 多行/长文本(>4KB)必用,跨平台稳定
+blexagent session send <sessionId> -p "<prompt>"
+blexagent session send <sessionId> --prompt-file <abs-path>   # 多行/长文本(>4KB)必用,跨平台稳定
 
-# 默认: 目标 turn 结束后,MyAgents 会把结果推回当前 session
+# 默认: 目标 turn 结束后,BlexAgent 会把结果推回当前 session
 # 仅通知:不需要结果回流时加 --no-reply
-myagents session send <sessionId> -p "<prompt>" --no-reply
+blexagent session send <sessionId> -p "<prompt>" --no-reply
 
 # 监听另一个 session 当前正在进行的工作；不创建新工作
-myagents session watch <sessionId>
-myagents session --help                                      # 完整用法 / EXIT CODES / 示例
+blexagent session watch <sessionId>
+blexagent session --help                                      # 完整用法 / EXIT CODES / 示例
 ```
 
 **何时用:**
@@ -419,10 +419,10 @@ myagents session --help                                      # 完整用法 / EX
 
 **异步语义(关键):**
 - `send` CLI 立即返回投递结果,**不等待**对方处理
-- 默认期待结果推回:对方处理完后,你将在新 turn 收到 `<myagents-session-event type="send.result">`
+- 默认期待结果推回:对方处理完后,你将在新 turn 收到 `<blexagent-session-event type="send.result">`
 - `--no-reply`:仅通知,reply 不回流(对方按自己呈现路径输出)
 - target session idle/dead 不影响投递——系统会自动唤起
-- `watch` 只观察目标 session 当前工作；目标已经 idle 时,CLI 会直接返回 `<myagents-session-event type="watch.already_idle">` 和最近结果
+- `watch` 只观察目标 session 当前工作；目标已经 idle 时,CLI 会直接返回 `<blexagent-session-event type="watch.already_idle">` 和最近结果
 - `watch` 不会向目标 session 注入新 prompt；需要新工作时用 `send`
 
 **Windows 安全:**
@@ -432,8 +432,8 @@ myagents session --help                                      # 完整用法 / EX
 ### Generative UI Widget 设计文档（widget）
 
 ```bash
-myagents widget readme                                  # 看有哪些 widget 模块（chart/diagram/interactive/dashboard/art）
-myagents widget readme <module1> [<module2> ...]        # 拉具体模块的完整设计规范
+blexagent widget readme                                  # 看有哪些 widget 模块（chart/diagram/interactive/dashboard/art）
+blexagent widget readme <module1> [<module2> ...]        # 拉具体模块的完整设计规范
 ```
 
 **何时用：**
@@ -450,18 +450,18 @@ myagents widget readme <module1> [<module2> ...]        # 拉具体模块的完�
 ### 接入 MCP 工具
 
 1. 从用户给的文档提取：server ID、类型（stdio/sse/http）、command 或 URL、所需环境变量
-2. `myagents mcp add --dry-run ...` 预览
+2. `blexagent mcp add --dry-run ...` 预览
 3. 给用户看预览，确认
 4. 执行：`mcp add` → `mcp enable --scope both` → 配 env（如需）→ 如果是 OAuth 类的再 `mcp oauth start`
-5. `myagents mcp test <id>` 实际握手测试
-6. `myagents reload`
+5. `blexagent mcp test <id>` 实际握手测试
+6. `blexagent reload`
 7. 告诉用户："发条新消息我就能用了"
 
 ### 配置模型服务（最常见、最有价值）
 
 #### 协议优先级：Anthropic 协议永远先于 OpenAI 兼容
 
-MyAgents 基于 Claude Agent SDK，原生协议是 Anthropic Messages API。接入第三方 API 时：
+BlexAgent 基于 Claude Agent SDK，原生协议是 Anthropic Messages API。接入第三方 API 时：
 
 1. **Anthropic 协议（最优先）**：原生协议，零转换开销，所有 SDK 能力（工具调用 / 流式 / Extended Thinking）都正常
 2. **OpenAI 兼容（兜底）**：服务商只给 `/v1/chat/completions` 时用 `--protocol openai`，过协议桥接层转换，部分高级功能受限
@@ -470,7 +470,7 @@ MyAgents 基于 Claude Agent SDK，原生协议是 Anthropic Messages API。接�
 
 **第一步：找 Anthropic / Claude Code 接入板块（优先）**
 
-大多数支持 Anthropic 协议的服务商，会在文档里以「接入 Claude Code」的形式呈现——MyAgents 和 Claude Code 共享 SDK，所以 Claude Code 的接入方式就是我们最原生的接入方式。
+大多数支持 Anthropic 协议的服务商，会在文档里以「接入 Claude Code」的形式呈现——BlexAgent 和 Claude Code 共享 SDK，所以 Claude Code 的接入方式就是我们最原生的接入方式。
 
 文档里搜：`Claude Code` / `Anthropic` / `ANTHROPIC_BASE_URL` / `ANTHROPIC_API_KEY` / `/anthropic`。
 
@@ -491,7 +491,7 @@ MyAgents 基于 Claude Agent SDK，原生协议是 Anthropic Messages API。接�
 
 #### Claude Code 环境变量 → CLI flag 映射
 
-| Claude Code 环境变量 | MyAgents CLI |
+| Claude Code 环境变量 | BlexAgent CLI |
 |---------------------|------------|
 | `ANTHROPIC_BASE_URL` | `--base-url` |
 | `ANTHROPIC_API_KEY` | `model set-key` 设置 |
@@ -506,7 +506,7 @@ MyAgents 基于 Claude Agent SDK，原生协议是 Anthropic Messages API。接�
 #### model add 完整 flag
 
 ```
-myagents model add \
+blexagent model add \
   --id <唯一ID>              # 必填
   --name <显示名>             # 必填
   --base-url <API地址>        # 必填
@@ -548,11 +548,11 @@ myagents model add \
 ### 配置 Agent Channel
 
 ```bash
-myagents agent channel list <agentId>                                       # 看现有
-myagents agent channel add <agentId> --type telegram --bot-token <token>
-myagents agent channel add <agentId> --type feishu --feishu-app-id <id> --feishu-app-secret <secret>
-myagents agent channel add <agentId> --type dingtalk --dingtalk-client-id <id> --dingtalk-client-secret <secret>
-myagents agent channel remove <agentId> <channelId>
+blexagent agent channel list <agentId>                                       # 看现有
+blexagent agent channel add <agentId> --type telegram --bot-token <token>
+blexagent agent channel add <agentId> --type feishu --feishu-app-id <id> --feishu-app-secret <secret>
+blexagent agent channel add <agentId> --type dingtalk --dingtalk-client-id <id> --dingtalk-client-secret <secret>
+blexagent agent channel remove <agentId> <channelId>
 ```
 
 不同平台需要不同凭证（flag 名必须与配置字段一致）。OpenClaw 社区插件（如飞书 `openclaw-lark`、微信）的 `--type` 是 `openclaw:<pluginId>`，并需要先 `plugin install` 装好对应插件。

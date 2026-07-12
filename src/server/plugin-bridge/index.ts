@@ -420,7 +420,7 @@ async function loadPlugin() {
 
   // Add the registered ChannelPlugin.id as an additional alias when it differs
   // from the manifest channel key. The manifest key is canonical for OpenClaw
-  // config, while historical MyAgents data and some plugins still mention
+  // config, while historical BlexAgent data and some plugins still mention
   // install/package identities.
   const openclawCfg = addOpenClawChannelAliases(openclawConfig, [capturedPlugin.id], channelKey);
   compatApi.config = openclawCfg;

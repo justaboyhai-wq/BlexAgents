@@ -48,7 +48,7 @@
 - external runtime restore
 - boot banner
 
-`globalThis.__myagentsDeferredInit` 作为路由级 readiness gate：除 `/health` 外所有 route 在处理前 `await` 它；稳定态下是亚微秒 no-op。
+`globalThis.__blexagentDeferredInit` 作为路由级 readiness gate：除 `/health` 外所有 route 在处理前 `await` 它；稳定态下是亚微秒 no-op。
 
 > 注：v0.2.0 后期已迁移到 `DeferredInitState` 状态机 + 三分 readiness endpoints，详见 `pit_of_success.md` 的「DeferredInitState」节。
 
@@ -93,7 +93,7 @@ setSessionState((systemInitInfo || sdkControlReady) ? 'running' : 'starting');
 
 **非 pre-warm 冷启动的额外 fast-path**：用户在没有 pre-warm 的情况下直接发第一条消息，`enqueueUserMessage` 会设 state=`'starting'`。`initializationResult` 的 resolve handler 看到 `sessionState === 'starting'` 时主动转 `'running'`（约 3-5s 后），不必等到第一个 turn 末尾的 streamed `system_init` 才转。否则 /context 这类慢首 turn 会让"AI 启动中"挂 44 秒。
 
-**为什么不切到 SDK 的 `startup()` / `WarmQuery` API**：MyAgents 的「pre-warm 即最终 session」架构（CLAUDE.md「Pre-warm 机制」段）让 `querySession` 是单一对象贯穿生命周期，`setMcpServers` / `setAgents` / `setSessionModel` / `abortPersistentSession` 全部 close-over 它。WarmQuery 模式要求 pre-warm 期间 `querySession` 是 WarmQuery、第一条消息时换成 Query，会波及几十处调用点。`startup()` 内部其实就是 spawn + `await initializationResult()`，我们直接展开调更轻。
+**为什么不切到 SDK 的 `startup()` / `WarmQuery` API**：BlexAgent 的「pre-warm 即最终 session」架构（CLAUDE.md「Pre-warm 机制」段）让 `querySession` 是单一对象贯穿生命周期，`setMcpServers` / `setAgents` / `setSessionModel` / `abortPersistentSession` 全部 close-over 它。WarmQuery 模式要求 pre-warm 期间 `querySession` 是 WarmQuery、第一条消息时换成 Query，会波及几十处调用点。`startup()` 内部其实就是 spawn + `await initializationResult()`，我们直接展开调更轻。
 
 ## Tier 2 懒加载
 

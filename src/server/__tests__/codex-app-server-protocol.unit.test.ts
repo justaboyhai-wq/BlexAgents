@@ -32,7 +32,7 @@ describe('Codex app-server protocol helpers', () => {
   });
 
   function tempWorkspace(): string {
-    const dir = join(tmpdir(), `myagents-codex-test-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    const dir = join(tmpdir(), `blexagent-codex-test-${Date.now()}-${Math.random().toString(16).slice(2)}`);
     mkdirSync(dir, { recursive: true });
     tempRoots.push(dir);
     return dir;
@@ -156,11 +156,11 @@ describe('Codex app-server protocol helpers', () => {
     expect(args).toContain('mcp_servers.fs_tool.args=["server.js"]');
     expect(args).toContain('mcp_servers.fs_tool.env_vars=["FS_TOKEN","HTTPS_PROXY","NO_PROXY","no_proxy"]');
     expect(args).toContain('mcp_servers.remote-http.url="https://example.com/mcp"');
-    expect(args).toContain('mcp_servers.remote-http.env_http_headers={Authorization="MYAGENTS_MCP_REMOTE_HTTP_AUTHORIZATION"}');
+    expect(args).toContain('mcp_servers.remote-http.env_http_headers={Authorization="BLEXAGENT_MCP_REMOTE_HTTP_AUTHORIZATION"}');
     expect(args.join('\n')).not.toContain('secret-token');
     expect(args.join('\n')).not.toContain('remote-secret');
     expect(env.FS_TOKEN).toBe('secret-token');
-    expect(env.MYAGENTS_MCP_REMOTE_HTTP_AUTHORIZATION).toBe('Bearer remote-secret');
+    expect(env.BLEXAGENT_MCP_REMOTE_HTTP_AUTHORIZATION).toBe('Bearer remote-secret');
     expect(env.REMOTE_TOKEN).toBeUndefined();
     expect(env.NO_PROXY).toContain('127.0.0.1');
   });

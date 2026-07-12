@@ -226,7 +226,7 @@ pub(super) async fn execute_task_directly(
     //
     // Design deliberately does NOT delegate this to the AI agent via CLI
     // (previous PRD text suggested that). Relying on the AI to remember a
-    // `myagents task append-session` call at session end is a pit-of-
+    // `blexagent task append-session` call at session end is a pit-of-
     // not-success: it only works when the AI explicitly does it, which is
     // unobservable until users report "my task executed but the history
     // is empty." Doing it at the Rust dispatch point guarantees coverage
@@ -259,7 +259,7 @@ pub(super) async fn execute_task_directly(
     });
 
     // PRD §9.3.1: if this CronTask is linked to a Task Center task, construct
-    // the prompt dynamically from the latest `~/.myagents/tasks/<id>/task.md`
+    // the prompt dynamically from the latest `~/.blexagent/tasks/<id>/task.md`
     // (or alignment state) instead of using the CronTask's frozen `prompt`
     // field. This lets the user edit task.md between firings and the next
     // execution picks up the change.
@@ -272,7 +272,7 @@ pub(super) async fn execute_task_directly(
     //     Without this the scheduler would keep firing every tick, each time
     //     hitting this guard, returning Err, recording a failed run, and
     //     trying again next interval — a silent error loop that burns disk
-    //     on `~/.myagents/cron_runs/` and spams the unified log. (v0.1.69 H2)
+    //     on `~/.blexagent/cron_runs/` and spams the unified log. (v0.1.69 H2)
     //   - task.md missing / empty for a direct task → transition the Task to
     //     Blocked with the error as message (rather than sending a meaningless
     //     placeholder prompt to the model)
@@ -565,7 +565,7 @@ pub(super) async fn stop_task_internal(
 
     // Save to disk atomically (prevents data corruption on crash)
     if let Some(parent) = dirs::home_dir() {
-        let storage_path = parent.join(".myagents").join("cron_tasks.json");
+        let storage_path = parent.join(".blexagent").join("cron_tasks.json");
         if let Err(e) = atomic_save_tasks(&storage_path, &tasks).await {
             ulog_error!("[CronTask] Failed to save tasks on stop: {}", e);
         }

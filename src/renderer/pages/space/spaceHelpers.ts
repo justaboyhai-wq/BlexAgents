@@ -190,15 +190,15 @@ export function buildIssueCommandPrompt(args: { spaceName: string; issueId: stri
     `Issue ID: ${args.issueId}`,
     '',
     '命令：',
-    `myagents space issue view ${args.issueId} --comments`,
+    `blexagent space issue view ${args.issueId} --comments`,
     '',
     '处理时可按需使用：',
-    `myagents space issue comment ${args.issueId} --body "<和用户确认后的处理记录>"`,
-    `myagents space issue claim ${args.issueId}`,
-    `myagents space issue complete ${args.issueId}`,
+    `blexagent space issue comment ${args.issueId} --body "<和用户确认后的处理记录>"`,
+    `blexagent space issue claim ${args.issueId}`,
+    `blexagent space issue complete ${args.issueId}`,
     '',
     '兼容命令：',
-    `myagents issue ${args.issueId} --json`,
+    `blexagent issue ${args.issueId} --json`,
   ].join('\n');
 }
 

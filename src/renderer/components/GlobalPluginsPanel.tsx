@@ -13,7 +13,7 @@
  *     events here. Every user action therefore calls loadList() directly
  *     to refresh state — correct under all conditions including zero Chat
  *     tabs open and CLI-driven changes (handled by manual refresh).
- *   - The `myagents:plugins-changed` CustomEvent is still subscribed as a
+ *   - The `blexagent:plugins-changed` CustomEvent is still subscribed as a
  *     best-effort signal: if a Chat tab IS open and bridges the SSE event,
  *     we pick up that signal too. Belt and suspenders.
  *
@@ -124,8 +124,8 @@ export default function GlobalPluginsPanel({
   // Refresh on plugins:changed
   useEffect(() => {
     const onChanged = () => { loadList(); };
-    window.addEventListener('myagents:plugins-changed', onChanged);
-    return () => window.removeEventListener('myagents:plugins-changed', onChanged);
+    window.addEventListener('blexagent:plugins-changed', onChanged);
+    return () => window.removeEventListener('blexagent:plugins-changed', onChanged);
   }, [loadList]);
 
   // ----- detail load -------------------------------------------------------
@@ -706,8 +706,8 @@ function PluginInstallDialog({
       setPhase(detail.phase);
       setPhaseMsg(detail.message || detail.error || '');
     };
-    window.addEventListener('myagents:plugin-install-progress', onProgress);
-    return () => window.removeEventListener('myagents:plugin-install-progress', onProgress);
+    window.addEventListener('blexagent:plugin-install-progress', onProgress);
+    return () => window.removeEventListener('blexagent:plugin-install-progress', onProgress);
   }, []);
 
   // ───── Step 1: inspect ──────────────────────────────────────────────────
@@ -802,7 +802,7 @@ function PluginInstallDialog({
   // Sequential (not parallel) — concurrent same-host installs would burn
   // GitHub rate limits and the disk write race protection in installPlugin
   // assumes serial calls per name. Each candidate gets a fresh /install
-  // with a distinct subPath so it lands at ~/.myagents/plugins/<name>/.
+  // with a distinct subPath so it lands at ~/.blexagent/plugins/<name>/.
   const startBatch = useCallback(async (chosen: PluginCandidate[]) => {
     if (chosen.length === 0) {
       toastRef.current.error(t('plugins.install.errors.selectAtLeastOne'));

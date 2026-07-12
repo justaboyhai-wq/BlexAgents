@@ -1,4 +1,4 @@
-const SCROLLBAR_ACTIVITY_CLASS = 'myagents-scrollbar-active';
+const SCROLLBAR_ACTIVITY_CLASS = 'blexagent-scrollbar-active';
 const DEFAULT_IDLE_DELAY_MS = 850;
 
 let installedCleanup: (() => void) | null = null;

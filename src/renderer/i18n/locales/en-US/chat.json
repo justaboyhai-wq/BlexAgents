@@ -1,7 +1,7 @@
 {
   "input": {
     "launcherPlaceholder": "What do you want to do today?",
-    "placeholder": "Message MyAgents, use @ for files and / for skills...",
+    "placeholder": "Message BlexAgent, use @ for files and / for skills...",
     "companionPlaceholder": "Ask Mino or delegate a task...",
     "addScreenshot": "Add screenshot",
     "send": "Send",
@@ -190,7 +190,7 @@
     "watchingAppWindow": "Mino · Watching {{appName}} — {{windowTitle}}",
     "chrome": {
       "openPetSettings": "Open Desktop Pet settings",
-      "openInMyAgents": "Open in MyAgents (continue in a new tab)",
+      "openInBlexAgent": "Open in BlexAgent (continue in a new tab)",
       "closeEsc": "Close (Esc)"
     },
     "connecting": "Connecting to {{workspace}}...",
@@ -742,7 +742,7 @@
     "currentChatFallback": "This chat",
     "dropZone": {
       "message": "Release to add files to the workspace",
-      "subtitle": "Non-image files will be copied to myagents_files and referenced automatically."
+      "subtitle": "Non-image files will be copied to blexagent_files and referenced automatically."
     },
     "boot": {
       "loading": "Starting AI"
@@ -835,7 +835,7 @@
       "providerUnavailable": "The Provider pinned to this chat, \"{{providerId}}\", is unavailable because its API key is missing or it has been disabled. Add the key in Settings, or switch Provider in the model picker before sending.",
       "snapshotProviderIncomplete": "This historical chat is missing Provider information. Select the model again in the model picker first.",
       "previewWorkspaceUnavailable": "Cannot open preview because the workspace file service is unavailable.",
-      "previewUnsupportedType": "This file type is not supported by MyAgents preview yet.",
+      "previewUnsupportedType": "This file type is not supported by BlexAgent preview yet.",
       "previewOpenFailed": "Failed to open file preview.",
       "autoSendRestoredDraft": "Send failed. Your draft was restored; please try again.",
       "skillSyncedToGlobal": "Synced to global Skills.",

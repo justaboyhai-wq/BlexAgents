@@ -1,7 +1,7 @@
 ---
 name: task-implement
-description: "Autonomous task execution driven by task documents from /task-alignment (living under `~/.myagents/tasks/<taskId>/`). Reads task.md as the goal, decomposes work, delegates to subagents when appropriate, runs independent verification, and delivers results. Acts as a UserProxy Agent — the human's representative during autonomous execution. Use when the user dispatches a task from the 任务 panel or explicitly wants to start execution. Trigger phrases include '/task-implement', 'start the task', 'go ahead and implement', 'execute the plan', or when the user confirms alignment documents and says something like 'looks good, go'."
-author: MyAgents
+description: "Autonomous task execution driven by task documents from /task-alignment (living under `~/.blexagent/tasks/<taskId>/`). Reads task.md as the goal, decomposes work, delegates to subagents when appropriate, runs independent verification, and delivers results. Acts as a UserProxy Agent — the human's representative during autonomous execution. Use when the user dispatches a task from the 任务 panel or explicitly wants to start execution. Trigger phrases include '/task-implement', 'start the task', 'go ahead and implement', 'execute the plan', or when the user confirms alignment documents and says something like 'looks good, go'."
+author: BlexAgent
 ---
 
 # Task Implement
@@ -16,9 +16,9 @@ You are not just an executor. You are the human's representative: you make judgm
 
 1. **Locate the task documents.** The invocation looks like `/task-implement <taskId>` (a UUID). Start with a single CLI call to resolve metadata + file paths:
    ```bash
-   myagents task get <taskId>
+   blexagent task get <taskId>
    ```
-   The output includes a `Docs` section with absolute paths to `task.md`, `verify.md`, `progress.md`, and (when present) `alignment.md` — all under `~/.myagents/tasks/<taskId>/`. Read each existing file directly with the `Read` tool — no dedicated "show-doc" CLI, just plain file reads against the paths the CLI gave you. Missing docs (e.g. no `alignment.md` for direct-dispatch tasks, no `verify.md` for simple tasks) simply won't appear in the paths list — that's not an error.
+   The output includes a `Docs` section with absolute paths to `task.md`, `verify.md`, `progress.md`, and (when present) `alignment.md` — all under `~/.blexagent/tasks/<taskId>/`. Read each existing file directly with the `Read` tool — no dedicated "show-doc" CLI, just plain file reads against the paths the CLI gave you. Missing docs (e.g. no `alignment.md` for direct-dispatch tasks, no `verify.md` for simple tasks) simply won't appear in the paths list — that's not an error.
 
    If no taskId was provided, the user likely invoked `/task-implement` outside the Task Center flow. Tell them tasks need to be dispatched from the 任务 panel so execution can be tracked (state machine, statusHistory audit, SSE updates), and don't proceed.
 
@@ -36,7 +36,7 @@ You are not just an executor. You are the human's representative: you make judgm
    - If no git repo, skip this entirely
 
 5. **Update progress.md** — append a "started execution" entry. Use the `Edit` tool against the progress.md path from `task get`'s Docs section. Set status to "In Progress" and log the start time. See "Progress tracking" below for the full editing convention.
-6. **State machine transition** — call `myagents task update-status <taskId> running --message "started on branch X"`. This is the one place you DO use a CLI — because `update-status` triggers program-level side effects (statusHistory audit + desktop notification + scheduler awareness) that a raw file edit can't.
+6. **State machine transition** — call `blexagent task update-status <taskId> running --message "started on branch X"`. This is the one place you DO use a CLI — because `update-status` triggers program-level side effects (statusHistory audit + desktop notification + scheduler awareness) that a raw file edit can't.
 
 ## How to execute
 
@@ -149,9 +149,9 @@ Update progress as you work. This is the user's window into what's happening whi
 - **Updating a checkbox or section** → `Edit` tool with a targeted find/replace.
 - **Periodic full rewrite** (restructuring the Change Log, moving completed steps to a separate section) → `Write` tool with the full new body.
 
-The progress.md absolute path came back in `myagents task get <taskId>`'s `Docs` section — use that.
+The progress.md absolute path came back in `blexagent task get <taskId>`'s `Docs` section — use that.
 
-Note: `myagents task update-progress` no longer exists (v0.1.69+). Direct file editing is the ONLY way — you own this doc end-to-end.
+Note: `blexagent task update-progress` no longer exists (v0.1.69+). Direct file editing is the ONLY way — you own this doc end-to-end.
 
 **When to update:**
 - Starting a new step → mark it in progress

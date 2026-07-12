@@ -51,11 +51,11 @@ describe('SimpleChatInput send paths', () => {
     vi.clearAllMocks();
     workspaceMocks.service.importBase64Files.mockResolvedValue({
       success: true,
-      files: ['myagents_files/pasted.txt'],
+      files: ['blexagent_files/pasted.txt'],
     });
     workspaceMocks.service.copyPaths.mockResolvedValue({
       success: true,
-      copiedFiles: [{ targetPath: 'myagents_files/report.pdf' }],
+      copiedFiles: [{ targetPath: 'blexagent_files/report.pdf' }],
     });
     workspaceMocks.service.addGitignore.mockResolvedValue({ success: true });
     workspaceMocks.service.searchFiles.mockResolvedValue([]);
@@ -258,10 +258,10 @@ describe('SimpleChatInput send paths', () => {
       },
     });
 
-    await waitFor(() => expect(textarea).toHaveValue('@myagents_files/pasted.txt '));
+    await waitFor(() => expect(textarea).toHaveValue('@blexagent_files/pasted.txt '));
     expect(workspaceMocks.service.importBase64Files).toHaveBeenCalledWith({
       files: [{ name: 'pasted.txt', content: expect.any(String) }],
-      targetDir: 'myagents_files',
+      targetDir: 'blexagent_files',
     });
   });
 
@@ -293,12 +293,12 @@ describe('SimpleChatInput send paths', () => {
     await user.type(textarea, 'keep me');
 
     await act(async () => {
-      resolveImport({ success: true, files: ['myagents_files/pasted.txt'] });
+      resolveImport({ success: true, files: ['blexagent_files/pasted.txt'] });
     });
 
     await waitFor(() => {
       expect((textarea as HTMLTextAreaElement).value).toContain('keep me');
-      expect((textarea as HTMLTextAreaElement).value).toContain('@myagents_files/pasted.txt');
+      expect((textarea as HTMLTextAreaElement).value).toContain('@blexagent_files/pasted.txt');
     });
   });
 
@@ -313,10 +313,10 @@ describe('SimpleChatInput send paths', () => {
       await handle.processDroppedFilePaths(['/tmp/report.pdf']);
     });
 
-    await waitFor(() => expect(textarea).toHaveValue('@myagents_files/report.pdf '));
+    await waitFor(() => expect(textarea).toHaveValue('@blexagent_files/report.pdf '));
     expect(workspaceMocks.service.copyPaths).toHaveBeenCalledWith({
       sourcePaths: ['/tmp/report.pdf'],
-      targetDir: 'myagents_files',
+      targetDir: 'blexagent_files',
       autoRename: true,
     });
   });
@@ -341,13 +341,13 @@ describe('SimpleChatInput send paths', () => {
     await user.type(textarea, 'keep me');
 
     await act(async () => {
-      resolveCopy({ success: true, copiedFiles: [{ targetPath: 'myagents_files/report.pdf' }] });
+      resolveCopy({ success: true, copiedFiles: [{ targetPath: 'blexagent_files/report.pdf' }] });
       await copyPromise;
     });
 
     await waitFor(() => {
       expect((textarea as HTMLTextAreaElement).value).toContain('keep me');
-      expect((textarea as HTMLTextAreaElement).value).toContain('@myagents_files/report.pdf');
+      expect((textarea as HTMLTextAreaElement).value).toContain('@blexagent_files/report.pdf');
     });
   });
 });

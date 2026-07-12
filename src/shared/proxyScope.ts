@@ -37,7 +37,7 @@ export function normalizeProxyScope(
   return { mode: 'custom', providerIds };
 }
 
-export function shouldUseMyAgentsProxyForProvider(
+export function shouldUseBlexAgentProxyForProvider(
   proxySettings: ProxySettings | null | undefined,
   providerId: string | null | undefined,
 ): boolean {
@@ -54,14 +54,14 @@ export function effectiveProxyScopeKey(
   providerId: string | null | undefined,
 ): string {
   const id = providerId?.trim();
-  if (!proxySettings?.enabled || !id) return 'myagents-proxy:none';
-  if (!shouldUseMyAgentsProxyForProvider(proxySettings, id)) {
-    return `myagents-proxy:disabled-for-provider:${id}`;
+  if (!proxySettings?.enabled || !id) return 'blexagent-proxy:none';
+  if (!shouldUseBlexAgentProxyForProvider(proxySettings, id)) {
+    return `blexagent-proxy:disabled-for-provider:${id}`;
   }
   const protocol = proxySettings.protocol || 'http';
   const host = proxySettings.host || '127.0.0.1';
   const port = proxySettings.port || 7890;
-  return `myagents-proxy:${id}:${protocol}://${host}:${port}`;
+  return `blexagent-proxy:${id}:${protocol}://${host}:${port}`;
 }
 
 export function normalizeProxySettingsScope(

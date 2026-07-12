@@ -1,11 +1,11 @@
 ---
-name: myagents-memory-gardener
+name: blexagent-memory-gardener
 description: >
-  MyAgents 记忆系统 Skill ，用于整理和浓缩项目长期记忆，移除过期或重复内容，
+  BlexAgent 记忆系统 Skill ，用于整理和浓缩项目长期记忆，移除过期或重复内容，
   保留仍然重要的事实、偏好、约定和决策。
 ---
 
-# MyAgents Memory Gardener
+# BlexAgent Memory Gardener
 
 本 skill 是长期记忆机制的第二层：它不捕获当天经历，而是把已经沉淀下来的
 `03-USER` / `04-MEMORY` 自动装载层修剪回可长期运行的状态。
@@ -16,8 +16,8 @@ description: >
 ## 边界
 
 - `UPDATE_MEMORY.md`：24h 捕获层，只做 session 级增量沉淀。
-- `myagents-memory-gardener`：72h 整编层，只做删、下放、合并、体检。
-- `myagents-memory-molt`：14d 深反层，才允许改 SOUL / 底层信念。
+- `blexagent-memory-gardener`：72h 整编层，只做删、下放、合并、体检。
+- `blexagent-memory-molt`：14d 深反层，才允许改 SOUL / 底层信念。
 
 ## 工作流程
 

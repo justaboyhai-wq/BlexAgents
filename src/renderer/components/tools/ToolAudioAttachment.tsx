@@ -40,7 +40,7 @@ export default function ToolAudioAttachment({ attachment }: Props) {
   const { t } = useTranslation('chat');
   const fileService = useWorkspaceFileService(null);
   // The chat's workspace root. `openPath` (sourcePath) may live under the
-  // workspace (e.g. `<workspace>/myagents_files/...`) on a non-home drive
+  // workspace (e.g. `<workspace>/blexagent_files/...`) on a non-home drive
   // (`/Volumes/work`, `D:\`). Rust `validate_external_open_path` only allows
   // home/tmp/workspace prefixes, so without threading the workspace the menu
   // silently fails for workspaces outside `~`/`tmp`. FileActionContext already

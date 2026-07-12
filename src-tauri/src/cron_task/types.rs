@@ -198,14 +198,14 @@ pub struct CronTask {
     /// so on the next `save_to_disk()` (any field edit) the credential
     /// copy disappears and the cron either runs subscription/follow or the
     /// user re-picks a provider. PRD 0.2.9 R2 invariant: zero credential
-    /// copies in `~/.myagents/cron_tasks.json`.
+    /// copies in `~/.blexagent/cron_tasks.json`.
     #[serde(default, skip_serializing)]
     pub provider_env: Option<TaskProviderEnv>,
     /// PRD 0.2.9 — Per-task provider id (live-resolution intent).
     ///
     /// Replaces `provider_env` as the canonical persistence shape. When set,
     /// the sidecar calls `resolveProviderEnv(providerId)` at every tick from
-    /// `~/.myagents/config.json`, so:
+    /// `~/.blexagent/config.json`, so:
     ///   * API key rotation propagates instantly (no need to re-save tasks)
     ///   * Provider deletion fails the next tick with a clear error
     ///   * No credential copies in `cron_tasks.json`

@@ -1,4 +1,4 @@
-# MyAgents — Desktop AI Agent
+# BlexAgent — Desktop AI Agent
 
 基于 Claude Agent SDK 的桌面端通用 Agent 产品。开源（Apache-2.0），Conventional Commits，不提交敏感信息。
 
@@ -17,11 +17,11 @@
 - `src/renderer/` — React 前端（api/、context/、hooks/、components/、pages/）
 - `src/server/` — Node.js 后端 Sidecar（esbuild 打包成 `server-dist.js`）
 - `src/server/plugin-bridge/` — OpenClaw Plugin Bridge（独立 Node 进程）
-- `src/cli/` — `myagents` CLI（同步到 `~/.myagents/bin/`）
+- `src/cli/` — `blexagent` CLI（同步到 `~/.blexagent/bin/`）
 - `src/shared/` — 前后端共享类型
 - `src-tauri/` — Tauri Rust 层
 - `specs/` — 设计文档（ARCHITECTURE.md / DESIGN.md / tech_docs/ / guides/）
-- `bundled-agents/myagents_helper/` — 内置 MA 小助理
+- `bundled-agents/blexagent_helper/` — 内置 Blex 小助理
 
 ---
 
@@ -61,7 +61,7 @@
 | Task / Cron provider routing 三层架构 | `tech_docs/task_provider_routing.md` |
 | 全文搜索（Tantivy / jieba） | `tech_docs/search_architecture.md` |
 | 内置 Node.js / SDK native binary / PATH 注入 | `tech_docs/bundled_node.md` |
-| `myagents` CLI / Admin API | `tech_docs/cli_architecture.md` |
+| `blexagent` CLI / Admin API | `tech_docs/cli_architecture.md` |
 | 三方供应商 / OpenAI Bridge | `tech_docs/third_party_providers.md` |
 | 系统代理 / SOCKS5 桥接 | `tech_docs/proxy_config.md` |
 | 统一日志 | `tech_docs/unified_logging.md` |
@@ -187,7 +187,7 @@ Rust `CronTaskManager` 统一管理所有定时任务（Chat 定时 / 独立创�
 | Chat 新增"mount 期推配置给 sidecar"的 effect 不门控 `sidecarConfigDisposition`；或 flip 前用 pre-ensure 检查（`getSessionPort`）预测 push-vs-adopt | config-stomp TOCTOU（#300/#301）：并发 Rust creator 在检查与 ensure 之间起 sidecar → 配置被冲掉 + MCP 指纹 abort + 30s 重启循环 | 唯一裁决者 = `ensureSessionSidecar` 的 `result.isNew`（Rust 锁内）；不确定就置 `'pending'`。三态门控细节见 `tech_docs/session_architecture.md`「Sidecar 配置归置」 | — (effect 门控漏项靠 review) |
 | 裸 `which::which()` 查系统工具 | Finder 启动时 PATH 缺失 | `crate::system_binary::find()` | clippy |
 | Tauri `resource_dir()` / `current_exe()` 路径直接喂 Node / npm / URL / 子进程 | Windows `\\?\` 长路径前缀让 `fileURLToPath` / spawn 报 `ERR_INVALID_FILE_URL_PATH` 或静默挂 | `crate::sidecar::normalize_external_path(p)`，在路径"出 Rust 边界"前剥前缀 | — (路径来源动态) |
-| `~/.myagents/config.json` 裸 `tmp + rename` | 多写者 race，密钥静默丢失 | Node `withConfigLock` / Rust `with_config_lock` / renderer `withConfigLock` | — (路径作用域，banning all `fs::rename` 噪音过大) |
+| `~/.blexagent/config.json` 裸 `tmp + rename` | 多写者 race，密钥静默丢失 | Node `withConfigLock` / Rust `with_config_lock` / renderer `withConfigLock` | — (路径作用域，banning all `fs::rename` 噪音过大) |
 | 单写者文件裸 append / read-modify-write | 应用内多 owner race | `withFileLock` / `with_file_lock` / `with_file_lock_blocking` | — (writer-pattern 依赖) |
 | Runtime 子进程 stop 用裸 `SIGTERM + waitForExit` | 进程拒收 SIGTERM 时永久卡死 | `killWithEscalation` | — (跨多语句模式，false-positive 高) |
 | 工具 / bridge 裸 `fetch()` 无 AbortSignal | 下游卡住 → tool turn / IM 消息处理永久 hang 直到 OS TCP 超时（分钟级） | `cancellableFetch` / `withAbortSignal`（`@/server/utils/cancellation`，默认 30s 超时 + parentSignal 传递） | eslint (`src/server/tools/**` + `plugin-bridge/**`) |
@@ -203,8 +203,8 @@ Rust `CronTaskManager` 统一管理所有定时任务（Chat 定时 / 独立创�
 | Sidecar 用 `__dirname` | esbuild 硬编码路径到源文件位置 → 运行时落到不存在/陈旧的 dist/ 路径 | `fileURLToPath(import.meta.url)` / `getScriptDir()`（`@/server/utils/runtime`） | eslint (`src/server/**`) |
 | Sidecar 用 `readFileSync(path.join(__dirname, ...))` 读 bundled 资源 | 同上 | 内联常量 / `fileURLToPath(import.meta.url)` 算路径 | — (`__dirname` 已 lint，`readFileSync` 本身有大量合法用途) |
 | 日志日期用 UTC `toISOString().split('T')[0]` | UTC 与本地日期在 UTC+8 有 1/3 时间不匹配 → 日志写错文件，按"今天的日期" grep 找不到 | `localDate()`（`@/shared/logTime`） | eslint |
-| Rust 日志用 `log::info!` / `warn!` / `error!` / `debug!` / `trace!` | 不进统一日志（`~/.myagents/logs/unified-{date}.log`），renderer 日志面板和"读 unified log"的红线全失效 | `ulog_info!` / `ulog_warn!` / `ulog_error!` / `ulog_debug!` | clippy |
-| 前端 `@tauri-apps/plugin-fs` 读写工作区 | Tauri fs scope 仅覆盖 `~/.myagents/**`，工作区路径会失败 | `invoke('cmd_read_workspace_file')` / `cmd_write_workspace_file` | — (路径作用域，import 维度判不准) |
+| Rust 日志用 `log::info!` / `warn!` / `error!` / `debug!` / `trace!` | 不进统一日志（`~/.blexagent/logs/unified-{date}.log`），renderer 日志面板和"读 unified log"的红线全失效 | `ulog_info!` / `ulog_warn!` / `ulog_error!` / `ulog_debug!` | clippy |
+| 前端 `@tauri-apps/plugin-fs` 读写工作区 | Tauri fs scope 仅覆盖 `~/.blexagent/**`，工作区路径会失败 | `invoke('cmd_read_workspace_file')` / `cmd_write_workspace_file` | — (路径作用域，import 维度判不准) |
 | 工作区文件 IO 走 sidecar HTTP | Launcher 没有 Sidecar，这些路径直接死掉（PRD 0.2.7 实战）；"AI runtime 容器"与"OS 文件操作"耦合，云端协作拆不开。18 个旧端点已全部下线（v0.2.7 Phase E） | Rust invoke `cmd_workspace_*`；前端唯一入口 `useWorkspaceFileService(workspacePath)`。详见 ARCHITECTURE「工作区文件 IO」 | eslint (字面量封禁) |
 | Chat / Launcher 各自实现"选项变更持久化" | 字段集合 / 分支条件漂移（v0.2.7 前 external permission mode 曾写错落点） | 统一调 `persistInputOptionChange(...)`（`src/renderer/api/persistInputOption.ts`），新增字段只改这一个文件 | — (设计层模式) |
 | 依赖用户系统安装的运行时 | 用户未装 → 功能不可用 | 内置 Node.js（`runtime.ts::getBundledNodePath()`） | — (设计决策) |
@@ -303,25 +303,25 @@ Rust 工具链由仓库根目录 `rust-toolchain.toml` 固定，开发机和 CI 
 
 ## 日志与排查
 
-日志来自三层（React / Node.js Sidecar / Rust），汇入统一日志 `~/.myagents/logs/unified-{YYYY-MM-DD}.log`。**用户报告问题时 MUST 主动读日志，不等用户粘贴。**
+日志来自三层（React / Node.js Sidecar / Rust），汇入统一日志 `~/.blexagent/logs/unified-{YYYY-MM-DD}.log`。**用户报告问题时 MUST 主动读日志，不等用户粘贴。**
 
 - **IM Bot 问题**：搜 `[feishu]` `[im]` `[telegram]` `[dingtalk]` `[bridge]` `[openclaw]`
 - **AI / Agent 异常**：搜 `[agent]` `pre-warm` `timeout`
 - **定时任务**：搜 `[CronTask]`
 - **终端**：搜 `[terminal]`
 - **前端整页崩溃（「界面渲染出错」/ 白屏）**：搜 `[AppErrorBoundary]` + `[REACT] [ERROR]`。边界在 React 根、无 per-tab/per-message 子边界 → **任意组件 render 抛错 = 整页崩**；先看 `error.message` + 时间线。详见 `tech_docs/unified_logging.md`。
-- **Rust 层**：额外查 `~/Library/Logs/com.myagents.app/MyAgents.log`
+- **Rust 层**：额外查 `~/Library/Logs/com.blexagents.app/BlexAgent.log`
 
 详见 `tech_docs/unified_logging.md`。
 
 ---
 
-## 内置 MA 小助理（修改约束）
+## 内置 Blex 小助理（修改约束）
 
-应用内置 AI 助手运行在 `~/.myagents/`，通过 `/myagents-cli` system skill 调用 `myagents` CLI **直接执行**用户管理操作（不是输出操作步骤）。该 skill 是全局的——所有 session（Chat / IM Bot / Cron / Helper）都能用它驱动 MyAgents 的产品能力。
+应用内置 AI 助手运行在 `~/.blexagent/`，通过 `/blexagent-cli` system skill 调用 `blexagent` CLI **直接执行**用户管理操作（不是输出操作步骤）。该 skill 是全局的——所有 session（Chat / IM Bot / Cron / Helper）都能用它驱动 BlexAgent 的产品能力。
 
-- 修改 `bundled-agents/myagents_helper/` 的 CLAUDE.md 或 Skills → MUST bump `ADMIN_AGENT_VERSION`（`src-tauri/src/commands.rs`）
-- 修改 `src/cli/myagents.ts` 或 `src/cli/myagents.cmd` → MUST bump `CLI_VERSION`，并同步更新 `bundled-skills/myagents-cli/SKILL.md`（CLI surface 变化必须在 skill 文档里反映出来）+ bump `SYSTEM_SKILLS_VERSION`
+- 修改 `bundled-agents/blexagent_helper/` 的 CLAUDE.md 或 Skills → MUST bump `ADMIN_AGENT_VERSION`（`src-tauri/src/commands.rs`）
+- 修改 `src/cli/blexagent.ts` 或 `src/cli/blexagent.cmd` → MUST bump `CLI_VERSION`，并同步更新 `bundled-skills/blexagent-cli/SKILL.md`（CLI surface 变化必须在 skill 文档里反映出来）+ bump `SYSTEM_SKILLS_VERSION`
 - 修改 `bundled-skills/` 中 system skill（清单见 `SYSTEM_SKILLS`） → MUST bump `SYSTEM_SKILLS_VERSION`
 - 新增 system skill：(1) 放入 `bundled-skills/<name>/`；(2) 加入 Rust `SYSTEM_SKILLS` 和 Node `src/server/index.ts::SYSTEM_SKILLS` 两个清单；(3) bump 版本
 - **utility skill vs system skill**：清单内 = system（强制更新）；其它 = utility（首次 seed 后归用户）

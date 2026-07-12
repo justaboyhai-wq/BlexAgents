@@ -12,7 +12,7 @@ import {
   updateServerState,
 } from '../mcp-oauth/state-store';
 
-const originalConfigDir = process.env.MYAGENTS_CONFIG_DIR;
+const originalConfigDir = process.env.BLEXAGENT_CONFIG_DIR;
 const originalFetch = globalThis.fetch;
 
 let configDir: string;
@@ -29,8 +29,8 @@ function writeExternalState(state: unknown): void {
 
 describe('mcp oauth', () => {
   beforeEach(() => {
-    configDir = mkdtempSync(join(tmpdir(), 'myagents-oauth-test-'));
-    process.env.MYAGENTS_CONFIG_DIR = configDir;
+    configDir = mkdtempSync(join(tmpdir(), 'blexagent-oauth-test-'));
+    process.env.BLEXAGENT_CONFIG_DIR = configDir;
     resetStateStoreCacheForTests();
     globalThis.fetch = originalFetch;
   });
@@ -39,9 +39,9 @@ describe('mcp oauth', () => {
     resetStateStoreCacheForTests();
     globalThis.fetch = originalFetch;
     if (originalConfigDir === undefined) {
-      delete process.env.MYAGENTS_CONFIG_DIR;
+      delete process.env.BLEXAGENT_CONFIG_DIR;
     } else {
-      process.env.MYAGENTS_CONFIG_DIR = originalConfigDir;
+      process.env.BLEXAGENT_CONFIG_DIR = originalConfigDir;
     }
     rmSync(configDir, { recursive: true, force: true });
   });

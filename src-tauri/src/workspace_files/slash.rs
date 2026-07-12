@@ -2,9 +2,9 @@
 //!
 //! Sources, in dedup priority order (first wins):
 //! 1. `<workspace>/.claude/commands/*.md`        — project commands
-//! 2. `~/.myagents/commands/*.md`                — user commands
+//! 2. `~/.blexagent/commands/*.md`                — user commands
 //! 3. `<workspace>/.claude/skills/*/SKILL.md`    — project skills
-//! 4. `~/.myagents/skills/*/SKILL.md`            — user skills (respects skills config disabled list)
+//! 4. `~/.blexagent/skills/*/SKILL.md`            — user skills (respects skills config disabled list)
 //! 5. Built-in commands (compact, context, …)
 //!
 //! Returned shape exactly matches the sidecar `/api/commands` response
@@ -109,9 +109,9 @@ pub async fn cmd_list_slash_commands(workspace: String) -> Result<SlashCommandsR
     }
 
     let home_dir = dirs::home_dir().ok_or_else(|| "home dir unavailable".to_string())?;
-    let myagents_root = home_dir.join(".myagents");
+    let blexagent_root = home_dir.join(".blexagent");
 
-    let disabled = disabled_skill_names_for_slash(&myagents_root);
+    let disabled = disabled_skill_names_for_slash(&blexagent_root);
 
     let mut commands: Vec<SlashCommand> = Vec::new();
 
@@ -124,7 +124,7 @@ pub async fn cmd_list_slash_commands(workspace: String) -> Result<SlashCommandsR
         );
     }
     // 2. User commands
-    scan_commands_dir(&myagents_root.join("commands"), "user", &mut commands);
+    scan_commands_dir(&blexagent_root.join("commands"), "user", &mut commands);
     // 3. Project skills
     if workspace_exists {
         scan_skills_dir(
@@ -136,7 +136,7 @@ pub async fn cmd_list_slash_commands(workspace: String) -> Result<SlashCommandsR
     }
     // 4. User skills
     scan_skills_dir(
-        &myagents_root.join("skills"),
+        &blexagent_root.join("skills"),
         "user",
         &disabled,
         &mut commands,
@@ -179,9 +179,9 @@ pub async fn cmd_list_slash_commands(workspace: String) -> Result<SlashCommandsR
     })
 }
 
-fn disabled_skill_names_for_slash(myagents_root: &Path) -> Vec<String> {
-    let mut disabled = read_disabled_list(myagents_root);
-    if !read_cli_tool_registry_enabled(myagents_root)
+fn disabled_skill_names_for_slash(blexagent_root: &Path) -> Vec<String> {
+    let mut disabled = read_disabled_list(blexagent_root);
+    if !read_cli_tool_registry_enabled(blexagent_root)
         && !disabled.iter().any(|name| name == "tool-creator")
     {
         disabled.push("tool-creator".to_string());
@@ -417,7 +417,7 @@ mod tests {
 
     #[test]
     fn disabled_skill_names_include_tool_creator_when_cli_tool_registry_gate_is_off() {
-        let root = make_test_workspace("slash_gate_off_home").join(".myagents");
+        let root = make_test_workspace("slash_gate_off_home").join(".blexagent");
         fs::create_dir_all(&root).unwrap();
 
         let disabled = disabled_skill_names_for_slash(&root);
@@ -428,7 +428,7 @@ mod tests {
 
     #[test]
     fn disabled_skill_names_do_not_include_tool_creator_when_cli_tool_registry_gate_is_on() {
-        let root = make_test_workspace("slash_gate_on_home").join(".myagents");
+        let root = make_test_workspace("slash_gate_on_home").join(".blexagent");
         fs::create_dir_all(&root).unwrap();
         fs::write(
             root.join("config.json"),

@@ -1,4 +1,4 @@
-//! Read-only access to `~/.myagents/skills-config.json`.
+//! Read-only access to `~/.blexagent/skills-config.json`.
 //!
 //! Both `slash.rs` (picker UI) and `skill_sync.rs` (symlink mirroring) need
 //! the user-disabled list. Two parallel readers were drifting (one even
@@ -29,11 +29,11 @@ struct AppConfigGate {
     cli_tool_registry_enabled: bool,
 }
 
-/// Read the user's disabled-skill list from `~/.myagents/skills-config.json`.
+/// Read the user's disabled-skill list from `~/.blexagent/skills-config.json`.
 /// Returns an empty list if the file is missing, unreadable, or malformed —
 /// safe default lets the caller continue without disabling anything.
-pub fn read_disabled_list(myagents_root: &Path) -> Vec<String> {
-    let path = myagents_root.join("skills-config.json");
+pub fn read_disabled_list(blexagent_root: &Path) -> Vec<String> {
+    let path = blexagent_root.join("skills-config.json");
     if !path.is_file() {
         return Vec::new();
     }
@@ -46,10 +46,10 @@ pub fn read_disabled_list(myagents_root: &Path) -> Vec<String> {
 }
 
 /// Read the experimental user-registered CLI tool registry gate from
-/// `~/.myagents/config.json`. Omitted/malformed/unreadable means disabled,
+/// `~/.blexagent/config.json`. Omitted/malformed/unreadable means disabled,
 /// matching the TypeScript `isCliToolRegistryEnabled()` helper.
-pub fn read_cli_tool_registry_enabled(myagents_root: &Path) -> bool {
-    let path = myagents_root.join("config.json");
+pub fn read_cli_tool_registry_enabled(blexagent_root: &Path) -> bool {
+    let path = blexagent_root.join("config.json");
     if !path.is_file() {
         return false;
     }

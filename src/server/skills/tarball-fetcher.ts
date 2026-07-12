@@ -238,7 +238,7 @@ async function downloadZip(
           signal: controller.signal,
           redirect: 'manual',
           headers: {
-            'User-Agent': 'MyAgents-Skill-Installer/1.0',
+            'User-Agent': 'BlexAgent-Skill-Installer/1.0',
             'Accept': 'application/zip, application/octet-stream',
           },
           ...(hopDispatcher ? { dispatcher: hopDispatcher } : {}),

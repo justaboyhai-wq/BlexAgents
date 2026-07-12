@@ -2,7 +2,7 @@
  * manifest.ts — Read & validate .claude-plugin/plugin.json + scan a plugin
  * directory for a lightweight component inventory.
  *
- * MyAgents does NOT interpret plugin components at runtime — that's the
+ * BlexAgent does NOT interpret plugin components at runtime — that's the
  * Claude Agent SDK's job once we hand it `Options.plugins: [{ type: 'local', path }]`.
  * This module exists only to (a) validate the manifest at install time and
  * (b) surface component counts in the Plugins UI panel. Everything else
@@ -53,7 +53,7 @@ export class PluginManifestError extends Error {
 /**
  * Read & validate plugin.json from a tree (in-memory) or directory (on-disk).
  *
- * Validates only the fields MyAgents persists: `name` (required, kebab-case)
+ * Validates only the fields BlexAgent persists: `name` (required, kebab-case)
  * + the optional metadata. Component path fields (`skills` / `agents` /
  * `hooks` / `mcpServers`) are left untouched — the SDK validates those.
  */
@@ -115,7 +115,7 @@ export function parsePluginManifest(raw: string): PluginManifest {
 /**
  * Read plugin.json from a directory. Returns null if the manifest is absent
  * (a plugin without a manifest is still allowed by spec — the SDK uses the
- * directory basename as the name — but MyAgents requires one so we can
+ * directory basename as the name — but BlexAgent requires one so we can
  * persist a stable id).
  *
  * Throws PluginManifestError if the file exists but is malformed.

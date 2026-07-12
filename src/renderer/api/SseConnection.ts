@@ -73,7 +73,7 @@ const JSON_EVENTS = new Set([
     // renderer subscribes to Rust workspace_files watcher via Tauri event
     // `workspace:files-changed:<eventKey>` instead.)
     'chat:attachments-filtered', // Sidecar stripped image/video/audio attachments because the resolved model lacks the modality (see modelSupportsModality)
-    'chat:attachments-fallback', // Sidecar wrote unsupported-modality attachments to <agentDir>/myagents_files/ and appended @<path> refs to the user text (see PRD prd_0.2.3_image_modality_file_fallback.md)
+    'chat:attachments-fallback', // Sidecar wrote unsupported-modality attachments to <agentDir>/blexagent_files/ and appended @<path> refs to the user text (see PRD prd_0.2.3_image_modality_file_fallback.md)
     'chat:runtime-diagnostics', // Issue #194 — external-runtime self-report (auth/features/MCP/apps/effective env)
     'plugin:install-progress', // PRD 0.2.17 — Claude plugin install progress phases
     'plugins:changed', // PRD 0.2.17 — plugin install/uninstall/toggle invalidation signal

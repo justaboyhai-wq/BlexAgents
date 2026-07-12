@@ -77,7 +77,7 @@ pub async fn deliver_task_notification_to_bot_checked(
     // None and the helper falls back to the legacy un-decorated prompt — the
     // IM Bot AI still sees the result, just without the `<inbox-message>`
     // envelope + `Source session id:` follow-up line (which would be wrong
-    // here anyway: a `myagents session send` against the Task Center task id
+    // here anyway: a `blexagent session send` against the Task Center task id
     // wouldn't deliver to any session).
     deliver_cron_result_to_bot(handle, &delivery, task_id, summary, None).await
 }
@@ -211,7 +211,7 @@ pub(super) async fn deliver_cron_result_to_bot(
     // session id) for inbox-style envelope wrapping. Cron task fires *into* an
     // IM Bot session; the IM Bot AI sees the cron result as an `<inbox-message
     // from="Cron: <name>" reply_back="false">` prefix so it can later use
-    // `myagents session send <from_session_id>` to follow up. Look-up is
+    // `blexagent session send <from_session_id>` to follow up. Look-up is
     // best-effort — failures fall back to the legacy un-decorated cron prompt.
     // session id: caller-supplied (race-free); label: name lookup is stable
     // even if a concurrent rotate has updated session_id underneath.
@@ -345,7 +345,7 @@ pub(super) async fn deliver_cron_result_to_bot(
 /// `handle.try_state::<CronTaskManager>()` would silently return `None`
 /// on every call (issue #225: every cron→IM heartbeat went out without
 /// the `Source session id:` follow-up line + `<inbox-message>` wrap,
-/// blocking the `myagents session send` flow this feature exists for).
+/// blocking the `blexagent session send` flow this feature exists for).
 async fn resolve_cron_inbox_label(task_id: &str) -> Option<String> {
     let manager = get_cron_task_manager();
     let tasks = manager.tasks.read().await;

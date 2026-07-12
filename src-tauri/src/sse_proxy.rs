@@ -61,7 +61,7 @@ fn proxy_timeout_for(url_path: &str) -> u64 {
 /// the overwhelming majority is `http://127.0.0.1:<port>/...` to the owning
 /// Sidecar (which MUST bypass any system proxy via `local_http`, or Clash/V2Ray
 /// returns 502), but the renderer analytics queue also POSTs to an **external**
-/// endpoint (`https://analytics.myagents.io/api/track`) through this same path.
+/// endpoint (`https://analytics.blexagent.com/api/track`) through this same path.
 ///
 /// Routing the external case through the localhost-only `.no_proxy()` client
 /// silently bypasses the user's configured proxy AND reqwest's system-proxy
@@ -576,7 +576,7 @@ pub struct HttpResponse {
 }
 
 /// Pattern 2 §2.3.4: stream-to-disk threshold. Bodies larger than this are
-/// written to `~/.myagents/refs/<id>` instead of being base64-encoded /
+/// written to `~/.blexagent/refs/<id>` instead of being base64-encoded /
 /// returned inline. 1 MiB matches the sidecar-side `inlineMaxBytes` default
 /// but is intentionally a separate constant — Rust proxy and sidecar can
 /// drift independently without breaking the protocol.
@@ -765,7 +765,7 @@ pub async fn proxy_http_request(
     //   response completes inside that, fall through to the in-memory
     //   base64/text path (no fs hit, no extra RTT).
     // - If the buffer would exceed the threshold, switch to spill: open
-    //   ~/.myagents/refs/<id>, dump the buffered bytes, then continue
+    //   ~/.blexagent/refs/<id>, dump the buffered bytes, then continue
     //   piping incoming chunks straight to disk.
     //
     // This catches chunked responses (no Content-Length header) — exactly
@@ -893,7 +893,7 @@ struct SpilledBody {
 enum StreamOutcome {
     /// Body fit inside PROXY_STREAM_THRESHOLD_BYTES — caller handles encoding.
     Buffered(Vec<u8>),
-    /// Body exceeded the threshold; written to ~/.myagents/refs/<id>.
+    /// Body exceeded the threshold; written to ~/.blexagent/refs/<id>.
     Spilled(SpilledBody),
     /// Upstream stream error or fs error after partial read. Caller surfaces
     /// to the renderer; partial spill files are cleaned up before returning.
@@ -948,7 +948,7 @@ async fn stream_or_spill_response_body(
                 return Err(err);
             }
         };
-        let refs_dir: PathBuf = home.join(".myagents").join("refs");
+        let refs_dir: PathBuf = home.join(".blexagent").join("refs");
         if let Err(e) = create_dir_all(&refs_dir).await {
             let err = format!("[proxy] failed to mkdir refs dir: {}", e);
             logger::warn(app, &err);
@@ -1165,16 +1165,16 @@ mod tests {
         // The analytics endpoint (and any future external POST) MUST route
         // through the proxy-aware client, so it must NOT classify as loopback.
         assert!(!request_target_is_loopback(
-            "https://analytics.myagents.io/api/track"
+            "https://analytics.blexagent.com/api/track"
         ));
         assert!(!request_target_is_loopback(
-            "https://download.myagents.io/update/x.json"
+            "https://download.blexagent.com/update/x.json"
         ));
         // Look-alikes that are NOT loopback hosts.
         assert!(!request_target_is_loopback("http://127.0.0.1.evil.com/x"));
         assert!(!request_target_is_loopback("http://localhost.evil.com/x"));
         assert!(!request_target_is_loopback(
-            "https://user:pass@analytics.myagents.io/track"
+            "https://user:pass@analytics.blexagent.com/track"
         ));
         // Parser-disagreement guard: a backslash is a path separator to the real
         // URL parser, so the true host is `evil.com`, NOT `127.0.0.1`. Must be

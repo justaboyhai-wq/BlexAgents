@@ -5,7 +5,7 @@
  *
  * Phase 2 (v0.1.69): a 对话 / 想法 ModeSegment sits between the slogan and the
  * input. Switching to 「想法」 repurposes the input as a freeform Thought entry
- * (persisted to ~/.myagents/thoughts/ via `thoughtCreate`), bypassing the full
+ * (persisted to ~/.blexagent/thoughts/ via `thoughtCreate`), bypassing the full
  * Chat launch flow. Switching back to 「对话」 restores the default behavior.
  */
 
@@ -208,7 +208,7 @@ export default memo(function BrandSection({
     // Feed the # picker with `projects` (the same data backing the Agent
     // Workspace panel on the right) rather than `config.agents` — the
     // latter skips plain workspaces not yet upgraded to Agents AND leaks
-    // internal workspaces like `~/.myagents`, producing a candidate list
+    // internal workspaces like `~/.blexagent`, producing a candidate list
     // that didn't match what the user sees on screen.
     const tagCandidates = useThoughtTagCandidates(thoughts, projects);
 
@@ -270,8 +270,8 @@ export default memo(function BrandSection({
     }, [mode]);
 
     // PRD 0.2.7 D3: switching workspaces in the launcher invalidates any
-    // workspace-bound draft state — `@myagents_files/...` references point to
-    // files in the previous workspace's `myagents_files/`, `images[]`
+    // workspace-bound draft state — `@blexagent_files/...` references point to
+    // files in the previous workspace's `blexagent_files/`, `images[]`
     // captured via Tauri drag-drop / copyPaths similarly belong to the prior
     // tree, and a staged cron task that referenced those files would now
     // execute against an inconsistent prompt. Strip them silently and surface
@@ -453,7 +453,7 @@ export default memo(function BrandSection({
                 you're about to do". */}
             <div className="flex flex-1 flex-col items-center justify-center">
                 <h1 className="brand-title mb-2 text-[2.5rem] text-[var(--ink)] md:text-[3.5rem]">
-                    MyAgents
+                    BlexAgent
                 </h1>
                 {/* eslint-disable-next-line no-restricted-syntax -- 品牌 slogan
                     15px/17px 是 DESIGN.md §15.2 立档的展示型字号（display 用途），

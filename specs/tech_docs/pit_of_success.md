@@ -174,7 +174,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 
 **Problem.** Session 索引需要在每个写者（Sidecar / CLI / 迁移）都通知索引层。新写者忘记调用通知 → 索引漂移。
 
-**Surface.** `notify-debouncer-full` 5s 滑动去抖观察 `~/.myagents/sessions/`，**任何**写入者的变更都自动流入索引。
+**Surface.** `notify-debouncer-full` 5s 滑动去抖观察 `~/.blexagent/sessions/`，**任何**写入者的变更都自动流入索引。
 
 **Invariants enforced.** 索引一致性由"观察结果目录"保证，与写入路径解耦。
 
@@ -187,7 +187,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 <a id="withconfiglock"></a>
 ## `withConfigLock` / `with_config_lock` (Pattern 1, v0.2.0)
 
-**Problem.** `~/.myagents/config.json` 被三方独立写者（renderer plugin-fs / Node admin API / Rust IM commands）read-modify-write，无任何协调；并发写 rename 上"最后一名 wins"，用户密钥/设置静默丢失。
+**Problem.** `~/.blexagent/config.json` 被三方独立写者（renderer plugin-fs / Node admin API / Rust IM commands）read-modify-write，无任何协调；并发写 rename 上"最后一名 wins"，用户密钥/设置静默丢失。
 
 **Surface.**
 - Node `withConfigLock(fn)` / `atomicModifyConfig(fn)` (`src/server/utils/admin-config.ts`)：async
@@ -280,7 +280,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 **Problem.** 大 payload（图片、长 tool result、巨型 HTTP 响应）直接走 SSE/IPC JSON channel，OOM、UI 线程被 base64 阻塞、慢 client 无界排队拖死 sidecar。
 
 **Surface.**
-- Node `maybeSpill(value, { mimetype, sessionId, ownerTag })` (`src/server/utils/large-value-store.ts`) —— ≤256KB 返 inline，超阈值写到 `~/.myagents/refs/<id>` 返 `LargeValueRef { id, preview, mimetype, sizeBytes, ttlMs }`（1h TTL，8KB head preview）
+- Node `maybeSpill(value, { mimetype, sessionId, ownerTag })` (`src/server/utils/large-value-store.ts`) —— ≤256KB 返 inline，超阈值写到 `~/.blexagent/refs/<id>` 返 `LargeValueRef { id, preview, mimetype, sizeBytes, ttlMs }`（1h TTL，8KB head preview）
 - `fetchRef(id)` / `getRefStreamPath(id)` —— 消费方拉回
 - `/refs/:id` HTTP 路由 —— 流式 `createReadStream`，绕过 deferred-init gate，id 限 `^[a-f0-9]{8,32}$`
 - `clearExpiredRefs` / `clearSessionRefs` + 60s `startRefsGc` 后台清理；session reset 联动
@@ -293,7 +293,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 
 **Invariants enforced.**
 - 大 payload 不进 SSE / IPC base64，全部走 ref
-- 用户从文件系统拖入 / 桌面文件选择的图片不走 `/chat/send` inline base64：≤10MB 由 `cmd_prepare_user_image_attachments` staged 到 `~/.myagents/attachments/<session>/` 后发送 `attachment_ref`，>10MB 走 `cmd_workspace_copy_paths` 进入 `myagents_files/` 并插入 `@path`。无绝对路径的剪贴板 / 浏览器 `File` 超过 10MB 必须拒绝并提示用户用文件路径入口，禁止为了“自动转文件”把它 base64 塞进 IPC。
+- 用户从文件系统拖入 / 桌面文件选择的图片不走 `/chat/send` inline base64：≤10MB 由 `cmd_prepare_user_image_attachments` staged 到 `~/.blexagent/attachments/<session>/` 后发送 `attachment_ref`，>10MB 走 `cmd_workspace_copy_paths` 进入 `blexagent_files/` 并插入 `@path`。无绝对路径的剪贴板 / 浏览器 `File` 超过 10MB 必须拒绝并提示用户用文件路径入口，禁止为了“自动转文件”把它 base64 塞进 IPC。
 - Bridge tool result 经 `maybeSpill` 再交给 SDK，超阈值替换为 `@ref:<id>` marker
 - OpenAI bridge / `/chat/stream` 用 pull-driven `ReadableStream`，consumer pace 决定 pull 节奏（避免 controller 内部 queue 无界增长）
 - Renderer 检到 `ref_url` 直接 fetch ref 跳过 `atob`
@@ -313,7 +313,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 
 **Surface.**
 - `withLogContext({ sessionId, tabId, turnId, runtime, requestId, ownerId }, fn)` (`src/server/utils/logger-context.ts`) —— 进入 ALS frame
-- HTTP 中间件从 `X-MyAgents-Tab-Id` / `X-MyAgents-Session-Id` 头自动起 frame；renderer `proxyFetch` 自动盖头
+- HTTP 中间件从 `X-BlexAgent-Tab-Id` / `X-BlexAgent-Session-Id` 头自动起 frame；renderer `proxyFetch` 自动盖头
 - SDK turn 用 module-level 的 ambient TLS（`Map<sessionId|ownerId, LogContext>`，**不是** singleton）—— 因为 persistent `messageGenerator` 会 yield 出 ALS frame
 - Runtime adapter 在事件处理路径外层包 `withLogContext({ runtime })`
 - `LogEntry` schema 增 6 个可选 correlation 字段；`console.*` capture 自动注入
@@ -337,7 +337,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 <a id="deferredinitstate"></a>
 ## `DeferredInitState` + readiness endpoints (Pattern 7, v0.2.0)
 
-**Problem.** 单一 `healthy` 信号让 renderer 在 sidecar deferred init 还在跑时就以为可用——首次发消息卡住、route 用 `await __myagentsDeferredInit` 无限等。
+**Problem.** 单一 `healthy` 信号让 renderer 在 sidecar deferred init 还在跑时就以为可用——首次发消息卡住、route 用 `await __blexagentDeferredInit` 无限等。
 
 **Surface.**
 - `DeferredInitState` 状态机（`src/server/readiness-state.ts`）：`pending → phase(<name>) → ready` 或 `→ failed { phase, error, retryable }`
@@ -358,7 +358,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 
 **Don't.**
 - 把 readiness 等同于 liveness
-- 新加 route 用 `await __myagentsDeferredInit`（已下线）
+- 新加 route 用 `await __blexagentDeferredInit`（已下线）
 - Renderer loading 挂 `/health`
 
 ---
@@ -370,7 +370,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 
 **Surface.** `ensureDirSync` / `ensureDir` / `isDirEntry`
 
-**断链 symlink 探针（v0.2.5 事故，CLAUDE.md 红线）.** `existsSync` / `Path::exists()` 跟随 symlink——**断链 symlink 返回 false**，代码以为"路径为空"，紧接着的写操作踩雷：Node v24 **sync `cpSync({recursive:true})`** 走进 `std::filesystem::equivalent` 抛未捕获 C++ 异常（`libc++abi: filesystem error: in equivalent: Operation not supported`），JS try/catch 接不住 → 整个 sidecar abort → Tauri 健康检查重启 → 死循环。v0.2.5 实战：`~/.myagents/skills/docx` 是断链，全局 sidecar 起不来。注意 async `fs.cp` 不崩，**只有 sync `cpSync` 崩**。
+**断链 symlink 探针（v0.2.5 事故，CLAUDE.md 红线）.** `existsSync` / `Path::exists()` 跟随 symlink——**断链 symlink 返回 false**，代码以为"路径为空"，紧接着的写操作踩雷：Node v24 **sync `cpSync({recursive:true})`** 走进 `std::filesystem::equivalent` 抛未捕获 C++ 异常（`libc++abi: filesystem error: in equivalent: Operation not supported`），JS try/catch 接不住 → 整个 sidecar abort → Tauri 健康检查重启 → 死循环。v0.2.5 实战：`~/.blexagent/skills/docx` 是断链，全局 sidecar 起不来。注意 async `fs.cp` 不崩，**只有 sync `cpSync` 崩**。
 
 在跑写操作（`cpSync` / `fs::create_dir_all` / `fs::remove_dir_all`）之前 MUST 用**不跟随 symlink** 的 API 探测：
 
@@ -413,7 +413,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 
 **Problem.** SDK 对不认识的 model id 一律按 200K 上下文窗口 fallback。>200K 窗口的模型不经处理就退化：1M 档（claude-opus-4-7 / claude-opus-4-6 / deepseek-v4-pro / gemini-2.5-pro / gpt-5.4 等）和 200K–1M 中间档（minimax-m3 512K / doubao 262K / kimi-k2.5 262K，#335 同病）都会 `/context` 显 200K、auto-compact 在 ~187K 就触发、附件按 200K 截断。`CLAUDE_CODE_AUTO_COMPACT_WINDOW` 只能 `Math.min` 下调不能上调，对 >200K 模型彻底无效。
 
-**Surface.** `applyContextWindowSuffix(model)` — wrap 策略：registry contextLength **>200K 即加 `[1m]` 后缀**（不是只 ≥1M）。SDK 窗口先解锁到 1M，再由 env cap 钳回真实值（有效压缩窗口 = min(1M, registry) − ~33K）。SDK `normalizeModelStringForAPI` 在 wire 上剥 `[1m]`，上游 API 看不到后缀。已知装饰性偏差：SDK `/context` 头条会显 1M，MyAgents 自己的占用圆环显 registry 真值。
+**Surface.** `applyContextWindowSuffix(model)` — wrap 策略：registry contextLength **>200K 即加 `[1m]` 后缀**（不是只 ≥1M）。SDK 窗口先解锁到 1M，再由 env cap 钳回真实值（有效压缩窗口 = min(1M, registry) − ~33K）。SDK `normalizeModelStringForAPI` 在 wire 上剥 `[1m]`，上游 API 看不到后缀。已知装饰性偏差：SDK `/context` 头条会显 1M，BlexAgent 自己的占用圆环显 registry 真值。
 
 **Invariants enforced.**
 - 所有 SDK ingress 必须过 wrap：`query({ model })`、`query({ agents: { ...{ model } } })`、`querySession.setModel()`、`ANTHROPIC_DEFAULT_{SONNET,OPUS,HAIKU}_MODEL` env。
@@ -508,7 +508,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 ## `workspace_files` 路径解析双轨 (`src-tauri/src/workspace_files/path_safety.rs`)
 
 **Problem.** 工作区文件操作（读/写/CRUD/搜索/watcher）涉及 14 个 Tauri command，每个都要做 path traversal 防护、blacklist 校验、symlink 安全。如果每个 cmd 自己写 `Path::join + canonicalize` 或 `Path::exists`，会出现两类持续踩坑：
-1. **写侧**：`Path::exists()` 跟随 symlink → 断链 symlink 误报为空 → 紧接着 `fs::create_dir_all` / `fs::copy` 失败或写穿 symlink target（CLAUDE.md v0.2.5 红线案例：`~/.myagents/skills/docx` 断链让全局 sidecar 起不来）。
+1. **写侧**：`Path::exists()` 跟随 symlink → 断链 symlink 误报为空 → 紧接着 `fs::create_dir_all` / `fs::copy` 失败或写穿 symlink target（CLAUDE.md v0.2.5 红线案例：`~/.blexagent/skills/docx` 断链让全局 sidecar 起不来）。
 2. **读侧**：`fs::read_to_string` 默认跟随 symlink → 含 `evil_link → /etc/passwd` 的恶意 repo 被克隆后，AI 工具调 `cmd_workspace_read_preview({path:'evil_link'})` → 内容外泄。
 
 **Surface.**
@@ -535,7 +535,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 - 写侧 cmd 用 `Path::exists()` 探"占位"——断链 symlink 会让你以为路径空。MUST 用 `slot_occupied` helper（`fs::symlink_metadata(p).is_ok()`）。
 - 读侧 cmd 用 `resolve_inside_workspace`（lexical 版）——symlink 逃逸不被拦。MUST 用 `resolve_existing_inside_workspace`。
 - 读取大文件用 `fs::read_to_string` 不带 cap——TOCTOU 增长直接 OOM。MUST 用 `take(MAX+1).read_to_end`。
-- 把 workspace 路径 hardcode 在 cmd 内部——renderer 端 `useWorkspaceFileService(workspacePath)` 传入，不要在 Rust 侧再 hardcode `dirs::home_dir().join(".myagents/workspaces")`。
+- 把 workspace 路径 hardcode 在 cmd 内部——renderer 端 `useWorkspaceFileService(workspacePath)` 传入，不要在 Rust 侧再 hardcode `dirs::home_dir().join(".blexagent/workspaces")`。
 - watcher 用 path-derived key 做 stop 索引——重命名/删除/symlink swap 后 stop 失效。MUST 用 `watch_start` 返回的 opaque token；`watch_stop({token})` 索引；进程 nonce 防跨重启 token 碰撞。
 
 **Phase E（PRD 0.2.7）状态**：18 个 sidecar HTTP workspace IO endpoint 已全部下线，renderer 唯一入口是 `useWorkspaceFileService(workspacePath)`。eslint `no-restricted-syntax` 规则封禁了被删 endpoint 的字符串字面量。
@@ -576,7 +576,7 @@ v0.2.0 Windows 版的 IM Bot 全部启动失败就是这个 trap：`find_tsx_run
 <a id="system-skill-sync"></a>
 ## System-skill 同步完整性门控 (`cmd_sync_system_skills` + `seedBundledSkills`)
 
-**Problem.** 把内置 system skill 同步/seed 到 `~/.myagents/skills/` 时，若**先清/替换目标再校验源**，一个打包不全的 bundle（#321：Windows 资源树某些 system-skill 目录缺 `SKILL.md`）会把用户的好副本换成空目录；再写 `.system-skills-version` 版本戳 → **永久冻结坏状态**（面板不可见、版本戳挡住下次重 seed）。
+**Problem.** 把内置 system skill 同步/seed 到 `~/.blexagent/skills/` 时，若**先清/替换目标再校验源**，一个打包不全的 bundle（#321：Windows 资源树某些 system-skill 目录缺 `SKILL.md`）会把用户的好副本换成空目录；再写 `.system-skills-version` 版本戳 → **永久冻结坏状态**（面板不可见、版本戳挡住下次重 seed）。
 
 **Surface / Invariants enforced.**
 - "完整 skill" = 含顶层 `SKILL.md`。源不完整 → **保留现有副本** + `ulog_warn`，**不**清目标。

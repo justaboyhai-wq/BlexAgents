@@ -144,7 +144,7 @@ describe('OpenAI bridge Responses prompt_cache_key', () => {
     expect(fake.seen[0].path).toBe('/responses');
     const firstKey = fake.seen[0].body.prompt_cache_key;
     const secondKey = fake.seen[1].body.prompt_cache_key;
-    expect(firstKey).toEqual(expect.stringMatching(/^myagents:responses:[a-f0-9]{32}$/));
+    expect(firstKey).toEqual(expect.stringMatching(/^blexagent:responses:[a-f0-9]{32}$/));
     expect(secondKey).toBe(firstKey);
     expect(JSON.stringify(fake.seen[0].body)).not.toContain('raw-session-id');
   });
@@ -197,7 +197,7 @@ describe('OpenAI bridge Responses prompt_cache_key', () => {
 
     expect(disabled).toBe(true);
     expect(fake.seen).toHaveLength(3);
-    expect(fake.seen[0].body.prompt_cache_key).toEqual(expect.stringMatching(/^myagents:responses:[a-f0-9]{32}$/));
+    expect(fake.seen[0].body.prompt_cache_key).toEqual(expect.stringMatching(/^blexagent:responses:[a-f0-9]{32}$/));
     expect('prompt_cache_key' in fake.seen[1].body).toBe(false);
     expect('prompt_cache_key' in fake.seen[2].body).toBe(false);
     const joinedLogs = logs.join('\n');
@@ -307,7 +307,7 @@ describe('OpenAI bridge Chat Completions prompt_cache_key', () => {
     expect(fake.seen[0].path).toBe('/chat/completions');
     const firstKey = fake.seen[0].body.prompt_cache_key;
     const secondKey = fake.seen[1].body.prompt_cache_key;
-    expect(firstKey).toEqual(expect.stringMatching(/^myagents:chat_completions:[a-f0-9]{32}$/));
+    expect(firstKey).toEqual(expect.stringMatching(/^blexagent:chat_completions:[a-f0-9]{32}$/));
     expect(secondKey).toBe(firstKey);
     expect(JSON.stringify(fake.seen[0].body)).not.toContain('raw-session-id');
   });
@@ -360,7 +360,7 @@ describe('OpenAI bridge Chat Completions prompt_cache_key', () => {
 
     expect(disabled).toBe(true);
     expect(fake.seen).toHaveLength(3);
-    expect(fake.seen[0].body.prompt_cache_key).toEqual(expect.stringMatching(/^myagents:chat_completions:[a-f0-9]{32}$/));
+    expect(fake.seen[0].body.prompt_cache_key).toEqual(expect.stringMatching(/^blexagent:chat_completions:[a-f0-9]{32}$/));
     expect('prompt_cache_key' in fake.seen[1].body).toBe(false);
     expect('prompt_cache_key' in fake.seen[2].body).toBe(false);
     const joinedLogs = logs.join('\n');

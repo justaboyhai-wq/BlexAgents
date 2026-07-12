@@ -1,5 +1,5 @@
-#!/bin/bash
-# MyAgents 开发环境初始化脚本
+﻿#!/bin/bash
+# BlexAgent 开发环境初始化脚本
 # 首次 clone 仓库后运行此脚本
 
 set -e
@@ -17,7 +17,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${BLUE}╔═══════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║${NC}  ${GREEN}🤖 MyAgents 开发环境初始化${NC}              ${BLUE}║${NC}"
+echo -e "${BLUE}║${NC}  ${GREEN}🤖 BlexAgent 开发环境初始化${NC}              ${BLUE}║${NC}"
 echo -e "${BLUE}╚═══════════════════════════════════════════╝${NC}"
 echo ""
 

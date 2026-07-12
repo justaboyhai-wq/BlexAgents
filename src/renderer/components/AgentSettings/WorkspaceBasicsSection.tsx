@@ -113,7 +113,7 @@ export default function WorkspaceBasicsSection({ project, agent, agentDir }: Wor
       const label = runtime === 'claude-code' ? 'Claude Code'
         : runtime === 'codex' ? 'Codex'
         : runtime === 'gemini' ? 'Gemini CLI'
-        : 'MyAgents';
+        : 'BlexAgent';
       toast.success(t('agentSettings.basics.runtimeChanged', { label }));
     } catch (err) {
       console.error('[runtime] Failed to save runtime:', err);
@@ -405,18 +405,18 @@ export default function WorkspaceBasicsSection({ project, agent, agentDir }: Wor
               Only relevant when the agent runs an external CLI (Codex / CC /
               Gemini), so hidden for builtin. */}
           {currentRuntime !== 'builtin' && agent && (() => {
-            // Read current policy; default to 'myagents' for backwards compat.
+            // Read current policy; default to 'blexagent' for backwards compat.
             // runtimeConfig is on AgentConfig as a free-form record — keep the
             // narrow `as` cast so we don't expand its public schema unnecessarily.
             // Legacy disk values (the removed `'direct'` from 0.2.16 dev) fall
-            // through the literal narrowing and read as default `'myagents'`,
+            // through the literal narrowing and read as default `'blexagent'`,
             // matching the server-side `resolveAgentEnvPolicy` validator.
             const rc = (agent.runtimeConfig as Record<string, unknown> | undefined) ?? {};
             const rawPolicy = (rc.envPolicy as { proxy?: unknown } | undefined)?.proxy;
-            const proxyMode: 'myagents' | 'terminal' =
-              rawPolicy === 'terminal' ? 'terminal' : 'myagents';
+            const proxyMode: 'blexagent' | 'terminal' =
+              rawPolicy === 'terminal' ? 'terminal' : 'blexagent';
 
-            const onSelect = (next: 'myagents' | 'terminal') => {
+            const onSelect = (next: 'blexagent' | 'terminal') => {
               const prevEnvPolicy = (rc.envPolicy as Record<string, unknown> | undefined) ?? {};
               const nextRc = {
                 ...rc,
@@ -426,7 +426,7 @@ export default function WorkspaceBasicsSection({ project, agent, agentDir }: Wor
             };
 
             const radio = (
-              value: 'myagents' | 'terminal',
+              value: 'blexagent' | 'terminal',
               label: string,
               hint: string,
             ) => (
@@ -457,7 +457,7 @@ export default function WorkspaceBasicsSection({ project, agent, agentDir }: Wor
               <div className="flex items-start gap-3">
                 <label className="w-16 shrink-0 pt-2 text-sm text-[var(--ink-muted)]">{t('agentSettings.basics.networkProxy')}</label>
                 <div className="flex-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {radio('myagents', t('agentSettings.basics.proxyMyAgents'), t('agentSettings.basics.proxyMyAgentsHint'))}
+                  {radio('blexagent', t('agentSettings.basics.proxyBlexAgent'), t('agentSettings.basics.proxyBlexAgentHint'))}
                   {radio('terminal', t('agentSettings.basics.proxyTerminal'), t('agentSettings.basics.proxyTerminalHint'))}
                 </div>
               </div>

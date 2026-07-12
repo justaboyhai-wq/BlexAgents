@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   readPreview: vi.fn(),
   readLocalPreview: vi.fn(),
   onInsertReference: vi.fn(),
-  onOpenMyAgentsPreview: vi.fn(),
+  onOpenBlexAgentPreview: vi.fn(),
   writeText: vi.fn(),
 }));
 
@@ -58,7 +58,7 @@ function renderFloatingMarkdown(markdown: string) {
       workspacePath={WORKSPACE}
       onInsertReference={mocks.onInsertReference}
       menuProfile="floatingBall"
-      onOpenMyAgentsPreview={mocks.onOpenMyAgentsPreview}
+      onOpenBlexAgentPreview={mocks.onOpenBlexAgentPreview}
     >
       <Markdown>{markdown}</Markdown>
     </FileActionProvider>,
@@ -160,9 +160,9 @@ describe('Markdown inline-code file paths', () => {
     fireEvent.click(chip);
 
     const labels = screen.getAllByRole('button').map((b) => b.textContent);
-    expect(labels).toEqual(['复制', '引用', '打开所在文件夹', '打开 MyAgents 预览']);
+    expect(labels).toEqual(['复制', '引用', '打开所在文件夹', '打开 BlexAgent 预览']);
 
-    fireEvent.click(screen.getByText('打开 MyAgents 预览'));
-    expect(mocks.onOpenMyAgentsPreview).toHaveBeenCalledWith(REL, { displayPath: REL });
+    fireEvent.click(screen.getByText('打开 BlexAgent 预览'));
+    expect(mocks.onOpenBlexAgentPreview).toHaveBeenCalledWith(REL, { displayPath: REL });
   });
 });

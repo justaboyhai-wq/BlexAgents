@@ -7,9 +7,9 @@ import { workspacePathsEqual } from '../../shared/workspacePath';
 
 // Storage keys
 const STORAGE_KEYS = {
-    CONFIG: 'myagents:config',
-    PROJECTS: 'myagents:projects',
-    PROVIDERS: 'myagents:providers',
+    CONFIG: 'blexagent:config',
+    PROJECTS: 'blexagent:projects',
+    PROVIDERS: 'blexagent:providers',
 };
 
 /** Check if running in Tauri environment */
@@ -140,7 +140,7 @@ export function mockAddProject(path: string): Project {
 // ============= Dialog Mock =============
 
 // Storage key for last used project directory
-const LAST_PROJECT_DIR_KEY = 'myagents:lastProjectDir';
+const LAST_PROJECT_DIR_KEY = 'blexagent:lastProjectDir';
 
 /**
  * Get a smart default project directory based on:

@@ -6,7 +6,7 @@ updated: 2026-07-06
 scope: "Team Space Skill 发布与版本治理：把现有“上传 ZIP”升级为“发布到团队空间”，支持从本机 Skill 发布、本地文件发布、从链接导入发布；发布前自动预检并让用户选择新建或更新；Skill 详情新增历史 tab，owner/admin 可把当前版本指针回滚到旧 revision。不做在线编辑器、私有仓库导入、成员管理、安装量统计或自动安装到本机。"
 issue: "产品需求：Team Space Skills 发布、权限与版本历史"
 research: ""
-review: "pending（实现前需再次核对 MyAgents 与 MyAgents_space 当前代码；重点验证本地 Skill 导入解析复用方案、D1 migration、回滚后再发布的 revision 递增语义、以及软链排除策略）"
+review: "pending（实现前需再次核对 BlexAgent 与 BlexAgent_space 当前代码；重点验证本地 Skill 导入解析复用方案、D1 migration、回滚后再发布的 revision 递增语义、以及软链排除策略）"
 ---
 
 # Team Space Skill 发布与版本治理 PRD
@@ -21,14 +21,14 @@ review: "pending（实现前需再次核对 MyAgents 与 MyAgents_space 当前�
 - `specs/ARCHITECTURE.md`：Space 不是 AI Runtime，也不属于 Session Sidecar；云端 session token 和 Space HTTP mutation 由 Rust Tauri command 拥有。
 - `specs/tech_docs/space_cloud.md`：确认 Space session、Skill zip、mock mode、registered agent 和 CLI 的边界。
 - `specs/DESIGN.md`：本期包含发布面板、详情 tab、确认弹窗、历史列表和按钮状态，必须复用现有 token、字号、`OverlayBackdrop`、`useCloseLayer` 与 i18n。
-- 平级云端仓库 `/Users/zhihu/Documents/project/MyAgents_space`：本期需要同时改 Worker API、D1 migration、R2 存储查询、route tests。
+- 平级云端仓库 `/Users/zhihu/Documents/project/BlexAgent_space`：本期需要同时改 Worker API、D1 migration、R2 存储查询、route tests。
 
 关键代码入口：
 
 - Space renderer：`src/renderer/pages/space/skills/SkillsWorkspace.tsx`、`src/renderer/pages/space/spaceStore.ts`、`src/renderer/api/spaceCloud.ts`、`src/renderer/pages/space/spaceHelpers.ts`。
 - Space Rust owner：`src-tauri/src/space_cloud.rs`、`src-tauri/src/space_cloud_mock.rs`、`src-tauri/src/lib.rs`。
 - 本地 Skill 导入能力：`src/renderer/components/SkillsCommandsList.tsx`、`src/renderer/components/SkillDialogs.tsx`、`src/server/index.ts` 的 `/api/skill/upload` / `/api/skill/install-from-url` / `/api/skill/import-folder`，以及 `src/server/skills/url-resolver.ts`、`src/server/skills/tarball-fetcher.ts`、`src/server/skills/installer.ts`。
-- Cloud Worker：`MyAgents_space/src/index.ts`、`src/services/skillService.ts`、`src/constants.ts`、`migrations/`、`test/space-routes.test.ts`。
+- Cloud Worker：`BlexAgent_space/src/index.ts`、`src/services/skillService.ts`、`src/constants.ts`、`migrations/`、`test/space-routes.test.ts`。
 
 引用符号名而非行号；行号会随并发修改漂移。
 
@@ -60,7 +60,7 @@ review: "pending（实现前需再次核对 MyAgents 与 MyAgents_space 当前�
 
 ### 2.1 Cloud Worker 现状
 
-`MyAgents_space` 当前已有 Skill 三层数据：
+`BlexAgent_space` 当前已有 Skill 三层数据：
 
 - `skills`
   - `id`
@@ -246,7 +246,7 @@ Rust 现状：
 
 列表范围：
 
-- 全局 Skill：`~/.myagents/skills/<name>/SKILL.md`。
+- 全局 Skill：`~/.blexagent/skills/<name>/SKILL.md`。
 - 项目 Skill：每个已知项目的 `.claude/skills/<name>/SKILL.md`。
 - 不排除重复名字。
 - 必须排除 symlink：
@@ -260,7 +260,7 @@ Rust 现状：
 - 描述。
 - 来源 tag：
   - `全局`
-  - 项目工作区名称，例如 `MyAgents`
+  - 项目工作区名称，例如 `BlexAgent`
 - 路径摘要，弱化显示。
 - 如果同名有多个来源，不合并。
 
@@ -467,7 +467,7 @@ ALTER TABLE skills ADD COLUMN current_revision INTEGER;
 - 发布新版：`newRevision = max(skill_revisions.revision) + 1`；写入 `skill_revisions`；更新 `skills.latest_revision = newRevision`、`skills.current_revision = newRevision`。
 - 回滚：只更新 `skills.current_revision = targetRevision`，不要新增 `skill_revisions`。
 
-D1 迁移可以选择重建表而非简单 `ALTER`，以确保 `current_revision` 最终非空；MyAgents_space 仍处于开发中，按仓库现有 migration 习惯处理即可。
+D1 迁移可以选择重建表而非简单 `ALTER`，以确保 `current_revision` 最终非空；BlexAgent_space 仍处于开发中，按仓库现有 migration 习惯处理即可。
 
 ### 6.3 回滚语义
 
@@ -685,7 +685,7 @@ Space 云端 mutation 仍归 Rust/Worker：
 ```text
 Renderer UI
 -> Tauri command / Rust Space owner
--> MyAgents_space Worker
+-> BlexAgent_space Worker
 -> D1 + R2
 ```
 
@@ -703,7 +703,7 @@ Renderer UI
    - 生成 canonical zip 到临时目录。
    - 返回 temp zip path 和候选元数据。
 3. Rust `space_cloud.rs` 继续负责读取 temp zip、做本地文件安全校验、multipart 上传到 Worker。
-4. 本地 helper 不接触 Space session token，不直接请求 MyAgents_space。
+4. 本地 helper 不接触 Space session token，不直接请求 BlexAgent_space。
 
 这样可以同时满足两点：
 
@@ -1014,8 +1014,8 @@ Cloud route tests 必须覆盖：
 - `specs/tech_docs/space_cloud.md`
 - `specs/DESIGN.md`
 - `specs/prd/prd_0.2.49_team_space_profile_settings.md`
-- `/Users/zhihu/Documents/project/MyAgents_space/migrations/0001_initial.sql`
-- `/Users/zhihu/Documents/project/MyAgents_space/src/services/skillService.ts`
+- `/Users/zhihu/Documents/project/BlexAgent_space/migrations/0001_initial.sql`
+- `/Users/zhihu/Documents/project/BlexAgent_space/src/services/skillService.ts`
 - `src/server/skills/url-resolver.ts`
 - `src/server/skills/tarball-fetcher.ts`
 - `src/server/skills/installer.ts`
@@ -1025,14 +1025,14 @@ Cloud route tests 必须覆盖：
 ### 开发契约（动第一行代码前写完）
 
 - 必赢场景：owner/admin 在 Space Skills 点击“发布 Skill”，可以从本机 Skill、本地 `.zip/.skill/.md`、GitHub/npx 链接进入预检；同名冲突必须明确选择新建或更新；发布后详情可在“历史”tab 看到 v1/v2 等版本；管理员可确认回滚到旧版本；回滚后预览、文件、安装包都读取旧版本；再发布新版时版本号按历史最大值继续递增。member 可查看和安装，但看不到发布/回滚能力。
-- 复用的既有抽象：Space 云端请求继续由 `src-tauri/src/space_cloud.rs` owning，renderer 只走 `src/renderer/api/spaceCloud.ts` wrapper 和 `spaceStore.ts`；Cloud Worker 继续在 `MyAgents_space/src/index.ts` / `src/services/skillService.ts` 管 D1/R2；本地导入解析复用 `src/server/skills/url-resolver.ts`、`src/server/skills/tarball-fetcher.ts`、`src/server/skills/installer.ts`，不要在 Worker 另写一套 GitHub/npx 解析；overlay 复用 `OverlayBackdrop`、`useCloseLayer`、`ConfirmDialog`；作者展示复用 `SpaceIdentityLine`。
+- 复用的既有抽象：Space 云端请求继续由 `src-tauri/src/space_cloud.rs` owning，renderer 只走 `src/renderer/api/spaceCloud.ts` wrapper 和 `spaceStore.ts`；Cloud Worker 继续在 `BlexAgent_space/src/index.ts` / `src/services/skillService.ts` 管 D1/R2；本地导入解析复用 `src/server/skills/url-resolver.ts`、`src/server/skills/tarball-fetcher.ts`、`src/server/skills/installer.ts`，不要在 Worker 另写一套 GitHub/npx 解析；overlay 复用 `OverlayBackdrop`、`useCloseLayer`、`ConfirmDialog`；作者展示复用 `SpaceIdentityLine`。
 - 反向边界：不做在线编辑器、草稿、semver 输入、私有仓库、GitLab/Bitbucket、成员管理、安装量/收藏/评分、发布后自动安装本机、回滚复制成新版本、普通 Settings Skill 导入行为改造。
 - 新概念清单：`currentRevision`（必要：把当前启用版本与历史最大版本拆开，支持指针回滚后再发布）；Space Skill 发布准备包（必要：把三种来源归一成 canonical zip，再交给 Rust/Worker 上传）；Skill revision history cache（必要：详情历史 tab lazy load 与回滚后缓存失效）。
 - 触及的红线：Space 请求不能绕过 Rust 能力边界，renderer 不持有 session token；工作区/本地文件读取必须校验 symlink 和路径边界；新增 overlay 必须用 `OverlayBackdrop` + `useCloseLayer`；前端颜色/字号走 DESIGN token；新增 Rust 阻塞文件操作不能卡 Tauri 主线程；新增 Node fetch 必须有 timeout/SSRF 防护或复用已有 `fetchSkillZip()`；不要把 Worker 变成本地导入器的第二实现。
 
 ### 行动清单
 
-- [x] Phase 1：MyAgents_space 后端数据模型与 API：`current_revision` migration、current/latest query 拆分、history、rollback、slug 冲突不静默更新、route tests。
+- [x] Phase 1：BlexAgent_space 后端数据模型与 API：`current_revision` migration、current/latest query 拆分、history、rollback、slug 冲突不静默更新、route tests。
 - [x] Phase 2：Desktop Rust/mock/API/store：Skill history/rollback wrapper、`.zip/.skill/.md` 发布上传、mock currentRevision/history/rollback。
 - [x] Phase 3：发布准备能力：本机 Skill 扫描（全局+项目、排除 symlink）、本地文件与链接导入预检、canonical zip、冲突检测。
 - [x] Phase 4：Space Skills UI：发布 overlay、预检/新建更新选择、历史 tab、回滚确认、i18n 与 UI tests。
@@ -1045,7 +1045,7 @@ Cloud route tests 必须覆盖：
 ### 进展日志
 
 - 2026-07-06：进入 `/start-dev`；已重读 PRD、`specs/ARCHITECTURE.md`、`specs/tech_docs/space_cloud.md`、`specs/DESIGN.md` 和 start-dev 规范；确认先做 Cloud Worker 版本指针/history/rollback，再接桌面端与 UI。
-- 2026-07-06：完成 MyAgents_space Worker：新增 `current_revision` migration；详情/文件/下载改读 current pointer；新增 revision history 与 rollback API；新建同 slug 不再静默更新；回滚只更新 pointer；软删除后同 slug 重新发布会恢复原 Skill 并新增 revision；R2 key 使用 `revisionId` 隔离并发失败 cleanup。
+- 2026-07-06：完成 BlexAgent_space Worker：新增 `current_revision` migration；详情/文件/下载改读 current pointer；新增 revision history 与 rollback API；新建同 slug 不再静默更新；回滚只更新 pointer；软删除后同 slug 重新发布会恢复原 Skill 并新增 revision；R2 key 使用 `revisionId` 隔离并发失败 cleanup。
 - 2026-07-06：完成 Desktop：Rust Space owner 支持 `.zip/.skill/.md`/目录 packaging、URL 导入发布准备、临时包 cleanup、本机全局/项目 Skill 扫描并排除 symlink；renderer Space Skills 增加发布 overlay、URL 候选选择、新建/更新预检、历史 tab、admin rollback 确认。
 - 2026-07-06：cross-review-code 三路审查完成并修复：URL 发布入口从 renderer 直连 global sidecar 改为 Rust Space command owning；项目 Skill 扫描改走 `validate_workspace_root`；`.md` 与本机 `SKILL.md` 改为 no-follow bounded read；目录发布文件读取修复 symlink TOCTOU；软删除 slug、并发 revision R2 cleanup、history tab stale refresh 均已修复。
-- 2026-07-06：验证通过：MyAgents `npm run typecheck`、`npm run lint`（仅既有 `src/renderer/constants/chatSuggestions.ts` depcruise orphan warning）、`npx vitest run --project unit src/renderer/pages/space/spaceStore.test.ts`、`npx vitest run --project dom src/renderer/pages/space/goals/GoalsWorkspace.test.tsx`；MyAgents Rust `cargo fmt --check`、`cargo check`；MyAgents_space `npm run typecheck`、`npm test -- test/space-routes.test.ts`。
+- 2026-07-06：验证通过：BlexAgent `npm run typecheck`、`npm run lint`（仅既有 `src/renderer/constants/chatSuggestions.ts` depcruise orphan warning）、`npx vitest run --project unit src/renderer/pages/space/spaceStore.test.ts`、`npx vitest run --project dom src/renderer/pages/space/goals/GoalsWorkspace.test.tsx`；BlexAgent Rust `cargo fmt --check`、`cargo check`；BlexAgent_space `npm run typecheck`、`npm test -- test/space-routes.test.ts`。

@@ -274,7 +274,7 @@ export const SESSION_ENGINE_ROUTE_CONTRACTS: SessionEngineRouteContract[] = [
     engineMethod: 'updateOfficialToolIds',
     responseKeys: ['success', 'enabledIds', 'skipped', 'error'],
     failureStatuses: [500],
-    behavior: 'Applies per-session MyAgents official CLI tool selections through the active engine; prompt-changing external runtimes persist metadata and drop idle/prewarm processes.',
+    behavior: 'Applies per-session BlexAgent official CLI tool selections through the active engine; prompt-changing external runtimes persist metadata and drop idle/prewarm processes.',
   },
   {
     path: '/api/agents/set',

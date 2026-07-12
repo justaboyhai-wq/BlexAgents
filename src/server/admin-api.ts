@@ -99,7 +99,7 @@ import { trackServer } from './analytics';
 /**
  * Infer the analytics `source` for a CLI-originated request.
  *
- * - `MYAGENTS_PORT` is injected into AI subproc env by `buildClaudeSessionEnv()`
+ * - `BLEXAGENT_PORT` is injected into AI subproc env by `buildClaudeSessionEnv()`
  *   (cli_architecture.md). When it's set, the caller is an AI agent invoking
  *   the CLI as a tool (`cli_agent`). Otherwise it's the user typing in their
  *   terminal (`cli`).
@@ -109,7 +109,7 @@ import { trackServer } from './analytics';
  * consistently without re-deriving the heuristic.
  */
 function cliSource(): 'cli' | 'cli_agent' {
-  return process.env.MYAGENTS_PORT ? 'cli_agent' : 'cli';
+  return process.env.BLEXAGENT_PORT ? 'cli_agent' : 'cli';
 }
 
 // ---------------------------------------------------------------------------
@@ -253,7 +253,7 @@ export function handleMcpList(): AdminResponse {
 }
 
 /**
- * `myagents mcp show <id>` — details for a single MCP server.
+ * `blexagent mcp show <id>` — details for a single MCP server.
  *
  * Mirrors handleAgentShow: parses user-facing config + workspace enable state
  * into one consolidated payload the AI / user can inspect without dumping the
@@ -267,7 +267,7 @@ export async function handleMcpShow(payload: { id?: string }): Promise<AdminResp
       success: false,
       error: 'Missing required argument: <mcp-id>',
       recoveryHint: {
-        recoveryCommand: 'myagents mcp list',
+        recoveryCommand: 'blexagent mcp list',
         message: 'See valid MCP server ids.',
       },
     };
@@ -280,7 +280,7 @@ export async function handleMcpShow(payload: { id?: string }): Promise<AdminResp
       success: false,
       error: `MCP server '${id}' not found.`,
       recoveryHint: {
-        recoveryCommand: 'myagents mcp list',
+        recoveryCommand: 'blexagent mcp list',
         message: 'See valid MCP server ids.',
       },
     };
@@ -389,7 +389,7 @@ export async function handleMcpAdd(payload: {
   return {
     success: true,
     data: { id: server.id, name: server.name },
-    hint: 'Server added. Use "myagents mcp enable" to activate.',
+    hint: 'Server added. Use "blexagent mcp enable" to activate.',
   };
 }
 
@@ -577,7 +577,7 @@ export async function handleMcpTest(payload: { id: string }): Promise<AdminRespo
     if (!entryPromise) {
       return { success: false, error: `Built-in MCP '${server.id}' not registered` };
     }
-    // Don't swallow factory/import errors — a failing `myagents mcp test` must
+    // Don't swallow factory/import errors — a failing `blexagent mcp test` must
     // surface as "failure" so users/agents diagnose the actual issue instead of
     // getting a false "validated" green light while the session keeps breaking.
     try {
@@ -601,7 +601,7 @@ export async function handleMcpTest(payload: { id: string }): Promise<AdminRespo
   // Bundled cuse (computer-use) binary: resolve via runtime helper and skip
   // the generic `which` preflight because __bundled_cuse__ is a sentinel, not
   // a real PATH lookup. The diagnostic response intentionally exposes the
-  // resolved bundled path/version so `myagents mcp show/test cuse` can
+  // resolved bundled path/version so `blexagent mcp show/test cuse` can
   // distinguish the app-owned binary from any stale skill-local cache.
   if (server.command === '__bundled_cuse__') {
     const cuse = await getCuseDiagnostics({
@@ -655,7 +655,7 @@ export async function handleMcpTest(payload: { id: string }): Promise<AdminRespo
         ? await fetch(server.url!, {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'MyAgents', version: '1.0' } } }),
+            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'BlexAgent', version: '1.0' } } }),
             signal: controller.signal,
           })
         : await fetch(server.url!, { method: 'GET', headers, signal: controller.signal });
@@ -665,7 +665,7 @@ export async function handleMcpTest(payload: { id: string }): Promise<AdminRespo
       if (resp.status === 401 || resp.status === 403) {
         const hint = oauthHeaders['Authorization']
           ? 'OAuth token may be expired or revoked. Try re-authorizing.'
-          : 'This server may require OAuth authorization. Use Settings UI or `myagents mcp oauth start`.';
+          : 'This server may require OAuth authorization. Use Settings UI or `blexagent mcp oauth start`.';
         return { success: false, error: `Authentication failed (HTTP ${resp.status}). ${hint}` };
       }
       if (!resp.ok) {
@@ -905,7 +905,7 @@ export async function handleModelVerify(payload: { id: string; model?: string })
   const config = loadConfig();
   const apiKey = (config.providerApiKeys ?? {})[id];
   if (!apiKey) {
-    return { success: false, error: `No API key set for provider '${id}'. Use 'myagents model set-key' first.` };
+    return { success: false, error: `No API key set for provider '${id}'. Use 'blexagent model set-key' first.` };
   }
 
   // Look up provider config (preset or custom)
@@ -1033,13 +1033,13 @@ export function handleModelAdd(payload: {
     return { success: true, dryRun: true, preview: providerObj };
   }
 
-  // Write to ~/.myagents/providers/{id}.json
+  // Write to ~/.blexagent/providers/{id}.json
   saveCustomProviderFile(providerObj);
   broadcast('config:changed', { section: 'model', action: 'add', id: providerObj.id });
   return {
     success: true,
     data: { id: providerObj.id, name: providerObj.name, models: modelIds },
-    hint: `Provider added. Use 'myagents model set-key ${providerObj.id} <key>' to set API key.`,
+    hint: `Provider added. Use 'blexagent model set-key ${providerObj.id} <key>' to set API key.`,
   };
 }
 
@@ -1162,7 +1162,7 @@ export async function handleAgentEnable(payload: { id: string }): Promise<AdminR
       success: false,
       error: `Agent '${id}' belongs to an archived workspace.`,
       recoveryHint: {
-        recoveryCommand: `myagents agent unarchive ${id}`,
+        recoveryCommand: `blexagent agent unarchive ${id}`,
         message: 'Unarchive the Agent workspace before enabling proactive channels.',
       },
     };
@@ -1186,7 +1186,7 @@ export async function handleAgentArchive(payload: { id?: string }): Promise<Admi
       success: false,
       error: `Agent '${id}' not found.`,
       recoveryHint: {
-        recoveryCommand: 'myagents agent list',
+        recoveryCommand: 'blexagent agent list',
         message: 'See valid agent ids.',
       },
     };
@@ -1223,7 +1223,7 @@ export async function handleAgentArchive(payload: { id?: string }): Promise<Admi
       success: false,
       error: `Agent '${id}' has no linked workspace project.`,
       recoveryHint: {
-        recoveryCommand: 'myagents agent list',
+        recoveryCommand: 'blexagent agent list',
         message: 'Archive works on Agent workspaces registered in projects.json.',
       },
     };
@@ -1269,7 +1269,7 @@ export async function handleAgentUnarchive(payload: { id?: string }): Promise<Ad
       success: false,
       error: `Agent '${id}' not found.`,
       recoveryHint: {
-        recoveryCommand: 'myagents agent list --archived',
+        recoveryCommand: 'blexagent agent list --archived',
         message: 'See archived agent ids.',
       },
     };
@@ -1285,7 +1285,7 @@ export async function handleAgentUnarchive(payload: { id?: string }): Promise<Ad
       success: false,
       error: `Agent '${id}' has no linked workspace project.`,
       recoveryHint: {
-        recoveryCommand: 'myagents agent list --archived',
+        recoveryCommand: 'blexagent agent list --archived',
         message: 'Unarchive works on Agent workspaces registered in projects.json.',
       },
     };
@@ -1364,7 +1364,7 @@ export async function handleAgentSet(payload: { id: string; key: string; value: 
         success: false,
         error: `Agent '${id}' belongs to an archived workspace.`,
         recoveryHint: {
-          recoveryCommand: `myagents agent unarchive ${id}`,
+          recoveryCommand: `blexagent agent unarchive ${id}`,
           message: 'Unarchive the Agent workspace before setting enabled=true.',
         },
       };
@@ -1376,7 +1376,7 @@ export async function handleAgentSet(payload: { id: string; key: string; value: 
   // here would leak the previous runtime's model/permissionMode/additionalArgs
   // into the new runtime — Codex CLI then rejects e.g. a Gemini model with
   // "model is not supported when using ChatGPT account". Route through the
-  // helper so the CLI `myagents agent set <id> runtime codex` path stays in
+  // helper so the CLI `blexagent agent set <id> runtime codex` path stays in
   // lockstep with the Chat / Settings / Launcher in-app paths.
   if (key === 'runtime') {
     if (typeof value !== 'string') {
@@ -1516,7 +1516,7 @@ export async function handleConfigSet(payload: { key: string; value: unknown; dr
   const protectedKeys = ['providerApiKeys', 'providerVerifyStatus', 'agents', 'mcpServers', 'mcpEnabledServers', 'mcpServerEnv', 'mcpServerArgs', 'imBotConfigs', 'cliToolEnv'];
   const rootKey = key.split('.')[0];
   if (protectedKeys.includes(rootKey)) {
-    return { success: false, error: `Cannot set '${key}' via config set. Use dedicated commands (e.g., 'myagents mcp', 'myagents agent', 'myagents model set-key').` };
+    return { success: false, error: `Cannot set '${key}' via config set. Use dedicated commands (e.g., 'blexagent mcp', 'blexagent agent', 'blexagent model set-key').` };
   }
 
   if (dryRun) {
@@ -1595,7 +1595,7 @@ export function handleReload(workspacePath?: string): AdminResponse {
   // before mutating any in-memory state, so a scan failure doesn't leave the
   // caller with a half-applied reload (MCP pushed but agents stale).
   const home = getHomeDirOrNull();
-  const userAgentsBaseDir = home ? join(home, '.myagents', 'agents') : '';
+  const userAgentsBaseDir = home ? join(home, '.blexagent', 'agents') : '';
   const projAgentsDir = effectiveWorkspace ? join(effectiveWorkspace, '.claude', 'agents') : '';
   let agents: ReturnType<typeof loadEnabledAgents>;
   try {
@@ -1638,16 +1638,16 @@ export function handleReload(workspacePath?: string): AdminResponse {
 // added to the RuntimeType union, `--help` picks it up automatically.
 const RUNTIMES_ENUM_LINE = VALID_RUNTIMES.join(' | ');
 
-const CLI_TOOL_REGISTRY_DISABLED_HELP = `myagents tool — CLI tool registry
+const CLI_TOOL_REGISTRY_DISABLED_HELP = `blexagent tool — CLI tool registry
 
 This experimental feature is currently disabled.
 
 Enable it from Settings → About & Feedback → Lab → CLI tool registry before
-using 'myagents tool ...'. The stable built-in myagents CLI commands
+using 'blexagent tool ...'. The stable built-in blexagent CLI commands
 (cron, thought, im, widget, task, runtime, etc.) remain available.`;
 
 const HELP_TEXTS: Record<string, string> = {
-  mcp: `myagents mcp — Manage MCP tool servers
+  mcp: `blexagent mcp — Manage MCP tool servers
 
 Commands:
   list                     List all MCP servers
@@ -1690,26 +1690,26 @@ Options for 'oauth start' (manual mode):
   --scopes         Scopes (comma or space separated)
   --callback-port  Local callback port`,
 
-  vision: `myagents vision — Official image-understanding helper
+  vision: `blexagent vision — Official image-understanding helper
 
 Commands:
   readme                   Show the full image-understanding tool guide
   analyze                  Analyze one or more local workspace image paths
 
 Options for 'analyze':
-  --image <path>           Image path inside the current MyAgents workspace (repeatable)
+  --image <path>           Image path inside the current BlexAgent workspace (repeatable)
   --prompt-file <path>     Workspace-relative text file with the inspection request
   --prompt '<text>'        Short literal request authored by the agent
   --json                   Output machine-readable JSON
 
 Examples:
-  myagents vision readme
-  myagents vision analyze --image @myagents_files/screenshot.png --prompt-file inspect.txt
+  blexagent vision readme
+  blexagent vision analyze --image @blexagent_files/screenshot.png --prompt-file inspect.txt
 
 Use --prompt-file for user-provided, multiline, quoted, or shell-sensitive text.
 The configured image-understanding model is selected in Settings -> Toolbox.`,
 
-  model: `myagents model — Manage model providers
+  model: `blexagent model — Manage model providers
 
 Commands:
   list                     List all providers (preset + custom)
@@ -1734,13 +1734,13 @@ Options for 'add':
   --vendor        Vendor name
   --website-url   Provider website`,
 
-  config: `myagents config — Read/write application config
+  config: `blexagent config — Read/write application config
 
 Commands:
   get <key>               Read a config value
   set <key> <value>       Set a config value`,
 
-  cron: `myagents cron — Manage scheduled tasks
+  cron: `blexagent cron — Manage scheduled tasks
 
 Commands:
   list                     List all cron tasks
@@ -1771,9 +1771,9 @@ Options for 'update' <id>:
   Same flags as add (plus --model, --permissionMode). --message is also
   accepted as an alias for --prompt here.
 
-See 'myagents cron readme' for long-form usage + exit-from-task flow.`,
+See 'blexagent cron readme' for long-form usage + exit-from-task flow.`,
 
-  plugin: `myagents plugin — Manage OpenClaw channel plugins (IM adapters from npm)
+  plugin: `blexagent plugin — Manage OpenClaw channel plugins (IM adapters from npm)
 
 Commands:
   list                     List installed plugins
@@ -1781,9 +1781,9 @@ Commands:
   remove <plugin-id>       Uninstall a plugin
 
 Note: for Claude plugins (Anthropic plugin protocol — skills + agents + MCP
-+ hooks bundled as a directory), use 'myagents cc-plugin' instead.`,
++ hooks bundled as a directory), use 'blexagent cc-plugin' instead.`,
 
-  'cc-plugin': `myagents cc-plugin — Manage Claude plugins (PRD 0.2.17)
+  'cc-plugin': `blexagent cc-plugin — Manage Claude plugins (PRD 0.2.17)
 
 Commands:
   list                                       List installed plugins + enabled state
@@ -1795,18 +1795,18 @@ Commands:
   show <name|--id ID>                        Show manifest + component inventory
 
 Examples:
-  myagents cc-plugin install anthropics/example-plugin
-  myagents cc-plugin install https://github.com/foo/bar/tree/v1.0/sub/plugin
-  myagents cc-plugin install file:///Users/me/dev/my-plugin
-  myagents cc-plugin enable my-plugin
-  myagents cc-plugin show my-plugin
-  myagents cc-plugin uninstall my-plugin --purgeData
+  blexagent cc-plugin install anthropics/example-plugin
+  blexagent cc-plugin install https://github.com/foo/bar/tree/v1.0/sub/plugin
+  blexagent cc-plugin install file:///Users/me/dev/my-plugin
+  blexagent cc-plugin enable my-plugin
+  blexagent cc-plugin show my-plugin
+  blexagent cc-plugin uninstall my-plugin --purgeData
 
-Plugins land in ~/.myagents/plugins/<name>/ and are activated on next session
+Plugins land in ~/.blexagent/plugins/<name>/ and are activated on next session
 pre-warm (~1s). Different concept from OpenClaw channel plugins above —
 unrelated storage, unrelated semantics.`,
 
-  runtime: `myagents runtime — Inspect Agent Runtimes (v0.1.69+)
+  runtime: `blexagent runtime — Inspect Agent Runtimes (v0.1.69+)
 
 Commands:
   list                            List all known runtimes + install status
@@ -1815,10 +1815,10 @@ Commands:
 Valid runtimes: ${RUNTIMES_ENUM_LINE}
 
 Examples:
-  myagents runtime list                       # which runtimes are installed?
-  myagents runtime list --json
-  myagents runtime describe codex             # models + permission modes for codex
-  myagents runtime describe gemini --json
+  blexagent runtime list                       # which runtimes are installed?
+  blexagent runtime list --json
+  blexagent runtime describe codex             # models + permission modes for codex
+  blexagent runtime describe gemini --json
 
 Why this exists:
   'runtime describe' is the command to consult BEFORE choosing values for
@@ -1826,7 +1826,7 @@ Why this exists:
   for those flags intentionally does NOT list models or modes — values depend
   on which CLI you have installed and are dynamic. Use this command instead.`,
 
-  task: `myagents task — Manage Task Center tasks (v0.1.69+)
+  task: `blexagent task — Manage Task Center tasks (v0.1.69+)
 
 Commands:
   list                            List tasks (filter via --workspaceId / --status / --tag)
@@ -1869,20 +1869,20 @@ emits a warning when you do):
                                           tz offset MUST be +HH:MM, not +HH)
 
 IM / desktop notification (forward to a bot configured via
-\`myagents im channels\` — without --notificationBotChannelId the task runs
+\`blexagent im channels\` — without --notificationBotChannelId the task runs
 silently to disk, even if you set --notificationDesktop):
-  --notificationBotChannelId <id>  IM bot id (see 'myagents im channels')
+  --notificationBotChannelId <id>  IM bot id (see 'blexagent im channels')
   --notificationBotThread <chat>   Override bot routing thread / channel id
   --notificationDesktop true|false Desktop notification toggle (default: true)
   --notificationEvents done,blocked,endCondition  Comma-separated events filter
 
 Per-task RUNTIME overrides (all optional; omit to inherit workspace defaults):
   --runtime            Override runtime (${RUNTIMES_ENUM_LINE})
-                       See: myagents runtime list
+                       See: blexagent runtime list
   --model              Override model — values depend on runtime
-                       See: myagents runtime describe <runtime>
+                       See: blexagent runtime describe <runtime>
   --permissionMode     Override permission mode — values depend on runtime
-                       See: myagents runtime describe <runtime>
+                       See: blexagent runtime describe <runtime>
   --runtimeConfig      JSON string for runtime-specific extra config
   --mcpEnabledServers  Comma-separated MCP ids; "" means explicit no MCP
 
@@ -1906,8 +1906,8 @@ Options for 'create-attached':
   --sourceClaimId <id>    Space Issue claim id
   --sourceSpaceId <id>    Space id
   --sourceDeliveryId <id> Issue delivery id
-  Must run inside a MyAgents AI session; current session id comes from
-  MYAGENTS_SESSION_ID and is not guessed by the CLI.
+  Must run inside a BlexAgent AI session; current session id comes from
+  BLEXAGENT_SESSION_ID and is not guessed by the CLI.
 
 Options for 'update' <taskId>:
   Accepts every create-direct flag (each optional; missing = leave unchanged).
@@ -1932,30 +1932,30 @@ Output:
     inheritedFromWorkspace[], nextSteps.{dispatch,inspect,complete}).
 
 Examples:
-  myagents task list --workspaceId my-proj
-  myagents task create-direct --name "review PR" \\
+  blexagent task list --workspaceId my-proj
+  blexagent task create-direct --name "review PR" \\
       --workspaceId my-proj --workspacePath /path/to/my-proj \\
       --taskMdContent "Review the latest PR and file findings in progress.md" \\
       --runtime codex --model gpt-5.2 --permissionMode full-auto
   # Recurring + IM push — was GUI-only before issue #205
-  myagents task create-direct --name "issue triage" \\
+  blexagent task create-direct --name "issue triage" \\
       --workspaceId my-proj --workspacePath /path/to/my-proj \\
       --taskMdFile /tmp/triage-prompt.md \\
       --executionMode recurring --intervalMinutes 180 \\
       --notificationBotChannelId feishu_main
-  myagents task create-from-alignment sess_abc --name "Ship feature X" --runtime claude-code
-  myagents task create-attached --name "Space Issue #123" \\
+  blexagent task create-from-alignment sess_abc --name "Ship feature X" --runtime claude-code
+  blexagent task create-attached --name "Space Issue #123" \\
       --workspaceId my-proj --workspacePath /path/to/my-proj \\
       --taskMdContent-file task.md --source space-issue --sourceIssueId iss_123
-  myagents task run t_abc123
-  myagents task update t_abc123 --intervalMinutes 240   # change cadence after the fact
-  myagents task update-status t_abc123 done --message "shipped in v0.1.70"
+  blexagent task run t_abc123
+  blexagent task update t_abc123 --intervalMinutes 240   # change cadence after the fact
+  blexagent task update-status t_abc123 done --message "shipped in v0.1.70"
 
 Related:
-  myagents agent show <id>          Inspect an agent's effective defaults first,
+  blexagent agent show <id>          Inspect an agent's effective defaults first,
                                     so you know what you are overriding.`,
 
-  im: `myagents im — IM Bot capabilities (run 'myagents im readme' for long-form docs)
+  im: `blexagent im — IM Bot capabilities (run 'blexagent im readme' for long-form docs)
 
 Commands:
   channels                            List configured IM bots (works anywhere)
@@ -1964,23 +1964,23 @@ Commands:
   wake [--text <text>]                Trigger a heartbeat wake (IM session only)
   readme                              Full reference + when-to-use guidance
 
-Use 'myagents im channels' to discover bot ids for --notificationBotChannelId
-on 'myagents task create-direct / update'.`,
+Use 'blexagent im channels' to discover bot ids for --notificationBotChannelId
+on 'blexagent task create-direct / update'.`,
 
-  thought: `myagents thought — Inbox capture for the user's second brain
-(run 'myagents thought readme' for long-form docs)
+  thought: `blexagent thought — Inbox capture for the user's second brain
+(run 'blexagent thought readme' for long-form docs)
 
 Commands:
   list                  List thoughts (filter via --tag / --query / --limit)
   create <content>      Capture a new thought (also: --content / --content-file)`,
 
-  widget: `myagents widget — Generative UI widget design guidelines
-(run 'myagents widget readme' for the full design system + modules)
+  widget: `blexagent widget — Generative UI widget design guidelines
+(run 'blexagent widget readme' for the full design system + modules)
 
 Use to render inline charts / SVG / dashboards in desktop Chat replies.
 IM bot sessions don't render widgets.`,
 
-  skill: `myagents skill — Manage MyAgents skills (user skills live under ~/.myagents/skills/)
+  skill: `blexagent skill — Manage BlexAgent skills (user skills live under ~/.blexagent/skills/)
 
 Commands:
   list                       List installed skills + enabled state
@@ -1992,13 +1992,13 @@ Commands:
   enable <name>              Enable an installed skill
   disable <name>             Disable without uninstalling
   sync                       Import skills from Claude Code (~/.claude/skills) into
-                             MyAgents. Optional interop only — errors "directory not
+                             BlexAgent. Optional interop only — errors "directory not
                              found" when Claude Code is not installed; your own skills
-                             always live under ~/.myagents/skills/ regardless.`,
+                             always live under ~/.blexagent/skills/ regardless.`,
 
-  tool: `myagents tool — CLI tool registry (user tools live under ~/.myagents/tools/)
+  tool: `blexagent tool — CLI tool registry (user tools live under ~/.blexagent/tools/)
 
-Registered tools get a shim on ~/.myagents/bin (already on PATH in every agent
+Registered tools get a shim on ~/.blexagent/bin (already on PATH in every agent
 session and terminal) and their description is injected into every new
 session's context, so future AI sessions discover them automatically.
 Create standards-compliant tools with the tool-creator skill.
@@ -2006,7 +2006,7 @@ Create standards-compliant tools with the tool-creator skill.
 Commands:
   list                       List registered tools + enabled state [--json]
   add <dir>                  Register a tool dir (must contain tool.json + entry)
-                             [--dry-run]. Copies the dir into ~/.myagents/tools/
+                             [--dry-run]. Copies the dir into ~/.blexagent/tools/
                              unless it is already there.
   remove <name>              Unregister (keeps the tool dir; --purge deletes it)
   enable <name>              Show the tool in new sessions' context
@@ -2018,21 +2018,21 @@ Commands:
   env <name> delete KEY      Remove env keys
 
 Notes:
-  - Tool names must not shadow existing commands (~/.myagents/bin precedes
+  - Tool names must not shadow existing commands (~/.blexagent/bin precedes
     system paths on PATH) — add rejects collisions.
   - description in tool.json is capped at 800 chars (it goes into the system
     prompt of every session).
   - Registry changes affect other sessions at their next start.`,
 
-  diagnose: `myagents diagnose — Diagnostic helpers
+  diagnose: `blexagent diagnose — Diagnostic helpers
 
 Commands:
   diagnose runtime <type>    Inspect why a runtime is not detected / responding.
-                             Same as 'myagents runtime diagnose <type>'; the
+                             Same as 'blexagent runtime diagnose <type>'; the
                              top-level form is provided so AI guesses route
                              to a real handler (issue #194).`,
 
-  agent: `myagents agent — Manage agents & channels
+  agent: `blexagent agent — Manage agents & channels
 
 Commands:
   list [--active|--archived]      List all agents
@@ -2054,24 +2054,24 @@ Options for 'channel add':
   --app-secret  App Secret (for feishu/dingtalk)
 
 Typical flow (AI preparing a task override):
-  1. myagents agent show <id>          — learn current defaults
-  2. myagents runtime describe <rt>    — see valid model + permission values
-  3. myagents task create-direct ... --runtime <rt> --model <m>`,
+  1. blexagent agent show <id>          — learn current defaults
+  2. blexagent runtime describe <rt>    — see valid model + permission values
+  3. blexagent task create-direct ... --runtime <rt> --model <m>`,
 
-  session: `myagents session — 跨 session 推送与监听 (PRD 0.2.37)
+  session: `blexagent session — 跨 session 推送与监听 (PRD 0.2.37)
 
 USAGE
-  myagents session send <sessionId> -p "<prompt>" [OPTIONS]
-  myagents session send <sessionId> --prompt-file <path> [OPTIONS]
-  myagents session watch <sessionId>
+  blexagent session send <sessionId> -p "<prompt>" [OPTIONS]
+  blexagent session send <sessionId> --prompt-file <path> [OPTIONS]
+  blexagent session watch <sessionId>
 
 DESCRIPTION
-  MyAgents 提供跨 session 系统推送能力。所有返回到 AI 上下文里的跨
-  session 事件都使用 <myagents-session-event> 协议块。
+  BlexAgent 提供跨 session 系统推送能力。所有返回到 AI 上下文里的跨
+  session 事件都使用 <blexagent-session-event> 协议块。
 
   send:
     把一条消息异步投送给另一个 session。CLI 立即返回投递结果,不等待
-    目标处理。默认情况下,目标 session 本轮完成后,MyAgents 会把最终
+    目标处理。默认情况下,目标 session 本轮完成后,BlexAgent 会把最终
     结果自动推送回当前 session,事件类型为 send.result。
 
     --no-reply 表示 one-way delivery:目标会收到请求或通知,但当前
@@ -2087,7 +2087,7 @@ WHEN TO USE
   ✓ 当前任务依赖另一个 session 的工作,或用户让你监听它 → watch
   ✓ 用户在对话里给了你一个 sessionId,让你与其交互或监听
   ✗ 想答复当前用户——直接回复就行,不要用这个工具
-  ✗ 想给 IM peer 发消息——用 \`myagents im send-media\`,不是这个
+  ✗ 想给 IM peer 发消息——用 \`blexagent im send-media\`,不是这个
 
 OPTIONS
   send <sessionId>       目标 session 的 ID(必填)
@@ -2113,32 +2113,32 @@ EXIT CODES
 
 EXAMPLES
   # 让目标 session 处理一件事并把结果推回来(最常见,短文本)
-  myagents session send sess_abc123 -p "用户希望加上 deepseek 也跑一遍"
+  blexagent session send sess_abc123 -p "用户希望加上 deepseek 也跑一遍"
 
   # 仅通知,不期待回应
-  myagents session send sess_xyz789 -p "任务已完成,无需回应" --no-reply
+  blexagent session send sess_xyz789 -p "任务已完成,无需回应" --no-reply
 
   # 多行 / 长文本(必须用 --prompt-file,跨平台稳定)
-  myagents session send sess_abc123 --prompt-file /tmp/inbox_msg.txt
+  blexagent session send sess_abc123 --prompt-file /tmp/inbox_msg.txt
 
   # 当前任务依赖另一个 session 的结果
-  myagents session watch sess_abc123
+  blexagent session watch sess_abc123
 
 SESSION EVENT NOTES
   你可能在当前 turn 的命令输出或后续系统推送中看到:
 
-    <myagents-session-event type="send.result" ...>
+    <blexagent-session-event type="send.result" ...>
     ...
-    </myagents-session-event>
+    </blexagent-session-event>
 
   或:
 
-    <myagents-session-event type="watch.completed" ...>
+    <blexagent-session-event type="watch.completed" ...>
     ...
-    </myagents-session-event>
+    </blexagent-session-event>
 
 SEE ALSO
-  myagents im send-media     给 IM peer 发消息(不是给 session)`,
+  blexagent im send-media     给 IM peer 发消息(不是给 session)`,
 };
 
 export function handleHelp(payload: { path?: string[] }): AdminResponse {
@@ -2155,20 +2155,20 @@ export function handleHelp(payload: { path?: string[] }): AdminResponse {
   // Derive the group list from HELP_TEXTS so it can't drift as new commands
   // are added (issue #205 gap #5: the previous hardcoded list claimed only
   // 8 groups existed and omitted im / task / runtime / cc-plugin / session,
-  // turning `myagents im --help` into a misleading "use one of these
+  // turning `blexagent im --help` into a misleading "use one of these
   // unrelated groups" message). Append the leaf commands that aren't in
   // HELP_TEXTS but are still valid top-level invocations.
   const groups = Object.keys(HELP_TEXTS).sort();
   const leafCommands = ['status', 'reload', 'version'];
   const header = group
     ? `Unknown command group "${group}".`
-    : 'myagents — Available commands';
+    : 'blexagent — Available commands';
   return {
     success: true,
     data: {
       text: `${header}
 
-Command groups (run "myagents <group> --help" for details):
+Command groups (run "blexagent <group> --help" for details):
   ${groups.join(', ')}
 
 Leaf commands:
@@ -2184,22 +2184,22 @@ Leaf commands:
 // Compile-time injected by esbuild (scripts/esbuild-bundle.mjs `define`).
 // In dev (`npm run server` via tsx, no esbuild), the identifier is undefined
 // at runtime — the `?? process.env.…` chain below reaches the env fallback.
-declare const __MYAGENTS_VERSION__: string | undefined;
+declare const __BLEXAGENT_VERSION__: string | undefined;
 
 export function handleVersion(): AdminResponse {
   // Resolution order:
-  //   1. esbuild-injected `__MYAGENTS_VERSION__` (production sidecar bundle).
+  //   1. esbuild-injected `__BLEXAGENT_VERSION__` (production sidecar bundle).
   //   2. `npm_package_version` (set by npm in dev when launched via scripts).
-  //   3. `MYAGENTS_VERSION` env override (build system / tests).
+  //   3. `BLEXAGENT_VERSION` env override (build system / tests).
   //   4. 'dev' sentinel — visibly NOT a release version, so anyone reading
-  //      `myagents version` knows they're on an un-stamped build instead of
+  //      `blexagent version` knows they're on an un-stamped build instead of
   //      seeing a stale hardcoded number that lies about which build is
   //      installed (issue #149: users had no way to tell whether the dmg they
   //      reinstalled actually contained the patched CLI/sidecar — the old
   //      hardcoded '0.1.70' fallback shipped in every release).
-  const version = (typeof __MYAGENTS_VERSION__ !== 'undefined' ? __MYAGENTS_VERSION__ : undefined)
+  const version = (typeof __BLEXAGENT_VERSION__ !== 'undefined' ? __BLEXAGENT_VERSION__ : undefined)
     ?? process.env.npm_package_version
-    ?? process.env.MYAGENTS_VERSION
+    ?? process.env.BLEXAGENT_VERSION
     ?? 'dev';
   return { success: true, data: { version } };
 }
@@ -2213,7 +2213,7 @@ export function handleVersion(): AdminResponse {
 // knowledge of which Sidecar made the call, and `cron/list` without
 // `workspacePath` returns ALL tasks across the system. Before v0.2.11 the
 // `im-cron` MCP enforced a per-bot/per-workspace ownership guard inside its
-// tool handler. Now that cron CRUD flows through `myagents cron …` CLI
+// tool handler. Now that cron CRUD flows through `blexagent cron …` CLI
 // (auto-approved Bash in IM/cron sessions), the same guard MUST be applied
 // here at the admin-api boundary. Otherwise a prompt-injected IM bot can
 // list and mutate tasks belonging to other workspaces.
@@ -2236,7 +2236,7 @@ export function handleVersion(): AdminResponse {
 
 /**
  * Resolve the workspace this Sidecar should treat as "current" for cron CRUD.
- * Used to default `workspacePath` on AI-initiated `myagents cron` invocations
+ * Used to default `workspacePath` on AI-initiated `blexagent cron` invocations
  * when the AI didn't (or can't) supply one.
  *
  * Resolution order — most-specific to least:
@@ -2281,7 +2281,7 @@ async function verifyCronTaskOwnership(taskId: string): Promise<AdminResponse | 
 
 export async function handleCronList(payload: { workspacePath?: string }): Promise<AdminResponse> {
   // Default to current sidecar's workspace if caller didn't specify. Without
-  // this, `myagents cron list` from an IM bot returns tasks across every
+  // this, `blexagent cron list` from an IM bot returns tasks across every
   // workspace on the system — see ownership-guard rationale above.
   const explicit = Boolean(payload.workspacePath);
   const workspacePath = payload.workspacePath ?? defaultCronWorkspace();
@@ -2296,7 +2296,7 @@ export async function handleCronList(payload: { workspacePath?: string }): Promi
 
 /**
  * Resolve effective providerId + model from the workspace context for a cron
- * task being created without explicit provider info (issue #197 — `myagents
+ * task being created without explicit provider info (issue #197 — `blexagent
  * cron add` without `--provider`/`--model` flags).
  *
  * Mirrors PRD 0.2.9 R7: every cron writer should forward `providerId` (live-
@@ -2345,7 +2345,7 @@ function resolveCronProviderDefaultsForWorkspace(workspacePath: string): {
 
 export async function handleCronCreate(payload: Record<string, unknown>): Promise<AdminResponse> {
   // Default workspacePath if caller didn't supply one. Rust requires the
-  // field; without this default, every AI-issued `myagents cron add` would
+  // field; without this default, every AI-issued `blexagent cron add` would
   // 400 because the prompt examples (intentionally) don't mention --workspace.
   const resolvedWorkspacePath = (payload.workspacePath as string | undefined)
     || (payload.workspace_path as string | undefined)
@@ -2579,7 +2579,7 @@ export async function handleTaskCreateAttached(
   if (typeof payload.currentSessionId !== 'string' || payload.currentSessionId.trim().length === 0) {
     return {
       success: false,
-      error: 'currentSessionId is required; run this command from inside a MyAgents AI session',
+      error: 'currentSessionId is required; run this command from inside a BlexAgent AI session',
     };
   }
   const resp = await managementApi('/api/task/create-attached', 'POST', payload);
@@ -2709,12 +2709,12 @@ function enrichTaskCreateResponse(
   if (taskId) {
     enriched.nextSteps = options.attached
       ? {
-          inspect: `myagents task get ${taskId}`,
-          complete: `myagents task update-status ${taskId} done --message "<summary>"`,
+          inspect: `blexagent task get ${taskId}`,
+          complete: `blexagent task update-status ${taskId} done --message "<summary>"`,
         }
       : {
-          dispatch: `myagents task run ${taskId}`,
-          inspect: `myagents task get ${taskId}`,
+          dispatch: `blexagent task run ${taskId}`,
+          inspect: `blexagent task get ${taskId}`,
         };
   }
   return { ...response, data: enriched };
@@ -2748,13 +2748,13 @@ export async function handleTaskUpdateStatus(
   payload: Record<string, unknown>,
 ): Promise<AdminResponse> {
   // Infer actor/source if caller omitted them:
-  //   Inside an AI subprocess → MYAGENTS_PORT is set → actor=agent, source=cli.
-  //   Otherwise (user ran `myagents` in their terminal) → actor=user, source=cli.
-  // `MYAGENTS_PORT` is injected by `buildClaudeSessionEnv()` into SDK subproc
+  //   Inside an AI subprocess → BLEXAGENT_PORT is set → actor=agent, source=cli.
+  //   Otherwise (user ran `blexagent` in their terminal) → actor=user, source=cli.
+  // `BLEXAGENT_PORT` is injected by `buildClaudeSessionEnv()` into SDK subproc
   // env (see cli_architecture.md); the user's own shell does NOT have it set
-  // (the user's CLI binary reads `~/.myagents/sidecar.port` instead).
+  // (the user's CLI binary reads `~/.blexagent/sidecar.port` instead).
   if (payload.actor === undefined) {
-    payload.actor = process.env.MYAGENTS_PORT ? 'agent' : 'user';
+    payload.actor = process.env.BLEXAGENT_PORT ? 'agent' : 'user';
   }
   if (payload.source === undefined) {
     payload.source = 'cli';
@@ -2818,7 +2818,7 @@ export async function handleTaskDelete(payload: { id: string }): Promise<AdminRe
 /**
  * Read a task's markdown doc (`task.md` / `verify.md` / `progress.md` /
  * `alignment.md`). Missing files return `{ ok: true, content: "" }` so
- * CLI scripting is idempotent. Task docs live under `~/.myagents/tasks/<id>/`
+ * CLI scripting is idempotent. Task docs live under `~/.blexagent/tasks/<id>/`
  * since v0.1.69 — this endpoint is the agent-facing read path because the
  * AI runs in the workspace cwd and can't know the user-profile dir.
  */
@@ -2878,14 +2878,14 @@ export async function handleThoughtCreate(payload: {
 // ---------------------------------------------------------------------------
 // Session-scoped capabilities for external runtimes (v0.1.67)
 //
-// These handlers expose Pattern 1 (context-injected) MCP tools to the `myagents`
+// These handlers expose Pattern 1 (context-injected) MCP tools to the `blexagent`
 // CLI so the AI running on external runtimes (Claude Code / Codex / Gemini CLI)
-// can reach MyAgents-specific capabilities through plain shell tool calls
+// can reach BlexAgent-specific capabilities through plain shell tool calls
 // instead of a Claude-Agent-SDK-only MCP protocol. See prd_0.1.67.
 //
 // Authorization model: Sidecar is session-scoped (1 Sidecar = 1 session), so
 // most ambient context is already bound to the calling Sidecar. Commands that
-// need a durable local Task/session link use MYAGENTS_SESSION_ID explicitly.
+// need a durable local Task/session link use BLEXAGENT_SESSION_ID explicitly.
 // ---------------------------------------------------------------------------
 
 export function handleCronExit(payload: { reason?: string }): AdminResponse {
@@ -2915,7 +2915,7 @@ export function handleCronExit(payload: { reason?: string }): AdminResponse {
 }
 
 /**
- * `myagents im wake [--text "..."]` — trigger a heartbeat wake on the current
+ * `blexagent im wake [--text "..."]` — trigger a heartbeat wake on the current
  * IM bot. Used by AI to nudge itself into the next reasoning cycle when it
  * needs another turn (e.g., long-running task that just produced new state).
  *
@@ -2927,7 +2927,7 @@ export async function handleImWake(payload: { text?: string }): Promise<AdminRes
   if (!ctx) {
     return {
       success: false,
-      error: 'No IM context in this session. `myagents im wake` only works inside an IM Bot / Agent Channel session.',
+      error: 'No IM context in this session. `blexagent im wake` only works inside an IM Bot / Agent Channel session.',
     };
   }
   const resp = await managementApi('/api/im/wake', 'POST', {
@@ -2941,7 +2941,7 @@ export async function handleImWake(payload: { text?: string }): Promise<AdminRes
 }
 
 /**
- * `myagents im channels` — list all configured IM channels (Telegram /
+ * `blexagent im channels` — list all configured IM channels (Telegram /
  * Feishu / DingTalk / OpenClaw plugin bots). Useful for AI to discover what
  * delivery targets are available before creating a cron task that delivers
  * to IM. Works in any session — does not require an active IM context.
@@ -2976,10 +2976,10 @@ export async function handleImSendMedia(payload: { filePath?: string; caption?: 
     return { success: false, error: 'No IM context in this session. This command only works inside an IM Bot / Agent Channel session.' };
   }
   // Path traversal guard: prompt-injected AI on an external runtime could be
-  // steered into `myagents im send-media --file ~/.ssh/id_rsa` and exfiltrate
+  // steered into `blexagent im send-media --file ~/.ssh/id_rsa` and exfiltrate
   // secrets to the chat peer. assertSafeFilePath canonicalises (dereferencing
   // symlinks) and requires the real path to live under workspace / tmp / the
-  // myagents scratch dir. Any other location is rejected with a clear error.
+  // blexagent scratch dir. Any other location is rejected with a clear error.
   const { agentDir } = getAgentState();
   let safePath: string;
   try {
@@ -3012,14 +3012,14 @@ export async function handleImSendMedia(payload: { filePath?: string; caption?: 
 //
 // Skill layer pre-injects BRIEF descriptions of these tools into the system
 // prompt (system-prompt-cli-tools.ts). When the AI actually needs to use one,
-// it calls `myagents X readme` to pull the full usage doc on demand.
+// it calls `blexagent X readme` to pull the full usage doc on demand.
 // ---------------------------------------------------------------------------
 
-const README_CRON = `myagents cron — Scheduled task management
+const README_CRON = `blexagent cron — Scheduled task management
 
 WHAT
   Create, list, inspect, stop, and delete scheduled AI tasks (cron / interval /
-  one-shot). Tasks run inside MyAgents regardless of which runtime the current
+  one-shot). Tasks run inside BlexAgent regardless of which runtime the current
   chat uses. A task can deliver results to an IM channel.
 
 COMMANDS
@@ -3060,7 +3060,7 @@ STATUS VOCABULARY (in 'list' / 'status' output and --json)
   status=Stopped  +  '*' marker        →  rare; a scheduled tick was already
                                           in flight when the task got stopped
 
-CREATE OPTIONS (myagents cron add ...)
+CREATE OPTIONS (blexagent cron add ...)
   --name <text>                   Human-readable label (optional)
   --prompt <text>                 The prompt the AI runs each tick. For short
                                   prompts use this. For multi-line / complex
@@ -3080,34 +3080,34 @@ CREATE OPTIONS (myagents cron add ...)
   --workspace <path>              Workspace the task runs in. Defaults to the
                                   current session workspace.
 
-UPDATE OPTIONS (myagents cron update <taskId> ...)
+UPDATE OPTIONS (blexagent cron update <taskId> ...)
   --name / --prompt / --message / --schedule / --every / --model / --permissionMode
   (Same semantics as create. --message is an alias for --prompt.)
 
 EXAMPLES
   # Short prompt, 30 min interval
-  myagents cron add --name ping --prompt "ping example.com, report latency" --every 30
+  blexagent cron add --name ping --prompt "ping example.com, report latency" --every 30
 
   # Long prompt from file (the recommended path)
   printf '%s\\n' 'Check the build log for new errors.' \\
     'If errors found, summarize and tag me.' > /tmp/cron-check.txt
-  myagents cron add --name build-watch --prompt-file /tmp/cron-check.txt --every 15
+  blexagent cron add --name build-watch --prompt-file /tmp/cron-check.txt --every 15
 
   # Look at recent runs
-  myagents cron list
-  myagents cron runs <taskId> --limit 5
+  blexagent cron list
+  blexagent cron runs <taskId> --limit 5
 
 EXIT FROM INSIDE A TASK (cron scenario only)
   If you are currently running as a cron task AND the task creator enabled
   "Allow AI to exit", call:
-    myagents cron exit --reason "goal achieved"
+    blexagent cron exit --reason "goal achieved"
   to mark the task complete and stop future executions.
 
 DO NOT
-  Use system cron / crontab / at / launchctl — they can't see MyAgents state.
-  Only \`myagents cron\` can create tasks inside MyAgents.`;
+  Use system cron / crontab / at / launchctl — they can't see BlexAgent state.
+  Only \`blexagent cron\` can create tasks inside BlexAgent.`;
 
-const README_IM = `myagents im — IM Bot capabilities
+const README_IM = `blexagent im — IM Bot capabilities
 
 WHAT
   Commands that act on the current IM chat (Telegram / Feishu / DingTalk /
@@ -3137,21 +3137,21 @@ COMMANDS
 
 EXAMPLES
   # Generate a CSV and send it
-  myagents im send-media --file /tmp/report.csv --caption "Today's numbers"
+  blexagent im send-media --file /tmp/report.csv --caption "Today's numbers"
 
   # Send a generated chart image
-  myagents im send-media --file /tmp/chart.png
+  blexagent im send-media --file /tmp/chart.png
 
   # Discover available IM channels
-  myagents im channels --json
+  blexagent im channels --json
 
   # Wake yourself with a hint
-  myagents im wake --text "build finished, time to summarize"`;
+  blexagent im wake --text "build finished, time to summarize"`;
 
-const README_WIDGET = `myagents widget — Generative UI widget design guidelines
+const README_WIDGET = `blexagent widget — Generative UI widget design guidelines
 
 WHAT
-  Returns the MyAgents widget design system (color palette, component specs, layout rules) and the output format you MUST use to embed an interactive widget in a chat reply. Widgets render inline in the conversation — charts, SVG diagrams, interactive explainers, dashboards.
+  Returns the BlexAgent widget design system (color palette, component specs, layout rules) and the output format you MUST use to embed an interactive widget in a chat reply. Widgets render inline in the conversation — charts, SVG diagrams, interactive explainers, dashboards.
 
 WHEN TO CALL
   Before outputting your first <generative-ui-widget> tag in a desktop chat reply. Reach for a widget whenever ${WIDGET_TRIGGER_GUIDANCE}
@@ -3162,7 +3162,7 @@ WHEN NOT TO CALL
   - IM bot sessions (widgets only render in the desktop client)
 
 COMMAND
-  myagents widget readme <module1> [<module2> ...]
+  blexagent widget readme <module1> [<module2> ...]
 
 MODULES
   chart         Chart.js line/bar/pie patterns, palette hex values, dashboards
@@ -3172,18 +3172,18 @@ MODULES
   art           SVG illustration / visual metaphor
 
 EXAMPLES
-  myagents widget readme chart
-  myagents widget readme chart interactive
-  myagents widget readme dashboard
+  blexagent widget readme chart
+  blexagent widget readme chart interactive
+  blexagent widget readme dashboard
 
 The output begins with the required <generative-ui-widget> output format contract; do not skip reading it.`;
 
-const README_THOUGHT = `myagents thought — Inbox capture for the user's second brain
+const README_THOUGHT = `blexagent thought — Inbox capture for the user's second brain
 
 WHAT
   Lightweight, unstructured idea / TODO entries the user surfaces
   mid-conversation. The full guidance lives in your system prompt's
-  <myagents-cli-thought> section — that brief is sufficient. There is no
+  <blexagent-cli-thought> section — that brief is sufficient. There is no
   expanded readme here (this command is intentionally minimal).
 
 COMMANDS
@@ -3198,7 +3198,7 @@ COMMANDS
                                     quirk on Windows / pwsh)
 
   Tag inline with #xxx inside the content body — there is no separate
-  --tag flag on create. Run \`myagents thought list\` to browse.
+  --tag flag on create. Run \`blexagent thought list\` to browse.
 
 WHEN TO CALL
   Only when the user explicitly asks to record / save / note specific
@@ -3220,7 +3220,7 @@ export async function handleSpaceIssueList(payload: Record<string, unknown>): Pr
 }
 
 export async function handleSpaceIssueComment(payload: Record<string, unknown>): Promise<AdminResponse> {
-  return spaceManagementResponse('/api/space/issue-comment', payload, 'Comment posted to MyAgents Space.');
+  return spaceManagementResponse('/api/space/issue-comment', payload, 'Comment posted to BlexAgent Space.');
 }
 
 export async function handleSpaceIssueStatus(payload: Record<string, unknown>): Promise<AdminResponse> {
@@ -3316,7 +3316,7 @@ export async function handlePluginUninstall(payload: { pluginId: string }): Prom
 // Claude Plugin handlers (PRD 0.2.17) — thin wrappers over the Node Sidecar's
 // /api/cc-plugin/* routes. Named "cc-plugin" END-TO-END (admin command, HTTP
 // path, store module) to avoid collision with the pre-existing OpenClaw
-// channel-plugin commands (`myagents plugin list/install/remove`) above
+// channel-plugin commands (`blexagent plugin list/install/remove`) above
 // which target the Rust Management API at /api/plugin/*. Concepts are
 // unrelated: OpenClaw plugins are npm-packaged IM channel adapters, Claude
 // plugins are the Anthropic-spec directories containing skills/agents/MCP/
@@ -3688,7 +3688,7 @@ async function raceWithTimeout<T>(
 }
 
 /**
- * List every runtime MyAgents knows about with its install status.
+ * List every runtime BlexAgent knows about with its install status.
  *
  * Detection is best-effort and actually gated at `RUNTIME_DETECT_TIMEOUT_MS`
  * per runtime — each runtime's `detect()` spawns `<cli> --version`, and a
@@ -3745,7 +3745,7 @@ export async function handleRuntimeDescribe(payload: {
       success: false,
       error: 'Missing required argument: runtime',
       recoveryHint: {
-        recoveryCommand: 'myagents runtime list',
+        recoveryCommand: 'blexagent runtime list',
         message: 'See valid runtime names.',
       },
     };
@@ -3755,7 +3755,7 @@ export async function handleRuntimeDescribe(payload: {
       success: false,
       error: `Unknown runtime: '${runtimeArg}'. Valid: ${VALID_RUNTIMES.join(', ')}.`,
       recoveryHint: {
-        recoveryCommand: 'myagents runtime list',
+        recoveryCommand: 'blexagent runtime list',
         message: 'See valid runtime names + install status.',
       },
     };
@@ -3776,7 +3776,7 @@ export async function handleRuntimeDescribe(payload: {
         permissionModes: getRuntimePermissionModes('builtin'),
         defaultPermissionMode: getDefaultRuntimePermissionMode('builtin'),
         note:
-          'Built-in runtime uses the configured provider + model from `myagents model list`. '
+          'Built-in runtime uses the configured provider + model from `blexagent model list`. '
           + 'It does not have a runtime-specific model catalogue — override `--model` with any '
           + 'model id supported by the active provider.',
       } satisfies RuntimeDescribeResult & { note: string },
@@ -3819,7 +3819,7 @@ export async function handleRuntimeDescribe(payload: {
 /**
  * Run a one-shot runtime diagnostic — spawns a short-lived runtime process,
  * collects what it sees (auth, features, MCP, apps, effective env), and
- * returns the structured snapshot. Used by `myagents diagnose runtime <type>`
+ * returns the structured snapshot. Used by `blexagent diagnose runtime <type>`
  * (issue #194) and the in-app "诊断" button.
  *
  * Codex: spawns `codex app-server`, no thread created.
@@ -3837,7 +3837,7 @@ export async function handleRuntimeDiagnose(payload: {
       success: false,
       error: 'Missing required argument: runtime',
       recoveryHint: {
-        recoveryCommand: 'myagents runtime list',
+        recoveryCommand: 'blexagent runtime list',
         message: 'See valid runtime names.',
       },
     };
@@ -3879,13 +3879,13 @@ export async function handleRuntimeDiagnose(payload: {
 
   // Resolve the agent's envPolicy so the diagnostic reflects the same proxy
   // policy the real session would use (Codex review #3 catch — without this,
-  // CLI diagnose silently reports the legacy `myagents` view even when the
+  // CLI diagnose silently reports the legacy `blexagent` view even when the
   // agent is configured to inherit terminal or skip proxy entirely).
   //
   // Funnel through the shared helper in `env-utils.ts` so this path validates
   // the `proxy` literal the same way `external-session.ts` does — without
   // shared validation, a malformed `envPolicy.proxy` on disk would silently
-  // appear as `'myagents'` in the diagnostic banner, hiding the misconfig.
+  // appear as `'blexagent'` in the diagnostic banner, hiding the misconfig.
   const { resolveAgentEnvPolicy } = await import('./runtimes/env-utils');
   const envPolicy = payload.workspacePath
     ? await resolveAgentEnvPolicy(payload.workspacePath)
@@ -3936,7 +3936,7 @@ export function handleAgentShow(payload: { id?: string }): AdminResponse {
       success: false,
       error: 'Missing required argument: <agent-id>',
       recoveryHint: {
-        recoveryCommand: 'myagents agent list',
+        recoveryCommand: 'blexagent agent list',
         message: 'See valid agent ids.',
       },
     };
@@ -3948,7 +3948,7 @@ export function handleAgentShow(payload: { id?: string }): AdminResponse {
       success: false,
       error: `Agent '${id}' not found.`,
       recoveryHint: {
-        recoveryCommand: 'myagents agent list',
+        recoveryCommand: 'blexagent agent list',
         message: 'See valid agent ids.',
       },
     };
@@ -4068,7 +4068,7 @@ async function validateTaskOverrides(
         success: false,
         error: `Invalid --runtime value: '${String(payload.runtime)}'. Valid: ${VALID_RUNTIMES.join(', ')}.`,
         recoveryHint: {
-          recoveryCommand: 'myagents runtime list',
+          recoveryCommand: 'blexagent runtime list',
           message: 'See valid runtimes + install status.',
         },
       };
@@ -4082,7 +4082,7 @@ async function validateTaskOverrides(
             success: false,
             error: `Runtime '${effectiveRuntime}' is not installed on this machine.`,
             recoveryHint: {
-              recoveryCommand: 'myagents runtime list',
+              recoveryCommand: 'blexagent runtime list',
               message: 'See which runtimes are available + install hints.',
             },
           };
@@ -4092,7 +4092,7 @@ async function validateTaskOverrides(
           success: false,
           error: `Runtime '${effectiveRuntime}' detection failed.`,
           recoveryHint: {
-            recoveryCommand: 'myagents runtime list',
+            recoveryCommand: 'blexagent runtime list',
             message: 'See which runtimes are available.',
           },
         };
@@ -4113,8 +4113,8 @@ async function validateTaskOverrides(
           '--model / --permissionMode requires either an explicit --runtime, '
           + 'or a resolvable workspace (via --workspacePath / --workspaceId matching an agent).',
         recoveryHint: {
-          recoveryCommand: 'myagents agent list',
-          message: 'Find your agent, then `myagents agent show <id>` to see its default runtime.',
+          recoveryCommand: 'blexagent agent list',
+          message: 'Find your agent, then `blexagent agent show <id>` to see its default runtime.',
         },
       };
     }
@@ -4142,7 +4142,7 @@ async function validateTaskOverrides(
         success: false,
         error: `--permissionMode must be a string (got ${typeof payload.permissionMode}).`,
         recoveryHint: {
-          recoveryCommand: `myagents runtime describe ${effectiveRuntime}`,
+          recoveryCommand: `blexagent runtime describe ${effectiveRuntime}`,
           message: 'See valid permission modes.',
         },
       };
@@ -4153,7 +4153,7 @@ async function validateTaskOverrides(
         success: false,
         error: `--permissionMode '${payload.permissionMode}' is not valid for runtime '${effectiveRuntime}'. Valid: ${modes.map(m => m.value).join(', ')}.`,
         recoveryHint: {
-          recoveryCommand: `myagents runtime describe ${effectiveRuntime}`,
+          recoveryCommand: `blexagent runtime describe ${effectiveRuntime}`,
           message: 'See valid permission modes for this runtime.',
         },
       };
@@ -4176,7 +4176,7 @@ async function validateTaskOverrides(
         success: false,
         error: `--model must be a string (got ${typeof payload.model}).`,
         recoveryHint: {
-          recoveryCommand: `myagents runtime describe ${effectiveRuntime}`,
+          recoveryCommand: `blexagent runtime describe ${effectiveRuntime}`,
           message: 'See valid model ids for this runtime.',
         },
       };
@@ -4192,7 +4192,7 @@ async function validateTaskOverrides(
           success: false,
           error: `--model '${payload.model}' is not available for runtime '${effectiveRuntime}'. Examples: ${examples || '(none found)'}.`,
           recoveryHint: {
-            recoveryCommand: `myagents runtime describe ${effectiveRuntime}`,
+            recoveryCommand: `blexagent runtime describe ${effectiveRuntime}`,
             message: 'See the full model list.',
           },
         };
@@ -4266,7 +4266,7 @@ function hasDangerousKeySegment(key: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Provider file I/O (~/.myagents/providers/{id}.json)
+// Provider file I/O (~/.blexagent/providers/{id}.json)
 // ---------------------------------------------------------------------------
 
 // findProvider, getProvidersDir, loadCustomProviderFiles → imported from admin-config.ts
@@ -4333,7 +4333,7 @@ function projectMcpMutationFailure(
     success: false,
     error: `Cannot ${action} MCP server '${id}' for project scope: ${projectMcpMutationReason(result)}.`,
     recoveryHint: {
-      recoveryCommand: `myagents mcp ${action} ${id} --scope global`,
+      recoveryCommand: `blexagent mcp ${action} ${id} --scope global`,
       message: 'Use global scope, or open/register the target workspace before changing project-scoped MCP settings.',
     },
   };
@@ -4485,8 +4485,8 @@ function setNestedValue(obj: AdminAppConfig, key: string, value: unknown): Admin
 // ---------------------------------------------------------------------------
 // CLI tool registry (PRD 0.2.36 cli_first_tool_registry)
 //
-// `myagents tool …` + Settings 工具箱 both land here. Registry truth lives on
-// disk (~/.myagents/tools/), per-tool env lives in config.cliToolEnv (same
+// `blexagent tool …` + Settings 工具箱 both land here. Registry truth lives on
+// disk (~/.blexagent/tools/), per-tool env lives in config.cliToolEnv (same
 // shape as mcpServerEnv). Prompt injection reads the registry independently
 // (system-prompt-cli-tools.ts) — these handlers only mutate disk state, and
 // changes take effect for other sessions at their next start / pre-warm.
@@ -4500,7 +4500,7 @@ function requireCliToolRegistryEnabled(): AdminResponse | null {
     success: false,
     error: 'CLI tool registry is disabled. Enable it in Settings → About & Feedback → Lab first.',
     recoveryHint: {
-      message: '打开「设置 → 关于&反馈 → 实验室 → CLI 工具注册表」后再使用 myagents tool。',
+      message: '打开「设置 → 关于&反馈 → 实验室 → CLI 工具注册表」后再使用 blexagent tool。',
     },
   };
 }
@@ -4524,7 +4524,7 @@ export function handleToolList(): AdminResponse {
     success: true,
     data: { tools: registry.tools.map((t) => enrichCliTool(t, config)) },
     hint: registry.tools.length === 0
-      ? 'No CLI tools registered yet. Create one with the tool-creator skill, then `myagents tool add <dir>`.'
+      ? 'No CLI tools registered yet. Create one with the tool-creator skill, then `blexagent tool add <dir>`.'
       : undefined,
   };
 }
@@ -4539,7 +4539,7 @@ export function handleToolInfo(payload: { name?: string }): AdminResponse {
     return {
       success: false,
       error: `CLI tool '${name}' is not registered`,
-      recoveryHint: { recoveryCommand: 'myagents tool list', message: 'See registered tools.' },
+      recoveryHint: { recoveryCommand: 'blexagent tool list', message: 'See registered tools.' },
     };
   }
   return { success: true, data: { tool: enrichCliTool(entry) } };
@@ -4554,7 +4554,7 @@ export async function handleToolAdd(payload: { dir?: string; dryRun?: boolean })
       success: false,
       error: 'Missing required field: dir (path to the tool directory containing tool.json)',
       recoveryHint: {
-        recoveryCommand: 'myagents tool add ~/.myagents/tools/<name>',
+        recoveryCommand: 'blexagent tool add ~/.blexagent/tools/<name>',
         message: 'The dir must contain tool.json + the entry script (see the tool-creator skill).',
       },
     };
@@ -4596,7 +4596,7 @@ export async function handleToolAdd(payload: { dir?: string; dryRun?: boolean })
         success: false,
         error: `CLI tool '${manifest.name}' is already registered (dir: ${existing.dir})`,
         recoveryHint: {
-          recoveryCommand: `myagents tool info ${manifest.name}`,
+          recoveryCommand: `blexagent tool info ${manifest.name}`,
           message: `To update it, edit the tool at ${existing.dir} and re-run tool add there; to replace it, remove first (note: remove drops stored env keys).`,
         },
       };
@@ -4623,7 +4623,7 @@ export async function handleToolAdd(payload: { dir?: string; dryRun?: boolean })
       return { ...reg, tools };
     });
     if (!refreshed) {
-      return { success: false, error: `CLI tool '${manifest.name}' disappeared during refresh (concurrent remove?)`, recoveryHint: { recoveryCommand: 'myagents tool add ' + srcDir, message: 'Re-run to register it fresh.' } };
+      return { success: false, error: `CLI tool '${manifest.name}' disappeared during refresh (concurrent remove?)`, recoveryHint: { recoveryCommand: 'blexagent tool add ' + srcDir, message: 'Re-run to register it fresh.' } };
     }
     return {
       success: true,
@@ -4632,7 +4632,7 @@ export async function handleToolAdd(payload: { dir?: string; dryRun?: boolean })
     };
   }
 
-  // PATH shadow check: ~/.myagents/bin precedes system paths in agent sessions,
+  // PATH shadow check: ~/.blexagent/bin precedes system paths in agent sessions,
   // so a colliding name silently hijacks an existing command everywhere.
   // ensureShellPath(): the sidecar's own PATH is the launchd minimal set under
   // GUI launch — it misses /opt/homebrew/bin etc. and would let brew-installed
@@ -4755,7 +4755,7 @@ export async function handleToolAdd(payload: { dir?: string; dryRun?: boolean })
     return {
       success: false,
       error: `CLI tool '${manifest.name}' is already registered`,
-      recoveryHint: { recoveryCommand: `myagents tool info ${manifest.name}`, message: 'Remove it first if you want to re-register.' },
+      recoveryHint: { recoveryCommand: `blexagent tool info ${manifest.name}`, message: 'Remove it first if you want to re-register.' },
     };
   }
   if (publishError) {
@@ -4771,7 +4771,7 @@ export async function handleToolAdd(payload: { dir?: string; dryRun?: boolean })
   }
 
   const envHint = (manifest.envKeys ?? []).length > 0
-    ? ` It declares env keys [${(manifest.envKeys ?? []).join(', ')}] — set them via \`myagents tool env ${manifest.name} set KEY=value\`.`
+    ? ` It declares env keys [${(manifest.envKeys ?? []).join(', ')}] — set them via \`blexagent tool env ${manifest.name} set KEY=value\`.`
     : '';
   return {
     success: true,
@@ -4798,7 +4798,7 @@ export async function handleToolRemove(payload: { name?: string; purge?: boolean
     return {
       success: false,
       error: `CLI tool '${name}' is not registered`,
-      recoveryHint: { recoveryCommand: 'myagents tool list', message: 'See registered tools.' },
+      recoveryHint: { recoveryCommand: 'blexagent tool list', message: 'See registered tools.' },
     };
   }
   // Drop stored env values with the registration — no stale secrets in config.
@@ -4809,7 +4809,7 @@ export async function handleToolRemove(payload: { name?: string; purge?: boolean
     return { ...c, cliToolEnv };
   });
   // Containment guard: only delete dirs at the canonical registry location.
-  // entry.dir is invariantly ~/.myagents/tools/<name> today, but a registry
+  // entry.dir is invariantly ~/.blexagent/tools/<name> today, but a registry
   // file edited by hand could point anywhere — never rm outside our dir.
   const canonicalDir = resolve(join(getCliToolsDir(), name));
   const purgeable = resolve(removed.dir) === canonicalDir;
@@ -4820,7 +4820,7 @@ export async function handleToolRemove(payload: { name?: string; purge?: boolean
     success: true,
     data: { name, purged: Boolean(purge && purgeable) },
     hint: purge
-      ? (purgeable ? undefined : `Tool dir ${removed.dir} is outside ~/.myagents/tools — not deleted; remove it manually if intended.`)
+      ? (purgeable ? undefined : `Tool dir ${removed.dir} is outside ~/.blexagent/tools — not deleted; remove it manually if intended.`)
       : `Tool dir kept at ${removed.dir} (pass --purge to delete it too).`,
   };
 }
@@ -4843,7 +4843,7 @@ async function setToolEnabled(name: string | undefined, enabled: boolean): Promi
     return {
       success: false,
       error: `CLI tool '${name}' is not registered`,
-      recoveryHint: { recoveryCommand: 'myagents tool list', message: 'See registered tools.' },
+      recoveryHint: { recoveryCommand: 'blexagent tool list', message: 'See registered tools.' },
     };
   }
   return {
@@ -4878,7 +4878,7 @@ export async function handleToolReadme(payload: { name?: string }): Promise<Admi
     return {
       success: false,
       error: `CLI tool '${name}' is not registered`,
-      recoveryHint: { recoveryCommand: 'myagents tool list', message: 'See registered tools.' },
+      recoveryHint: { recoveryCommand: 'blexagent tool list', message: 'See registered tools.' },
     };
   }
   try {
@@ -4912,7 +4912,7 @@ export async function handleToolEnv(payload: {
     return {
       success: false,
       error: `CLI tool '${name}' is not registered`,
-      recoveryHint: { recoveryCommand: 'myagents tool list', message: 'See registered tools.' },
+      recoveryHint: { recoveryCommand: 'blexagent tool list', message: 'See registered tools.' },
     };
   }
 

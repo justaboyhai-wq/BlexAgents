@@ -3,7 +3,7 @@
 //!
 //! # Why a watcher instead of call-site notifications
 //!
-//! MyAgents session files are written by the Bun Sidecar while the search
+//! BlexAgent session files are written by the Bun Sidecar while the search
 //! index lives in Rust. The obvious alternative — have Bun POST to Rust on
 //! every save — has two problems:
 //!
@@ -15,7 +15,7 @@
 //!    that forgets to notify silently orphans the index.
 //!
 //! Watching the filesystem makes the correct behavior the default: *any*
-//! process that touches `~/.myagents/sessions/` flows through to the index
+//! process that touches `~/.blexagent/sessions/` flows through to the index
 //! with zero coupling. Same "pit of success" pattern as `local_http` and
 //! `process_cmd`.
 //!

@@ -49,12 +49,12 @@ pub(super) fn run_record_path(task_id: &str) -> PathBuf {
     let safe_id = sanitize_task_id(task_id);
     dirs::home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(".myagents")
+        .join(".blexagent")
         .join("cron_runs")
         .join(format!("{}.jsonl", safe_id))
 }
 
-/// Append a run record to ~/.myagents/cron_runs/<taskId>.jsonl
+/// Append a run record to ~/.blexagent/cron_runs/<taskId>.jsonl
 /// Truncates to MAX_RUN_RECORDS if exceeded.
 pub fn record_cron_run(task_id: &str, record: &CronRunRecord) -> Result<(), String> {
     let path = run_record_path(task_id);

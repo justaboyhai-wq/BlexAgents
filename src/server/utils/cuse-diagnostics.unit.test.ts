@@ -7,7 +7,7 @@ import { getCuseDiagnostics, normalizeCuseVersion } from './cuse-diagnostics';
 const tempDirs: string[] = [];
 
 function makeTempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'myagents-cuse-diagnostics-'));
+  const dir = mkdtempSync(join(tmpdir(), 'blexagent-cuse-diagnostics-'));
   tempDirs.push(dir);
   return dir;
 }
@@ -71,7 +71,7 @@ describe('cuse diagnostics', () => {
       resolveBundledCusePath: () => bundledPath,
       execRunner: async () => ({ stdout: 'cuse 0.2.1\n' }),
       fetchLatest: async () => ({
-        url: 'https://download.myagents.io/cuse/latest.json',
+        url: 'https://download.blexagent.com/cuse/latest.json',
         version: 'v0.2.2',
       }),
     });

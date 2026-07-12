@@ -2,7 +2,7 @@
 
 ## 概述
 
-MyAgents 使用统一日志系统聚合来自三个来源的日志：
+BlexAgent 使用统一日志系统聚合来自三个来源的日志：
 - **React** - 前端 `console.log/error/warn/debug`
 - **NODE** - Node.js Sidecar 后端日志
 - **Rust** - Tauri 原生层日志
@@ -94,7 +94,7 @@ console.log('[MyComponent] something happened');  // 自动分发
 
 ### 2. UnifiedLogger.ts (服务端持久化)
 
-将日志写入每日文件 `~/.myagents/logs/unified-{YYYY-MM-DD}.log`。
+将日志写入每日文件 `~/.blexagent/logs/unified-{YYYY-MM-DD}.log`。
 
 ```typescript
 // 服务端使用
@@ -118,15 +118,15 @@ appendUnifiedLog({
 
 ```typescript
 // 文件命名：{YYYY-MM-DD}-{sessionId}.log
-// 存储位置：~/.myagents/logs/
+// 存储位置：~/.blexagent/logs/
 // 特性：懒加载创建（首次写入时才创建文件）
 ```
 
 ### 4. logUtils.ts (共享常量)
 
 ```typescript
-export const MYAGENTS_DIR = join(homedir(), '.myagents');
-export const LOGS_DIR = join(MYAGENTS_DIR, 'logs');
+export const BLEXAGENT_DIR = join(homedir(), '.blexagent');
+export const LOGS_DIR = join(BLEXAGENT_DIR, 'logs');
 export const LOG_RETENTION_DAYS = 30;
 ```
 
@@ -212,7 +212,7 @@ for (const entry of entries) {
 ## 文件结构
 
 ```
-~/.myagents/
+~/.blexagent/
 └── logs/
     ├── unified-2025-01-25.log      # 统一日志（React/NODE/Rust）
     ├── unified-2025-01-24.log
@@ -246,7 +246,7 @@ for (const entry of entries) {
 应用启动和每个 Sidecar 创建时输出 `[boot]` 单行自检信息：
 
 ```
-[boot] v=0.2.0 build=release os=macos-aarch64 provider=deepseek mcp=2 agents=3 channels=5 cron=12 proxy=false dir=/Users/xxx/.myagents
+[boot] v=0.2.0 build=release os=macos-aarch64 provider=deepseek mcp=2 agents=3 channels=5 cron=12 proxy=false dir=/Users/xxx/.blexagent
 [boot] pid=12345 port=31415 node=24.14.0 workspace=/path session=abc-123 resume=true model=deepseek-chat bridge=yes mcp=playwright,im-cron builtin-mcp-meta=cron-tools,im-cron,im-media,gemini-image,edge-tts
 ```
 
@@ -278,7 +278,7 @@ for (const entry of entries) {
 
 1. 检查 `serverUrl` 是否已设置（SSE 连接后设置）
 2. 检查 `/api/unified-log` 端点是否正常
-3. 检查 `~/.myagents/logs/` 目录权限
+3. 检查 `~/.blexagent/logs/` 目录权限
 
 ### Rust 日志不显示
 
@@ -293,7 +293,7 @@ for (const entry of entries) {
 排查：
 
 ```bash
-grep -E '\[AppErrorBoundary\]|\[REACT\] \[ERROR\]' ~/.myagents/logs/unified-*.log | tail -30
+grep -E '\[AppErrorBoundary\]|\[REACT\] \[ERROR\]' ~/.blexagent/logs/unified-*.log | tail -30
 ```
 
 - **`error.message`** 保真（运行时字符串，如 `Cannot read properties of undefined (reading 'trim')`）——主要定位线索；配合时间线看崩前发生了什么（常见诱因：**恢复旧 session**、渲染恢复态/流式数据时把可选字段当必有 string）。

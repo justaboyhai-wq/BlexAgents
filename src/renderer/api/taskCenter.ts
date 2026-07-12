@@ -101,7 +101,7 @@ export function thoughtMerge(sourceIds: string[]): Promise<ThoughtMergeResult> {
   return inv('cmd_thought_merge', { sourceIds });
 }
 
-/** Reveal `~/.myagents/thoughts/` in the OS file manager (Finder/Explorer). */
+/** Reveal `~/.blexagent/thoughts/` in the OS file manager (Finder/Explorer). */
 export function thoughtOpenDir(): Promise<void> {
   return inv('cmd_thought_open_dir');
 }
@@ -178,7 +178,7 @@ export function taskWriteDoc(
 }
 
 /**
- * Reveal `~/.myagents/tasks/<id>/` in the OS file manager. Creates the
+ * Reveal `~/.blexagent/tasks/<id>/` in the OS file manager. Creates the
  * directory on demand for tasks that haven't written any doc yet.
  * Tauri-only (no browser fallback — the editor surface is desktop).
  */

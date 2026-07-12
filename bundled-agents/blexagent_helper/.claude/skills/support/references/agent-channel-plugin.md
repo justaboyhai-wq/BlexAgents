@@ -1,4 +1,4 @@
-# Agent、Channel 与 Plugin Bridge 诊断
+﻿# Agent、Channel 与 Plugin Bridge 诊断
 
 使用场景：Telegram / 钉钉 / 飞书 / 微信 / QQ Agent 不在线、不回消息、社区插件装不上、QR 登录后不生效。
 
@@ -13,11 +13,11 @@
 ## 取证
 
 ```bash
-myagents agent list --json
-myagents agent show <agent-id> --json
-myagents agent channel list <agent-id> --json
-myagents agent runtime-status --json
-myagents plugin list --json
+blexagent agent list --json
+blexagent agent show <agent-id> --json
+blexagent agent channel list <agent-id> --json
+blexagent agent runtime-status --json
+blexagent plugin list --json
 rg -n "\\[telegram\\]|\\[dingtalk\\]|\\[feishu\\]|\\[im\\]|\\[bridge\\]|OpenClaw|qr-login|Gateway|plugin not ready|npm install" ./logs/unified-*.log | tail -160
 ```
 
@@ -28,7 +28,7 @@ rg -n "\\[telegram\\]|\\[dingtalk\\]|\\[feishu\\]|\\[im\\]|\\[bridge\\]|OpenClaw
 - 社区插件安装失败：看 `[bridge] npm install` 的 stderr，通常是网络、proxy、registry、包名或平台 native 依赖。
 - Bridge 进程启动失败：查 health check、entry 解析、OpenClaw SDK shim compat、缺失 `plugin-sdk/*` 子路径。
 - QR 登录失败：查 `/qr-login-start` / `/qr-login-wait` 相关日志和插件是否声明 supportsQrLogin。
-- 登录成功但消息不进 MyAgents：查 Bridge message route 到 Rust 的日志，再查 Agent Channel 是否 enabled。
+- 登录成功但消息不进 BlexAgent：查 Bridge message route 到 Rust 的日志，再查 Agent Channel 是否 enabled。
 - IM 收到消息但 AI 不回：跨到 `session-sidecar.md`、`provider-mcp.md`，因为可能是 AI runtime/provider 失败。
 
 ## 修复边界

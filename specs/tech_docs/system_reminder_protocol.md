@@ -15,7 +15,7 @@
 不适用场景：
 
 - 普通跨 session send/watch 事件仍走 `session_architecture.md` 的
-  `<myagents-session-event>` 协议，除非最终 user bubble 确实需要隐藏内部 payload。
+  `<blexagent-session-event>` 协议，除非最终 user bubble 确实需要隐藏内部 payload。
 - 工具产物、图片、文件不要塞进 prompt 字符串，走 `tool_attachment_pipeline.md`
   的 `ToolAttachment[]`。
 
@@ -61,7 +61,7 @@ Cron 结果投送到 IM session 的推荐结构：
 </instruction>
 <task-meta>
   Task id: {taskId}
-  Source session id: {fromSessionId} (use `myagents session send {fromSessionId} -p "..."` to follow up)
+  Source session id: {fromSessionId} (use `blexagent session send {fromSessionId} -p "..."` to follow up)
   Current time: {now}
 </task-meta>
 <task-result>
@@ -94,7 +94,7 @@ instruction、cron output 都只给模型看。
 - 如果有 leading `<system-reminder>`，先解析 `kind` 和 `visibleText`。
 - `kind` 命中 `systemTagLabel()` 时，在用户气泡上显示对应 badge。
 - 当存在 `visibleText` 时，气泡正文只展示 `visibleText`。
-- `FLOATING_BALL_CONTEXT` / `myagents-space-issue` 即使没有 `visibleText`，也会隐藏
+- `FLOATING_BALL_CONTEXT` / `blexagent-space-issue` 即使没有 `visibleText`，也会隐藏
   payload，避免把入口上下文直接展示给用户。
 - 其他没有 `visibleText` 的纯 reminder 会走 raw fallback：前端剥掉若干协议 tag
   后仍可能展示 body。新增场景若不想展示 body，不要使用无 visible tail 的纯
@@ -109,7 +109,7 @@ instruction、cron output 都只给模型看。
 | `HEARTBEAT` | Heartbeat / 心跳感知 | 普通 heartbeat、Cron 结果转述投送 |
 | `CRON_TASK` | Cron task / 定时任务 | Cron task 执行 prompt |
 | `FLOATING_BALL_CONTEXT` | Floating context / 浮球上下文 | 浮球消息上下文注入 |
-| `myagents-space-issue` | Space issue | Space IssueDelivery |
+| `blexagent-space-issue` | Space issue | Space IssueDelivery |
 
 `MEMORY_UPDATE` 当前是内部纯隐藏场景，不属于有 badge 的可复用展示协议。若要让它
 或新 tag 出现在用户气泡上，先补 `systemTagLabel()`、文案资源和渲染测试。
@@ -122,7 +122,7 @@ instruction、cron output 都只给模型看。
 |------|----------------|------|
 | Cron task 执行 | `src/server/utils/cron-reminder.ts::buildCronTaskReminder` | `<system-reminder><CRON_TASK>...</CRON_TASK></system-reminder>` + 原 task prompt |
 | 浮球消息 | `src/shared/systemReminder.ts::buildFloatingBallContextReminder`，调用方 `src/renderer/floating-ball/useFloatingSession.ts` | `<system-reminder><FLOATING_BALL_CONTEXT>...</FLOATING_BALL_CONTEXT></system-reminder>` + 用户文本 |
-| Space IssueDelivery | `src-tauri/src/space_cloud.rs::build_space_issue_delivery_message_for_locale` | `<system-reminder><myagents-space-issue>...</myagents-space-issue></system-reminder>` + 本地化可见提示 |
+| Space IssueDelivery | `src-tauri/src/space_cloud.rs::build_space_issue_delivery_message_for_locale` | `<system-reminder><blexagent-space-issue>...</blexagent-space-issue></system-reminder>` + 本地化可见提示 |
 | Cron 结果投送 IM session | `src/server/utils/cron-event-relay.ts::buildCronEventRelayMessage` | `<system-reminder><HEARTBEAT>...</HEARTBEAT></system-reminder>` + `[System]收到来自系统投送的信息` |
 
 相关但不是完整复用模板的入口：

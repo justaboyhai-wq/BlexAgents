@@ -1,4 +1,4 @@
-import { fileURLToPath } from 'node:url';
+﻿import { fileURLToPath } from 'node:url';
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
@@ -47,7 +47,7 @@ const GLOBAL_RESTRICTED_SYNTAX = [
   {
     // CLAUDE.md red-line: `<expr>.toISOString().split('T')[0]` returns the
     // UTC date. The unified log filename is built from the *local* date
-    // (`~/.myagents/logs/unified-{YYYY-MM-DD}.log`), so using the UTC date
+    // (`~/.blexagent/logs/unified-{YYYY-MM-DD}.log`), so using the UTC date
     // here means writes land in the wrong file for ~1/3 of every day in
     // UTC+8. The bug manifests as missing log entries when a user grep's
     // "today's" log around midnight CN time.

@@ -15,8 +15,8 @@ function writeJson(path: string, value: unknown): void {
 }
 
 beforeEach(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'myagents-win-path-'));
-  mkdirSync(join(scratch, '.myagents'), { recursive: true });
+  scratch = mkdtempSync(join(tmpdir(), 'blexagent-win-path-'));
+  mkdirSync(join(scratch, '.blexagent'), { recursive: true });
   prevHome = process.env.HOME;
   prevUserProfile = process.env.USERPROFILE;
   process.env.HOME = scratch;
@@ -33,7 +33,7 @@ afterEach(() => {
 
 describe('Windows workspace path identity for server config helpers', () => {
   it('resolves effective MCP servers across Windows separator, drive-case, and trailing-slash variants', () => {
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [{
         id: 'win-custom',
         name: 'Windows Custom',
@@ -43,7 +43,7 @@ describe('Windows workspace path identity for server config helpers', () => {
       }],
       mcpEnabledServers: ['win-custom'],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Win Project',
       path: 'C:\\Users\\Me\\Project',
@@ -55,7 +55,7 @@ describe('Windows workspace path identity for server config helpers', () => {
   });
 
   it('does not match malformed empty project paths when resolving effective MCP servers', () => {
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       mcpServers: [{
         id: 'win-custom',
         name: 'Windows Custom',
@@ -65,7 +65,7 @@ describe('Windows workspace path identity for server config helpers', () => {
       }],
       mcpEnabledServers: ['win-custom'],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Malformed Project',
       mcpEnabledServers: ['win-custom'],
@@ -75,7 +75,7 @@ describe('Windows workspace path identity for server config helpers', () => {
   });
 
   it('reads Agent plugin defaults across Windows path identity variants', () => {
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       agents: [{
         id: 'agent-1',
         name: 'Agent',
@@ -90,10 +90,10 @@ describe('Windows workspace path identity for server config helpers', () => {
   });
 
   it('falls back to Project plugin defaults across Windows path identity variants', () => {
-    writeJson(join(scratch, '.myagents', 'config.json'), {
+    writeJson(join(scratch, '.blexagent', 'config.json'), {
       agents: [],
     });
-    writeJson(join(scratch, '.myagents', 'projects.json'), [{
+    writeJson(join(scratch, '.blexagent', 'projects.json'), [{
       id: 'project-1',
       name: 'Win Project',
       path: 'C:\\Users\\Me\\Project',

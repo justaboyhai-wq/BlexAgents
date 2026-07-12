@@ -5,9 +5,9 @@ import { getSessionDisplayText } from './sessionDisplay';
 describe('getSessionDisplayText', () => {
   it('uses the session title for every surface when it is meaningful', () => {
     expect(getSessionDisplayText({
-      title: 'MyAgents 多缺陷根因修复',
+      title: 'BlexAgent 多缺陷根因修复',
       lastMessagePreview: 'assistant preview should not win',
-    })).toBe('MyAgents 多缺陷根因修复');
+    })).toBe('BlexAgent 多缺陷根因修复');
   });
 
   it('falls back to the last real user query for generic titles', () => {

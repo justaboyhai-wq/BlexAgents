@@ -1,4 +1,4 @@
-//! Shared `~/.myagents/config.json` read-modify-write helper.
+//! Shared `~/.blexagent/config.json` read-modify-write helper.
 //!
 //! The renderer, Node sidecar, and Rust commands coordinate on the same
 //! `config.json.lock` directory. Directory creation is atomic across processes

@@ -414,8 +414,8 @@ interface TabApiCallOptions {
 
 function tabCorrelationHeaders(tabId: string, sessionId?: string | null): Record<string, string> {
     return {
-        'X-MyAgents-Tab-Id': tabId,
-        ...(sessionId ? { 'X-MyAgents-Session-Id': sessionId } : {}),
+        'X-BlexAgent-Tab-Id': tabId,
+        ...(sessionId ? { 'X-BlexAgent-Session-Id': sessionId } : {}),
     };
 }
 
@@ -3250,11 +3250,11 @@ export default function TabProvider({
             // multiple Tab subscribers (renderer instances of the same panel)
             // converge on the same refresh trigger.
             case 'plugin:install-progress': {
-                window.dispatchEvent(new CustomEvent('myagents:plugin-install-progress', { detail: data }));
+                window.dispatchEvent(new CustomEvent('blexagent:plugin-install-progress', { detail: data }));
                 break;
             }
             case 'plugins:changed': {
-                window.dispatchEvent(new CustomEvent('myagents:plugins-changed', { detail: data }));
+                window.dispatchEvent(new CustomEvent('blexagent:plugins-changed', { detail: data }));
                 // Plugins live on AppConfig.{plugins, enabledPlugins} —
                 // also nudge ConfigProvider to re-read so consumers like
                 // SimpleChatInput's plugins submenu and Agent settings
@@ -3924,7 +3924,7 @@ export default function TabProvider({
                         savedPath: att.path ?? att.savedPath,
                         relativePath: att.path ?? att.relativePath ?? att.savedPath,
                         // Server no longer embeds base64 previews — resolve to
-                        // `myagents://` (Tauri) or `/api/attachment/*` (dev).
+                        // `blexagent://` (Tauri) or `/api/attachment/*` (dev).
                         previewUrl: resolveAttachmentUrl({
                             savedPath: att.path ?? att.savedPath ?? att.relativePath,
                             relativePath: att.relativePath,

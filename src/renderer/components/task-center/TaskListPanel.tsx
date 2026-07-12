@@ -82,7 +82,7 @@ const BUCKET_STATUSES: Record<Bucket, TaskStatus[]> = {
   finished: ['done', 'archived'],
 };
 
-const VIEW_STORAGE_KEY = 'myagents:task-center:view';
+const VIEW_STORAGE_KEY = 'blexagent:task-center:view';
 
 function loadStoredView(): TaskView {
   if (typeof window === 'undefined') return 'card';

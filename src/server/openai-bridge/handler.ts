@@ -112,7 +112,7 @@ function resolvePromptCacheKey(
   if (!affinity || affinity.promptCacheKeyMode !== 'session') return undefined;
   if (affinity.promptCacheKeyDisabled) return undefined;
   return buildPromptCacheKey({
-    appNamespace: 'myagents',
+    appNamespace: 'blexagent',
     providerId: upstream.providerId,
     model: upstream.model ?? fallbackModel,
     sessionId: affinity.sessionId,
@@ -175,8 +175,8 @@ function stringifyWithoutPromptCacheKey(req: OpenAIRequest | ResponsesRequest): 
   return JSON.stringify(rest);
 }
 
-const PROMPT_CACHE_KEY_VALUE_RE = /myagents:(?:chat_completions|responses):[a-f0-9]{32}/g;
-const PROMPT_CACHE_KEY_VALUE_TEST_RE = /myagents:(?:chat_completions|responses):[a-f0-9]{32}/;
+const PROMPT_CACHE_KEY_VALUE_RE = /blexagent:(?:chat_completions|responses):[a-f0-9]{32}/g;
+const PROMPT_CACHE_KEY_VALUE_TEST_RE = /blexagent:(?:chat_completions|responses):[a-f0-9]{32}/;
 const ERROR_REQUEST_ECHO_KEYS = new Set([
   'content',
   'input',

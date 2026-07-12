@@ -78,7 +78,7 @@
     "replyFailed": "Reply failed",
     "agentErrorOpenMainWindow": "Agent error. Click ↗ to view it in the main window.",
     "sessionExpiredNewChat": "The previous session expired. A new chat has been started.",
-    "noWorkspace": "No available workspace. Finish MyAgents setup first.",
+    "noWorkspace": "No available workspace. Finish BlexAgent setup first.",
     "switchWorkspaceFailed": "Failed to switch workspace. Try again.",
     "newConversationFailed": "Failed to start a new chat. Try again.",
     "engineNotReady": "AI engine is not ready yet. Try again shortly.",
@@ -228,7 +228,7 @@
     "copyFailed": "Copy failed",
     "reference": "Reference",
     "openContainingFolder": "Open containing folder",
-    "openMyAgentsPreview": "Open MyAgents preview",
+    "openBlexAgentPreview": "Open BlexAgent preview",
     "preview": "Preview",
     "open": "Open",
     "revealInTree": "Reveal in file tree"
@@ -279,13 +279,13 @@
     "moreActions": "More actions"
   },
   "notifications": {
-    "messageCompleteTitle": "MyAgents - Task complete",
+    "messageCompleteTitle": "BlexAgent - Task complete",
     "messageCompleteBody": "Please review the result",
-    "permissionTitle": "MyAgents - Permission request",
+    "permissionTitle": "BlexAgent - Permission request",
     "permissionBody": "AI requested tool access - {{toolName}}",
-    "askUserTitle": "MyAgents - Confirmation needed",
+    "askUserTitle": "BlexAgent - Confirmation needed",
     "askUserBody": "AI is waiting for your confirmation",
-    "planModeTitle": "MyAgents - Plan review",
+    "planModeTitle": "BlexAgent - Plan review",
     "planModeBody": "AI is waiting for you to review the plan"
   },
   "contextUsage": {
@@ -318,7 +318,7 @@
         "request": "Space request"
       },
       "templates": {
-        "relogin": "{{operation}} failed: sign in to MyAgents Community again",
+        "relogin": "{{operation}} failed: sign in to BlexAgent Community again",
         "permissionDenied": "{{operation}} failed: insufficient permission",
         "serviceUnavailable": "{{operation}} failed: service is temporarily unavailable. Try again later.",
         "withDetail": "{{operation}} failed: {{detail}}",
@@ -341,11 +341,11 @@
     },
     "login": {
       "eyebrow": "Official Space",
-      "title": "MyAgents Community",
+      "title": "BlexAgent Community",
       "description": "Sign in to the official Space with Google",
       "waiting": "Waiting for browser authorization",
       "continueWithGoogle": "Continue with Google",
-      "returnHint": "MyAgents will reopen automatically after authorization."
+      "returnHint": "BlexAgent will reopen automatically after authorization."
     },
     "sidebar": {
       "issues": "Issues",
@@ -411,7 +411,7 @@
       "closeIssue": "Close issue"
     },
     "toasts": {
-      "loginSuccess": "Signed in to MyAgents Community",
+      "loginSuccess": "Signed in to BlexAgent Community",
       "loginFailed": "Login failed",
       "loginSlow": "Login status sync is slow. Retrying...",
       "loginTimeout": "Login timed out. Start Google login again.",
@@ -462,7 +462,7 @@
       "claimHandler": "Handler: {{name}}"
     },
     "createIssue": {
-      "community": "MyAgents Community",
+      "community": "BlexAgent Community",
       "title": "New issue",
       "close": "Close",
       "titlePlaceholder": "Issue title",

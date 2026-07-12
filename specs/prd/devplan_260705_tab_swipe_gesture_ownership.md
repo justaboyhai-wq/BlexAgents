@@ -13,7 +13,7 @@
 
 ### 开发契约（动第一行代码前写完）
 - 必赢场景：鼠标位于 Markdown 表格等横向滚动区域时，双指左右滑动优先滚动/留在该区域，不触发顶部 Tab 切换；鼠标位于普通内容区时，原有左右滑动切 Tab 行为保持不变。
-- 复用的既有抽象：`src/renderer/hooks/useTabSwipeGesture.ts` 的 wheel 状态机、`direction: 'inner-scroll'` 分支、现有 `hasInnerHorizontalScroll` 单测、`myagents:tab-swipe-trace` 诊断日志。
+- 复用的既有抽象：`src/renderer/hooks/useTabSwipeGesture.ts` 的 wheel 状态机、`direction: 'inner-scroll'` 分支、现有 `hasInnerHorizontalScroll` 单测、`blexagent:tab-swipe-trace` 诊断日志。
 - 反向边界：不改变 TabBar 自身横向滚动；不改 Markdown 表格视觉结构；不改 Electron/Tauri 原生手势；不处理触摸屏 pointer 手势。
 - 新概念清单：`horizontal gesture owner`，把“这次横向 wheel 应归谁处理”从 tab swipe 状态机中抽成可测试规则。必要性：当前 owner 判断嵌在状态机里，且只按“当前是否还能 scrollLeft”判断，无法稳定覆盖内层横向交互区域。
 - 触及的红线：前端开发需遵循 `DESIGN.md`，本次不做视觉改动；React effect 依赖保持现有稳定 ref 模式；共享 hook 改动必须补回归测试；已有无关 worktree 修改不得带入提交。

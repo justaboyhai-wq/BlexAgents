@@ -2,7 +2,7 @@
 //
 // Historical note: this module used to ALSO host an in-process MCP server
 // (`cron-tools` with `exit_cron_task`). The MCP was retired in v0.2.11 in
-// favour of the universal `myagents cron exit` CLI command + system prompt
+// favour of the universal `blexagent cron exit` CLI command + system prompt
 // guidance (see system-prompt-cli-tools.ts SECTION_CRON_EXIT). The CLI
 // handler lives in admin-api.ts::handleCronExit and emits the same
 // `cron:task-exit-requested` SSE event the old tool did.
