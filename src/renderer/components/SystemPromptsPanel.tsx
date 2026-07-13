@@ -39,6 +39,30 @@ interface RuleContentResponse {
     error?: string;
 }
 
+/**
+ * Starting point for a workspace without a CLAUDE.md. It is intentionally
+ * concise: project-specific conventions belong in the workspace, not in a
+ * product-wide prompt that consumes every session's context window.
+ */
+const DEFAULT_AGENT_SYSTEM_PROMPT = `# BlexAgent 工作区说明
+
+你是 BlexAgent，使用内置 Claude Agent SDK 协助用户完成当前工作区中的任务。
+
+## 工作方式
+
+- 默认使用中文；先给结论，再说明必要的依据和下一步。
+- 面对明确的实现、修复或配置请求：先检查相关文件与现状，再进行最小范围修改，并运行与改动匹配的验证。
+- 遇到不确定、缺少权限或会改变范围的事项，先说明已确认的事实与可选方案，不要猜测或悄悄扩大操作范围。
+- 优先复用项目已有结构、脚本和依赖；避免无关重构。
+
+## 安全与质量
+
+- 不输出、记录或提交 API Key、Token、密码、App Secret 等敏感信息。
+- 不执行会丢失用户数据的操作（例如重置、强推、批量删除）；确有必要时先取得明确确认。
+- 保留用户已有改动，只修改与当前任务直接相关的文件。
+- 完成后说明变更、验证结果和仍需用户处理的事项。
+`;
+
 const SystemPromptsPanel = forwardRef<SystemPromptsPanelRef, SystemPromptsPanelProps>(
     function SystemPromptsPanel({ agentDir, onRequestInit }, ref) {
         const { t } = useTranslation('settings');
@@ -199,9 +223,14 @@ const SystemPromptsPanel = forwardRef<SystemPromptsPanelRef, SystemPromptsPanelP
 
         // Edit mode
         const handleEdit = useCallback(() => {
-            setEditContent(content);
+            // Give a new workspace a useful, editable baseline rather than an
+            // empty document. Existing CLAUDE.md and rule files are never changed.
+            const nextContent = activeFile.type === 'claude-md' && !content.trim()
+                ? DEFAULT_AGENT_SYSTEM_PROMPT
+                : content;
+            setEditContent(nextContent);
             setIsEditing(true);
-        }, [content]);
+        }, [activeFile.type, content]);
 
         const handleCancel = useCallback(() => {
             setEditContent(content);
@@ -546,14 +575,26 @@ const SystemPromptsPanel = forwardRef<SystemPromptsPanelRef, SystemPromptsPanelP
                                     </button>
                                 </>
                             ) : (
-                                <button
-                                    type="button"
-                                    onClick={handleEdit}
-                                    className="flex items-center gap-1 rounded-lg bg-[var(--button-dark-bg)] px-2.5 py-1 text-xs font-medium text-[var(--button-primary-text)] transition-colors hover:bg-[var(--button-dark-bg-hover)]"
-                                >
-                                    <Edit2 className="h-3.5 w-3.5" />
-                                    {t('agentSettings.common.edit')}
-                                </button>
+                                <>
+                                    {isClaudeMd && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setTemplateDialogOpen(true)}
+                                            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium text-[var(--ink-muted)] transition-colors hover:bg-[var(--paper-inset)] hover:text-[var(--ink)]"
+                                        >
+                                            <FolderArchive className="h-3.5 w-3.5" />
+                                            {t('agentSettings.systemPrompts.templateTitle')}
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleEdit}
+                                        className="flex items-center gap-1 rounded-lg bg-[var(--button-dark-bg)] px-2.5 py-1 text-xs font-medium text-[var(--button-primary-text)] transition-colors hover:bg-[var(--button-dark-bg-hover)]"
+                                    >
+                                        <Edit2 className="h-3.5 w-3.5" />
+                                        {t('agentSettings.common.edit')}
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
@@ -687,19 +728,15 @@ const SystemPromptsPanel = forwardRef<SystemPromptsPanelRef, SystemPromptsPanelP
                     />
                 )}
 
-                {/* Template apply dialog (CLAUDE.md empty state → "从模板库添加") */}
+                {/* AgentHub apply dialog (available for missing and existing CLAUDE.md). */}
                 {templateDialogOpen && (
                     <TemplateApplyDialog
                         agentDir={agentDir}
                         onClose={() => setTemplateDialogOpen(false)}
                         onApplied={() => {
-                            // Force-switch to CLAUDE.md before reloading: today the dialog can
-                            // only be opened from the CLAUDE.md empty state, but `loadFileContent`
-                            // writes into the shared `content`/`editContent` state that's keyed
-                            // off `activeFile`. If a future entry point opens the dialog while a
-                            // rule tab is active, an unguarded reload would silently overwrite
-                            // the rule's content with CLAUDE.md text. Setting activeFile first
-                            // makes the load self-consistent.
+                            // The entry exists both for a missing and an existing CLAUDE.md.
+                            // Force-switch before reloading so shared content state stays keyed
+                            // to the file that AgentHub just updated.
                             setActiveFile({ type: 'claude-md' });
                             void loadFileContent({ type: 'claude-md' });
                             void loadRuleFiles();

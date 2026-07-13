@@ -90,7 +90,7 @@ describe('agentConfigService template Agent defaults', () => {
   it('does not apply builtin defaults to user templates with matching IDs', () => {
     const templates: WorkspaceTemplate[] = [{
       id: 'mino',
-      name: 'Mino',
+      name: 'Blex',
       description: '',
       isBuiltin: true,
       agentDefaults: { enabled: true },
@@ -104,7 +104,7 @@ describe('agentConfigService template Agent defaults', () => {
     expect(defaults).toBeUndefined();
   });
 
-  it('creates proactive Mino Agents from the preset when a project has builtin template provenance', () => {
+  it('creates proactive Blex Agents from the preset when a project has builtin template provenance', () => {
     const cfg: AppConfig = {
       defaultPermissionMode: 'auto',
       theme: 'system',
@@ -118,7 +118,7 @@ describe('agentConfigService template Agent defaults', () => {
     const projects = [project({
       templateId: DEFAULT_BUNDLED_WORKSPACE_TEMPLATE_ID,
       templateSource: 'builtin',
-      displayName: 'Mino',
+      displayName: 'Blex',
     })];
 
     const result = ensureAllProjectsHaveAgent(cfg, projects, cfg.defaultPermissionMode);
@@ -128,7 +128,7 @@ describe('agentConfigService template Agent defaults', () => {
     expect(projects[0].agentId).toBeTruthy();
     expect(cfg.agents).toHaveLength(1);
     expect(cfg.agents![0]).toMatchObject({
-      name: 'Mino',
+      name: 'Blex',
       enabled: true,
       heartbeat: PRESET_TEMPLATES[0].agentDefaults!.heartbeat,
       memoryAutoUpdate: PRESET_TEMPLATES[0].agentDefaults!.memoryAutoUpdate,
@@ -172,6 +172,71 @@ describe('agentConfigService template Agent defaults', () => {
     expect(cfg.agents![0].heartbeat).toBeUndefined();
     expect(projects[0].isAgent).toBeUndefined();
   });
+
+  it('migrates exact legacy names on the system preset project and its linked Agent', () => {
+    const cfg: AppConfig = {
+      defaultPermissionMode: 'auto',
+      theme: 'system',
+      minimizeToTray: true,
+      showDevTools: false,
+      autoStart: false,
+      osNotifications: true,
+      notificationSound: true,
+      agents: [{
+        id: 'legacy-agent',
+        name: 'Mino',
+        workspacePath: '/tmp/workspace',
+        enabled: true,
+        channels: [],
+        permissionMode: 'auto',
+      }],
+    };
+    const projects = [project({
+      agentId: 'legacy-agent',
+      displayName: 'Mino',
+      workspaceType: 'system-preset',
+      systemPresetId: 'mino',
+    })];
+
+    const result = ensureAllProjectsHaveAgent(cfg, projects, cfg.defaultPermissionMode);
+
+    expect(result.changed).toBe(true);
+    expect(projects[0].displayName).toBe('Blex');
+    expect(cfg.agents![0].name).toBe('Blex');
+    expect(cfg.agents).toHaveLength(1);
+  });
+
+  it('preserves customized system preset project and Agent names', () => {
+    const cfg: AppConfig = {
+      defaultPermissionMode: 'auto',
+      theme: 'system',
+      minimizeToTray: true,
+      showDevTools: false,
+      autoStart: false,
+      osNotifications: true,
+      notificationSound: true,
+      agents: [{
+        id: 'custom-agent',
+        name: 'My Mino',
+        workspacePath: '/tmp/workspace',
+        enabled: true,
+        channels: [],
+        permissionMode: 'auto',
+      }],
+    };
+    const projects = [project({
+      agentId: 'custom-agent',
+      displayName: 'My Mino',
+      workspaceType: 'system-preset',
+      systemPresetId: 'mino',
+    })];
+
+    const result = ensureAllProjectsHaveAgent(cfg, projects, cfg.defaultPermissionMode);
+
+    expect(result.changed).toBe(false);
+    expect(projects[0].displayName).toBe('My Mino');
+    expect(cfg.agents![0].name).toBe('My Mino');
+  });
 });
 
 describe('migrateImBotConfigsToAgents', () => {
@@ -189,7 +254,7 @@ describe('migrateImBotConfigsToAgents', () => {
         {
           id: 'bot-a',
           name: 'Primary Bot',
-          platform: 'telegram',
+          platform: 'feishu',
           botToken: 'token-a',
           allowedUsers: [],
           permissionMode: 'fullAgency',

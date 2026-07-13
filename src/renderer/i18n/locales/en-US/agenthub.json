@@ -1,0 +1,65 @@
+{
+  "title": "AgentHub",
+  "subtitle": "Reviewed Agent templates for life and creative work",
+  "close": "Close AgentHub",
+  "searchPlaceholder": "Search templates, capabilities, or Skills",
+  "category": {
+    "all": "All",
+    "life": "Life",
+    "creation": "Creation"
+  },
+  "loading": "Loading the offline catalogue...",
+  "loadFailedTitle": "AgentHub could not be loaded",
+  "loadFailedDescription": "The app is still available. Retry loading the bundled catalogue.",
+  "retry": "Retry",
+  "emptyTitle": "No matching templates",
+  "emptyDescription": "Try another search or category.",
+  "reviewed": "Reviewed",
+  "offline": "Offline install",
+  "templateCount": "{{count}} reviewed templates",
+  "partialCatalogue": "{{count}} bundled template(s) could not be loaded. Available templates remain usable.",
+  "details": {
+    "capabilities": "Capabilities",
+    "skills": "Included Skills",
+    "examples": "Try asking",
+    "sources": "Open-source sources",
+    "risk": "Safety boundary",
+    "license": "{{license}} license",
+    "commit": "commit {{commit}}",
+    "openSource": "Open source repository",
+    "selectHint": "Select a template to see its reviewed capabilities, examples, sources, and safety boundary."
+  },
+  "create": {
+    "title": "Create an Agent from AgentHub",
+    "description": "Templates are bundled with BlexAgent and install without GitHub, VPN, CLI, or downloads.",
+    "agentName": "Agent name",
+    "agentNamePlaceholder": "Name this Agent",
+    "action": "Create Agent",
+    "creating": "Creating Agent...",
+    "finalizeRetry": "The Agent was added, but setup confirmation failed. Retry to finish safely.",
+    "retryFinalize": "Finish setup",
+    "recoveryRetry": "Creation did not finish. Retry recovery before continuing.",
+    "retryRecovery": "Recover and retry",
+    "created": "Agent created from AgentHub"
+  },
+  "apply": {
+    "title": "Add from AgentHub",
+    "description": "Choose a reviewed template, preview every file change, then apply it to this Agent.",
+    "preview": "Preview changes",
+    "previewing": "Building preview...",
+    "confirmTitle": "Review workspace changes",
+    "confirmDescription": "Only the listed files will change. The rest of the workspace stays untouched.",
+    "add": "Add {{count}} file(s)",
+    "overwrite": "Overwrite {{count}} file(s)",
+    "conflicts": "Conflicts {{count}}",
+    "none": "No file changes are required.",
+    "back": "Back to templates",
+    "action": "Apply to this Agent",
+    "applying": "Applying template...",
+    "applied": "AgentHub template applied"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "unknownError": "Something went wrong. Please try again."
+  }
+}

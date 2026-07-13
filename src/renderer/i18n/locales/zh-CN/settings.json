@@ -49,6 +49,16 @@
       "light": "日间模式",
       "dark": "夜间模式"
     },
+    "presetTitle": "主题配色",
+    "presetDescription": "选择你喜欢的配色方案",
+    "preset": {
+      "warmBrown": "暖棕",
+      "oceanBlue": "海洋蓝",
+      "forestGreen": "森林绿",
+      "midnightPurple": "午夜紫",
+      "slateGray": "石板灰",
+      "sunsetOrange": "日落橙"
+    },
     "queueTitle": "连续发送消息",
     "queueModeTitle": "队列响应模式",
     "queueTurnDescription": "仅在 AI 完成一个执行轮次后，自动发送下一条消息",
@@ -509,7 +519,7 @@
       "generateDescriptionPrefix": "AI 分析当前项目结构，自动生成贴合的 CLAUDE.md（运行 ",
       "generateDescriptionSuffix": "）",
       "templateTitle": "从模板库添加",
-      "templateDescription": "挑一个内置或自定义的 Agent 模板，合并到当前工作区（同名文件覆盖）",
+      "templateDescription": "浏览精选审核的离线 AgentHub 模板，预览每项文件变更后再应用到当前 Agent",
       "manualTitle": "手动创建",
       "manualDescription": "自己写一份 CLAUDE.md，进入编辑器从空白开始",
       "ruleMissingTitle": "{{filename}} 文件不存在",

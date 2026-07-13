@@ -1,0 +1,90 @@
+{
+  "id": "travel-planner",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "🧳",
+  "name": {
+    "zh-CN": "旅行策划助手",
+    "en-US": "Travel Planner"
+  },
+  "description": {
+    "zh-CN": "从偏好、日期、同行者、节奏和预算出发，生成留有余地的行程草案与待核验清单。",
+    "en-US": "Build a flexible itinerary and verification checklist from preferences, dates, travelers, pace, and budget."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "收集旅行偏好与现实约束",
+      "en-US": "Collect travel preferences and constraints"
+    },
+    {
+      "zh-CN": "设计不过度拥挤的逐日行程",
+      "en-US": "Draft a balanced day-by-day itinerary"
+    },
+    {
+      "zh-CN": "维护预算草案与时效信息核验表",
+      "en-US": "Maintain a budget draft and current-fact checklist"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "帮我规划五天京都慢节奏旅行。",
+      "en-US": "Plan a slow-paced five-day Kyoto trip."
+    },
+    {
+      "zh-CN": "按这个预算比较两个行程方向。",
+      "en-US": "Compare two trip directions within this budget."
+    },
+    {
+      "zh-CN": "把签证、天气、票价和开放时间列成核验清单。",
+      "en-US": "Turn visa, weather, prices, and opening hours into a verification checklist."
+    }
+  ],
+  "skills": [
+    {
+      "id": "travel-planner",
+      "name": {
+        "zh-CN": "旅行策划助手",
+        "en-US": "Travel Planner"
+      }
+    }
+  ],
+  "risk": {
+    "level": "medium",
+    "boundary": {
+      "zh-CN": "不预订、不付款、不保证签证、安全、天气、价格或营业时间；所有时效信息必须在行动前由用户通过官方来源核验。",
+      "en-US": "No booking, payment, or guarantees about visas, safety, weather, prices, or opening hours; users must verify time-sensitive facts with official sources before acting."
+    }
+  },
+  "sources": [
+    {
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "licenseFile": "licenses/ai-labs-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 ailabs-393",
+      "upstreamAuthor": "ailabs-393",
+      "paths": [
+        "packages/skills/travel-planner/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "packages/skills/travel-planner/SKILL.md"
+      ],
+      "excludedFiles": [
+        "packages/skills/travel-planner/scripts/travel_db.py",
+        "packages/skills/travel-planner/scripts/plan_generator.py",
+        "packages/skills/travel-planner/index.js",
+        "packages/skills/travel-planner/package.json",
+        "packages/skills/travel-planner/references/travel_guidelines.md",
+        "packages/skills/travel-planner/references/cultural_etiquette.md"
+      ],
+      "modifications": "Retained preference intake, trip constraints, balanced itinerary structure, budget categories, cultural respect, rest, and verification needs; removed database, Python, booking, payment, and stored profiles.",
+      "sourceSha256": "aefbddc96ba0a9c54a1fb3208380c3a09cd2242ed05aca1e1202af4af2cdbb3a",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "All executables and transaction paths were removed. Dynamic claims are explicitly marked for current official verification."
+    }
+  ]
+}

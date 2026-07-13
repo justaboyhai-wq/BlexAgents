@@ -26,6 +26,7 @@
  */
 
 import { cancellableFetch } from './cancellation';
+import { managementApiHeaders } from './management-api-client';
 
 export interface MirrorImage {
     mimeType: string;
@@ -72,7 +73,7 @@ export async function mirrorIfChannelBound(payload: MirrorPayload): Promise<void
             url,
             {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: managementApiHeaders(),
                 body: JSON.stringify(payload),
             },
             { timeoutMs: 10_000 },

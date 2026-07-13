@@ -1468,6 +1468,10 @@ pub async fn spawn_plugin_bridge<R: tauri::Runtime>(
         )
         .env("OPENCLAW_OAUTH_DIR", path_env_value(&state_env.oauth_dir));
 
+    if let Some(mgmt_token) = crate::management_api::get_management_token() {
+        cmd.env("BLEXAGENT_MANAGEMENT_TOKEN", mgmt_token);
+    }
+
     // Working directory: prefer the plugin_dir (so Node's ESM resolver
     // walks up from there to find both `node_modules/tsx` AND the plugin's
     // own deps). Pre-fix we used bridge_script's parent — that worked for

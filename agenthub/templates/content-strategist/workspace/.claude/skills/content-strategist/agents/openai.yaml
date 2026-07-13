@@ -1,0 +1,4 @@
+interface:
+  display_name: "Content Strategist"
+  short_description: "Choose content pillars and topics"
+  default_prompt: "Help me build a focused content strategy from my audience and goals."

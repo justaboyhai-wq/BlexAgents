@@ -1,0 +1,112 @@
+{
+  "id": "personal-writing",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "creation",
+  "icon": "✍️",
+  "name": {
+    "zh-CN": "个人写作助手",
+    "en-US": "Personal Writing Assistant"
+  },
+  "description": {
+    "zh-CN": "从用户自己的样文提炼声音档案，完成写作、改写和分轮编辑，同时保留原意与作者决定权。",
+    "en-US": "Derive a voice profile from the user's own samples, then draft and edit in passes while preserving intent and authorship."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "从样文提炼可验证的声音特征",
+      "en-US": "Derive verifiable voice traits from samples"
+    },
+    {
+      "zh-CN": "按目的、读者与形式生成初稿",
+      "en-US": "Draft for a purpose, audience, and format"
+    },
+    {
+      "zh-CN": "分轮检查清晰度、语气、证据与具体性",
+      "en-US": "Edit in passes for clarity, voice, proof, and specificity"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "用这三篇旧文帮我整理个人声音档案。",
+      "en-US": "Build a personal voice profile from these three samples."
+    },
+    {
+      "zh-CN": "按我的语气写一篇旅行随笔初稿。",
+      "en-US": "Draft a travel essay in my voice."
+    },
+    {
+      "zh-CN": "编辑这封公开信，保留我的立场和节奏。",
+      "en-US": "Edit this open letter while preserving my position and rhythm."
+    }
+  ],
+  "skills": [
+    {
+      "id": "personal-writing",
+      "name": {
+        "zh-CN": "个人写作助手",
+        "en-US": "Personal Writing Assistant"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "只模仿用户本人或已获授权的声音，不冒充他人；不虚构经历、引语、数据、评价或证据，最终署名与发布由用户决定。",
+      "en-US": "Only models the user's own or authorized voice, never impersonates others; does not fabricate experiences, quotes, data, reviews, or evidence, and the user controls attribution and publication."
+    }
+  },
+  "sources": [
+    {
+      "repository": "charlie947/social-media-skills",
+      "repositoryUrl": "https://github.com/charlie947/social-media-skills",
+      "commit": "94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1",
+      "licenseFile": "licenses/social-media-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2026 Charlie Hills",
+      "upstreamAuthor": "Charlie Hills",
+      "paths": [
+        "skills/voice-builder/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/voice-builder/SKILL.md"
+      ],
+      "excludedFiles": [
+        "skills/voice-builder/references/sample-content.md"
+      ],
+      "modifications": "Retained user interview, sample-based voice analysis, positive and negative voice signals, and confirmation; removed auto-start, fixed batch interaction, and platform-specific assumptions.",
+      "sourceSha256": "7f47bd4b5c131331be274abed100d21e4021aa7d90ac29802f18f39891de2b5a",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No identity impersonation or autonomous interaction remains. Voice analysis requires user-owned or authorized samples."
+    },
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "marketing-skill/skills/copy-editing/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "marketing-skill/skills/copy-editing/SKILL.md"
+      ],
+      "excludedFiles": [
+        "marketing-skill/skills/copy-editing/scripts/readability_scorer.py",
+        "marketing-skill/skills/copy-editing/scripts/ai_content_detector.py",
+        "marketing-skill/skills/copy-editing/references/plain-english-alternatives.md",
+        "marketing-skill/skills/copy-editing/references/ai-detection-patterns.md"
+      ],
+      "modifications": "Retained sequential editing passes for clarity, voice, meaning, evidence, specificity, emotional fit, and reader risk; removed Python scoring and AI-detection claims.",
+      "sourceSha256": "ecdbe7a6ff18422470eb277f5e9a307e76601c2fb54d4b6bf7ba7cb76caabeb1",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Executables and deceptive detector framing were removed. Claims and proof must come from the user."
+    }
+  ]
+}

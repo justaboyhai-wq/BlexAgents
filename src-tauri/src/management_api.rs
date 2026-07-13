@@ -4,6 +4,9 @@
 
 use axum::{
     extract::{DefaultBodyLimit, Query},
+    http::{header::HeaderName, Request, StatusCode},
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -25,6 +28,12 @@ use crate::{ulog_debug, ulog_error, ulog_info, ulog_warn};
 /// Global management API port (set once at startup)
 static MANAGEMENT_PORT: OnceLock<u16> = OnceLock::new();
 
+/// Per-launch capability required by every loopback management request.  A
+/// random port alone is discovery-resistant, not an authorization boundary:
+/// another process in the same user session can enumerate listening sockets.
+static MANAGEMENT_TOKEN: OnceLock<String> = OnceLock::new();
+const MANAGEMENT_TOKEN_HEADER: &str = "x-blexagent-management-token";
+
 /// Global IM bots state (set once at startup for wake endpoint)
 static IM_BOTS_STATE: OnceLock<ManagedImBots> = OnceLock::new();
 
@@ -34,6 +43,38 @@ static AGENT_STATE: OnceLock<ManagedAgents> = OnceLock::new();
 /// Get the management API port (returns 0 if not started)
 pub fn get_management_port() -> u16 {
     MANAGEMENT_PORT.get().copied().unwrap_or(0)
+}
+
+/// Capability for trusted child processes. Never log or persist this value.
+pub fn get_management_token() -> Option<&'static str> {
+    MANAGEMENT_TOKEN.get().map(String::as_str)
+}
+
+fn token_matches(candidate: &str, expected: &str) -> bool {
+    // The token has a fixed, public length. Compare every byte so matching
+    // prefixes do not receive an observable early-exit advantage.
+    if candidate.len() != expected.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (actual, wanted) in candidate.bytes().zip(expected.bytes()) {
+        diff |= actual ^ wanted;
+    }
+    diff == 0
+}
+
+async fn require_management_token(request: Request<axum::body::Body>, next: Next) -> Response {
+    let supplied = request
+        .headers()
+        .get(HeaderName::from_static(MANAGEMENT_TOKEN_HEADER))
+        .and_then(|value| value.to_str().ok());
+    let authorized = supplied
+        .zip(get_management_token())
+        .is_some_and(|(candidate, expected)| token_matches(candidate, expected));
+    if !authorized {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    next.run(request).await
 }
 
 /// Set the IM bots state for the management API (called once at startup)
@@ -78,6 +119,12 @@ pub async fn start_management_api() -> Result<u16, String> {
         .local_addr()
         .map_err(|e| format!("Failed to get management API address: {}", e))?
         .port();
+
+    // UUID v4 is sourced from the operating system CSPRNG by the uuid crate.
+    // It is launch-scoped and only inherited by trusted app child processes.
+    MANAGEMENT_TOKEN
+        .set(uuid::Uuid::new_v4().to_string())
+        .map_err(|_| "Management API token already initialized".to_string())?;
 
     MANAGEMENT_PORT
         .set(port)
@@ -174,7 +221,8 @@ pub async fn start_management_api() -> Result<u16, String> {
         .route("/api/session/watch", post(session_watch_handler))
         // Bridge messages carry base64-encoded media attachments (images/files).
         // Default axum 2MB limit is too small — raise to 50MB for this API.
-        .layer(DefaultBodyLimit::max(50 * 1024 * 1024));
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
+        .layer(middleware::from_fn(require_management_token));
 
     tauri::async_runtime::spawn(async move {
         if let Err(e) = axum::serve(listener, app).await {
@@ -2699,6 +2747,13 @@ async fn session_watch_handler(
 mod tests {
     use super::*;
     use serde_json::Value;
+
+    #[test]
+    fn management_token_comparison_rejects_wrong_values() {
+        assert!(token_matches("abcd", "abcd"));
+        assert!(!token_matches("abce", "abcd"));
+        assert!(!token_matches("abc", "abcd"));
+    }
 
     #[test]
     fn schedule_from_task_preserves_recurring_start_at() {

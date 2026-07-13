@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "templateIds": [
+    "life-manager",
+    "daily-weekly-review",
+    "goals-habits-coach",
+    "calendar-focus",
+    "meal-shopping",
+    "wellness-tracker",
+    "travel-planner",
+    "personal-writing",
+    "content-strategist",
+    "social-short-content",
+    "brand-copywriting",
+    "visual-ux-design"
+  ]
+}

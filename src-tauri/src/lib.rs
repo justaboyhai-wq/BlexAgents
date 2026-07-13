@@ -1,6 +1,7 @@
 // BlexAgent Tauri Application
 // Main entry point with sidecar lifecycle management
 
+pub mod agent_hub;
 pub mod app_dirs;
 pub mod attachment_protocol;
 pub mod browser;
@@ -293,6 +294,7 @@ pub fn run() {
         .manage(browser_state)
         .manage(thought_state)
         .manage(task_state)
+        .manage(agent_hub::AgentHubState::default())
         // PRD 0.2.35 — global force-wake-lock holder. `setup_tray` later registers
         // `TrayMenuHandles` for the matching CheckMenuItem; the boot hydrate
         // runs after both so they start coherent.
@@ -357,6 +359,13 @@ pub fn run() {
             commands::cmd_apply_template_to_workspace,
             commands::cmd_copy_folder_to_templates,
             commands::cmd_remove_template_folder,
+            // Offline AgentHub templates (strictly bundled, no user-writable fallback)
+            agent_hub::cmd_agent_hub_get_catalogue,
+            agent_hub::cmd_create_workspace_from_agent_hub_template,
+            agent_hub::cmd_agent_hub_finalize_workspace,
+            agent_hub::cmd_agent_hub_rollback_workspace,
+            agent_hub::cmd_agent_hub_template_apply_preview,
+            agent_hub::cmd_apply_agent_hub_template_to_workspace,
             // Admin agent sync
             commands::cmd_sync_admin_agent,
             // CLI sync (independent version gate)

@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { getSessionData, getSessionMetadata } from '../SessionStore';
 import type { SessionMetadata } from '../types/session';
 import { cancellableFetch } from '../utils/cancellation';
+import { managementApiHeaders } from '../utils/management-api-client';
 import { deriveSessionLabel } from './derive-label';
 import { getLatestAssistantResultFromMessages } from './latest-result';
 import { renderSessionEventPrompt } from './session-event';
@@ -160,7 +161,7 @@ export async function handleAdminSessionWatch(
       `http://127.0.0.1:${managementPort}/api/session/watch`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: managementApiHeaders(),
         body: JSON.stringify({
           watchId,
           watcherSessionId,

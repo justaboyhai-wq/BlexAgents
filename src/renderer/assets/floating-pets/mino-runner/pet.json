@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "mino-runner",
-  "displayName": "Mino Runner",
+  "displayName": "Blex Runner",
   "description": "披着文件夹斗篷的任务跑者，闪电开路，把待办一路冲到终点。",
   "author": "BlexAgent",
   "license": "Apache-2.0",

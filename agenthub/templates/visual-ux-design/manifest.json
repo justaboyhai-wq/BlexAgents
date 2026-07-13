@@ -1,0 +1,149 @@
+{
+  "id": "visual-ux-design",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "creation",
+  "icon": "🎨",
+  "name": {
+    "zh-CN": "视觉与体验设计助手",
+    "en-US": "Visual & UX Design Assistant"
+  },
+  "description": {
+    "zh-CN": "把用户证据、内容目标和品牌约束整理成体验流程、视觉方向、界面规范与可验证的设计方案。",
+    "en-US": "Turn user evidence, content goals, and brand constraints into journeys, visual direction, interface guidance, and testable design proposals."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "从用户证据提炼人物、旅程与关键问题",
+      "en-US": "Synthesize personas, journeys, and core problems from evidence"
+    },
+    {
+      "zh-CN": "建立颜色、排版、间距、形状与组件规则",
+      "en-US": "Define color, type, spacing, shape, and component rules"
+    },
+    {
+      "zh-CN": "规划可用性测试与无障碍检查",
+      "en-US": "Plan usability tests and accessibility checks"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "根据访谈记录整理用户旅程和机会点。",
+      "en-US": "Build a user journey and opportunities from these interview notes."
+    },
+    {
+      "zh-CN": "为这个教育内容产品做视觉方向与组件规范。",
+      "en-US": "Create a visual direction and component guidance for this education product."
+    },
+    {
+      "zh-CN": "审查这份界面草图的可用性和无障碍风险。",
+      "en-US": "Review this interface sketch for usability and accessibility risks."
+    }
+  ],
+  "skills": [
+    {
+      "id": "visual-ux-design",
+      "name": {
+        "zh-CN": "视觉与体验设计助手",
+        "en-US": "Visual & UX Design Assistant"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "不把假设冒充用户研究，不自动生成或部署代码；颜色对比、可用性与品牌/版权结论需通过真实材料和测试核验。",
+      "en-US": "Never presents assumptions as user research or generates/deploys code automatically; contrast, usability, brand, and copyright conclusions require real materials and testing."
+    }
+  },
+  "sources": [
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "product-team/skills/ux-researcher-designer/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "product-team/skills/ux-researcher-designer/SKILL.md"
+      ],
+      "excludedFiles": [
+        "product-team/skills/ux-researcher-designer/scripts/persona_generator.py",
+        "product-team/skills/ux-researcher-designer/references/usability-testing-frameworks.md",
+        "product-team/skills/ux-researcher-designer/references/persona-methodology.md",
+        "product-team/skills/ux-researcher-designer/references/journey-mapping-guide.md",
+        "product-team/skills/ux-researcher-designer/references/example-personas.md",
+        "product-team/skills/ux-researcher-designer/assets/research_plan_template.md"
+      ],
+      "modifications": "Retained evidence-based persona, journey mapping, research questions, usability tasks, observation synthesis, confidence, and severity; removed Python generation, packaged assets, and unsupported quantitative inference.",
+      "sourceSha256": "e19ce820e246bf34834e99ea361afcf93fb780ffbb2a4248b32a9947ae4a43ca",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No executable or automatic persona generation remains. Every finding must trace to user-supplied evidence or be labeled an assumption."
+    },
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "product-team/skills/ui-design-system/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "product-team/skills/ui-design-system/SKILL.md"
+      ],
+      "excludedFiles": [
+        "product-team/skills/ui-design-system/scripts/design_token_generator.py",
+        "product-team/skills/ui-design-system/references/token-generation.md",
+        "product-team/skills/ui-design-system/references/responsive-calculations.md",
+        "product-team/skills/ui-design-system/references/developer-handoff.md",
+        "product-team/skills/ui-design-system/references/component-architecture.md",
+        "product-team/skills/ui-design-system/assets/design_system_doc_template.md"
+      ],
+      "modifications": "Retained semantic design tokens, component hierarchy, variants, responsive principles, states, documentation, and accessibility checks; removed Python, code generation, framework implementation, and Figma integrations.",
+      "sourceSha256": "7f8c1714af2602bcd2b3b49b6aaf0f53351fb739b26062d548f6a9c8c1b10e8d",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Outputs are Markdown design decisions only. Contrast and responsive behavior must be validated in the actual design."
+    },
+    {
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "licenseFile": "licenses/ai-labs-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 ailabs-393",
+      "upstreamAuthor": "ailabs-393",
+      "paths": [
+        "packages/skills/brand-analyzer/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "packages/skills/brand-analyzer/SKILL.md"
+      ],
+      "excludedFiles": [
+        "packages/skills/brand-analyzer/index.js",
+        "packages/skills/brand-analyzer/package.json",
+        "packages/skills/brand-analyzer/references/brand_archetypes.md",
+        "packages/skills/brand-analyzer/references/brand_analysis_framework.md",
+        "packages/skills/brand-analyzer/assets/quick_brand_audit_template.md",
+        "packages/skills/brand-analyzer/assets/brand_guidelines_template.md",
+        "packages/skills/brand-analyzer/assets/brand_analysis_report_template.md"
+      ],
+      "modifications": "Retained brand purpose, audience, personality, visual inputs, consistency, and prioritized recommendations as context for design; removed packaged assets and deterministic archetype scoring.",
+      "sourceSha256": "1c3b52b28efd819e13917c306899fb9100f7d96610d6ae6d62ab20f83b7058b5",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Only user-owned brand materials are reviewed. Trademark, asset rights, and originality require user verification."
+    }
+  ]
+}

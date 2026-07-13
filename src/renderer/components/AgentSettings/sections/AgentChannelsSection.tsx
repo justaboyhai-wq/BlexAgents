@@ -11,7 +11,6 @@ import { startAndEnableAgentChannel, stopAndDisableAgentChannel } from '@/config
 import ChannelPlatformSelect from '../channels/ChannelPlatformSelect';
 import ChannelWizard from '../channels/ChannelWizard';
 import ChannelDetailView from '../channels/ChannelDetailView';
-import telegramIcon from '../../ImSettings/assets/telegram.png';
 import feishuIcon from '../../ImSettings/assets/feishu.jpeg';
 import dingtalkIcon from '../../ImSettings/assets/dingtalk.svg';
 import { findPromotedByPlatform } from '../../ImSettings/promotedPlugins';
@@ -24,7 +23,6 @@ interface AgentChannelsSectionProps {
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
-  telegram: 'Telegram',
   feishu: '飞书',
   dingtalk: '钉钉',
 };
@@ -39,7 +37,6 @@ function getPlatformLabel(type: string): string {
 }
 
 function getPlatformIcon(type: string) {
-  if (type === 'telegram') return <img src={telegramIcon} alt="Telegram" className="h-5 w-5" />;
   if (type === 'feishu') return <img src={feishuIcon} alt="飞书" className="h-5 w-5 rounded" />;
   if (type === 'dingtalk') return <img src={dingtalkIcon} alt="钉钉" className="h-5 w-5 rounded" />;
   const promoted = findPromotedByPlatform(type);

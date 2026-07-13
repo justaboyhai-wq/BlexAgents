@@ -60,7 +60,6 @@ interface LauncherRightRailProps {
     isProjectsLoading: boolean;
     isStarting?: boolean | undefined;
     launchingProjectId: string | null;
-    showDevTools?: boolean | undefined;
     taskCenterData: TaskCenterData;
     sessionNotificationBadgeCounts?: ReadonlyMap<string, number>;
     onLaunch: (project: Project) => void;
@@ -74,7 +73,7 @@ interface LauncherRightRailProps {
     onToggleProjectPin: (project: Project) => void;
     onAddFolder: () => void;
     onCreateFromTemplate: () => void;
-    onShowLogs: () => void;
+    onOpenAgentHub: () => void;
 }
 
 const getProjectDisplayName = (project: Project): string =>
@@ -118,7 +117,6 @@ export default memo(function LauncherRightRail({
     isProjectsLoading,
     isStarting,
     launchingProjectId,
-    showDevTools,
     taskCenterData,
     sessionNotificationBadgeCounts,
     onLaunch,
@@ -132,7 +130,7 @@ export default memo(function LauncherRightRail({
     onToggleProjectPin,
     onAddFolder,
     onCreateFromTemplate,
-    onShowLogs,
+    onOpenAgentHub,
 }: LauncherRightRailProps) {
     const { t } = useTranslation('launcher');
     const toast = useToast();
@@ -342,15 +340,14 @@ export default memo(function LauncherRightRail({
                                 {t('rightRail.workspaceTitle')}
                             </h2>
                             <div className="flex items-center gap-3">
-                                {showDevTools && (
-                                    <button
-                                        onClick={onShowLogs}
-                                        className="rounded-lg px-2.5 py-1 text-sm font-medium text-[var(--ink-muted)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]"
-                                        title={t('rightRail.logsTitle')}
-                                    >
-                                        Logs
-                                    </button>
-                                )}
+                                <button
+                                    type="button"
+                                    onClick={onOpenAgentHub}
+                                    className="rounded-xl px-2.5 py-1 text-sm font-medium text-[var(--accent-warm)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]"
+                                    title={t('rightRail.agentHubTitle')}
+                                >
+                                    AgentHub
+                                </button>
                                 {sortedProjects.length > 0 && (
                                     <AddWorkspaceMenu
                                         onAddFolder={onAddFolder}

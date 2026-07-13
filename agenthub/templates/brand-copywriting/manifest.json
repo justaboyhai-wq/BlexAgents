@@ -1,0 +1,141 @@
+{
+  "id": "brand-copywriting",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "creation",
+  "icon": "📣",
+  "name": {
+    "zh-CN": "品牌文案与营销表达",
+    "en-US": "Brand Copywriting Assistant"
+  },
+  "description": {
+    "zh-CN": "从品牌事实、受众语言和证据建立最小品牌系统，并写出清晰、具体、诚实的营销文案。",
+    "en-US": "Build a minimal brand system from facts, audience language, and evidence, then write clear, specific, honest marketing copy."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "梳理品牌基础、个性、声音和差异",
+      "en-US": "Clarify brand foundation, personality, voice, and differentiation"
+    },
+    {
+      "zh-CN": "创建可执行的品牌表达指南",
+      "en-US": "Create practical brand expression guidelines"
+    },
+    {
+      "zh-CN": "撰写以受众结果为中心的页面或活动文案",
+      "en-US": "Write audience-outcome-focused page or campaign copy"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "根据这些材料整理一页品牌表达指南。",
+      "en-US": "Create a one-page brand expression guide from these materials."
+    },
+    {
+      "zh-CN": "重写首页首屏，让价值更清楚但不要夸张。",
+      "en-US": "Rewrite the homepage hero for clarity without hype."
+    },
+    {
+      "zh-CN": "审查这组活动文案是否符合品牌声音。",
+      "en-US": "Audit this campaign copy against the brand voice."
+    }
+  ],
+  "skills": [
+    {
+      "id": "brand-copywriting",
+      "name": {
+        "zh-CN": "品牌文案与营销表达",
+        "en-US": "Brand Copywriting Assistant"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "不伪造客户证言、数据、资质、稀缺性或效果保证；商标、广告合规和受监管声明需由用户交给合格专业人员复核。",
+      "en-US": "Does not fabricate testimonials, data, credentials, scarcity, or outcome guarantees; trademarks, ad compliance, and regulated claims require qualified review."
+    }
+  },
+  "sources": [
+    {
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "licenseFile": "licenses/ai-labs-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 ailabs-393",
+      "upstreamAuthor": "ailabs-393",
+      "paths": [
+        "packages/skills/brand-analyzer/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "packages/skills/brand-analyzer/SKILL.md"
+      ],
+      "excludedFiles": [
+        "packages/skills/brand-analyzer/index.js",
+        "packages/skills/brand-analyzer/package.json",
+        "packages/skills/brand-analyzer/references/brand_archetypes.md",
+        "packages/skills/brand-analyzer/references/brand_analysis_framework.md",
+        "packages/skills/brand-analyzer/assets/quick_brand_audit_template.md",
+        "packages/skills/brand-analyzer/assets/brand_guidelines_template.md",
+        "packages/skills/brand-analyzer/assets/brand_analysis_report_template.md"
+      ],
+      "modifications": "Retained brand foundation, personality, voice, visual inputs, consistency audit, audience alignment, prioritized recommendations, and roadmap; removed packaged assets and archetype determinism.",
+      "sourceSha256": "1c3b52b28efd819e13917c306899fb9100f7d96610d6ae6d62ab20f83b7058b5",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No executable or proprietary asset is bundled. Archetypes are optional prompts, not psychological facts."
+    },
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "marketing-skill/skills/brand-guidelines/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "marketing-skill/skills/brand-guidelines/SKILL.md"
+      ],
+      "excludedFiles": [
+        "marketing-skill/skills/brand-guidelines/references/brand-identity-and-framework.md"
+      ],
+      "modifications": "Retained foundation, voice, visual inventory, consistency checks, channel adaptation, and guideline creation; removed third-party brand identity content and tool-specific assumptions.",
+      "sourceSha256": "2c4bce4eaf394a76d6e0f81394c2b13078153408f56cf4b7fe46d3bbb88eacd2",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Only user-owned brand material is analyzed. Third-party identity systems were excluded."
+    },
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "marketing-skill/skills/copywriting/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "marketing-skill/skills/copywriting/SKILL.md"
+      ],
+      "excludedFiles": [
+        "marketing-skill/skills/copywriting/scripts/headline_scorer.py",
+        "marketing-skill/skills/copywriting/references/natural-transitions.md",
+        "marketing-skill/skills/copywriting/references/copy-frameworks.md"
+      ],
+      "modifications": "Retained audience and offer discovery, clarity, benefits, specificity, customer language, page structure, CTA options, annotations, and proof checks; removed Python scoring and conversion guarantees.",
+      "sourceSha256": "f6415e5e3f1a2e0e62b112bb29566e8050c087f5aa6b674e5712805f2633c9b8",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Claims require user evidence. Manipulative urgency, fabricated proof, and guaranteed outcomes were excluded."
+    }
+  ]
+}

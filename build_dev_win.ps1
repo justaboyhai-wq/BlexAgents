@@ -78,6 +78,22 @@ if ($appProcesses) {
     Write-Host "  清理了 $($appProcesses.Count) 个 BlexAgent 进程" -ForegroundColor Gray
 }
 
+# 强制结束主进程后，Windows 不会自动回收已经脱离父进程的 Sidecar。
+# 这些进程会继续占用 target/.../nodejs/node.exe，导致下一次 Tauri
+# 资源复制报 os error 32。这里只清理本仓库 target 目录中的运行时，
+# 不按进程名全局杀 Node，避免影响用户的其它项目和 Codex 自身。
+$targetRuntimeRoot = [System.IO.Path]::GetFullPath((Join-Path $PROJECT_DIR "src-tauri/target")) + [System.IO.Path]::DirectorySeparatorChar
+$projectRuntimeProcesses = Get-CimInstance Win32_Process | Where-Object {
+    $_.ExecutablePath -and
+    $_.ExecutablePath.StartsWith($targetRuntimeRoot, [System.StringComparison]::OrdinalIgnoreCase)
+}
+if ($projectRuntimeProcesses) {
+    $projectRuntimeProcesses | ForEach-Object {
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    Write-Host "  清理了 $($projectRuntimeProcesses.Count) 个本项目 Sidecar/子运行时进程" -ForegroundColor Gray
+}
+
 # 验证进程清理完成（最多等待 2 秒）
 $maxWait = 20  # 20 * 100ms = 2s
 $waited = 0
@@ -182,6 +198,11 @@ Write-Host ""
 
 # 构建前端和运行时资源
 Write-ColorOutput "[2/3] 构建前端和运行时资源..." "Blue"
+& node (Join-Path $PROJECT_DIR "scripts/validate-bundled-resources.mjs")
+if ($LASTEXITCODE -ne 0) {
+    Write-ColorOutput "✗ 内置 Blex 工作区资源（mino/）不完整，请先运行 .\setup_windows.ps1" "Red"
+    exit 1
+}
 $env:VITE_DEBUG_MODE = "true"
 Write-ColorOutput "  VITE_DEBUG_MODE=$env:VITE_DEBUG_MODE" "Yellow"
 $nodeOptionsWithoutHeap = (($env:NODE_OPTIONS -replace '(^|\s)--max-old-space-size=\S+', '').Trim())

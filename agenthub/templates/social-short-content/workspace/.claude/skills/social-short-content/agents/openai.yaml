@@ -1,0 +1,4 @@
+interface:
+  display_name: "Social Short Content Creator"
+  short_description: "Draft platform-aware short content"
+  default_prompt: "Help me turn this idea into platform-appropriate short content."

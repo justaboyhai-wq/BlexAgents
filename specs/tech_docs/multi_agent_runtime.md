@@ -2,7 +2,7 @@
 
 ## 概述
 
-Multi-Agent Runtime 允许用户选择不同的 AI Runtime 驱动 Agent 会话。除内置 Claude Agent SDK（builtin）外，支持 Claude Code CLI、OpenAI Codex CLI、Google Gemini CLI 作为外部 Runtime。
+Multi-Agent Runtime 允许用户选择不同的 AI Runtime 驱动 Agent 会话。除内置 Claude Agent SDK（builtin）外，支持 Claude Code CLI、OpenAI Codex CLI、Google Gemini CLI、Hermes Agent (Nous Research) 作为外部 Runtime。
 
 **功能门控**：设置 → 关于 → 实验室 → 「更多 Agent Runtime」开关（`config.multiAgentRuntime`），默认关闭。
 
@@ -24,19 +24,19 @@ Multi-Agent Runtime 允许用户选择不同的 AI Runtime 驱动 Agent 会话�
 │       │                                       │                     │
 │       ▼                                       ▼                     │
 │  builtin-session/*                  external-session/* owners       │
-│   (SDK owners)                       (CC / Codex / Gemini owners)   │
+│   (SDK owners)                       (CC / Codex / Gemini / Hermes) │
 │       │                    │                                       │
 │       ▼                    ▼                                       │
-│  Claude Agent SDK   ┌──────────┐  ┌─────────┐  ┌──────────┐       │
-│  (内置,直接调用)     │claude-   │  │codex.ts │  │gemini.ts │       │
-│                     │code.ts   │  │         │  │          │       │
-│                     │NDJSON    │  │JSON-RPC │  │JSON-RPC  │       │
-│                     │/stdio    │  │ 2.0     │  │2.0 (ACP) │       │
-│                     └────┬─────┘  └────┬────┘  └────┬─────┘       │
-│                          │             │            │             │
-│                          ▼             ▼            ▼             │
-│                     claude CLI     codex CLI    gemini CLI         │
-│                     (-p mode)     (app-server)  (--acp mode)       │
+│  Claude Agent SDK   ┌──────────┐  ┌─────────┐  ┌──────────┐  ┌──────────┐ │
+│  (内置,直接调用)     │claude-   │  │codex.ts │  │gemini.ts │  │hermes.ts │ │
+│                     │code.ts   │  │         │  │          │  │          │ │
+│                     │NDJSON    │  │JSON-RPC │  │JSON-RPC  │  │JSON-RPC  │ │
+│                     │/stdio    │  │ 2.0     │  │2.0 (ACP) │  │2.0 (ACP) │ │
+│                     └────┬─────┘  └────┬────┘  └────┬─────┘  └────┬─────┘ │
+│                          │             │            │             │       │
+│                          ▼             ▼            ▼             ▼       │
+│                     claude CLI     codex CLI    gemini CLI    hermes CLI  │
+│                     (-p mode)     (app-server)  (--acp mode) (acp --accept-hooks) │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -81,7 +81,7 @@ Route modules、`SessionEngine` adapters 不直接 import `builtin-session/*` �
 
 ```typescript
 interface AgentRuntime {
-  type: RuntimeType;  // 'claude-code' | 'codex' | 'gemini'
+  type: RuntimeType;  // 'claude-code' | 'codex' | 'gemini' | 'hermes'
   detect(): Promise<RuntimeDetection>;       // 检测 CLI 是否安装
   queryModels(): Promise<RuntimeModelInfo[]>; // 查询可用模型
   getPermissionModes(): RuntimePermissionMode[];
@@ -110,7 +110,7 @@ Runtime 内部协议差异通过 `UnifiedEvent` 联合类型统一，`external-s
 ### RuntimeType (`src/shared/types/runtime.ts`)
 
 ```typescript
-type RuntimeType = 'builtin' | 'claude-code' | 'codex' | 'gemini';
+type RuntimeType = 'builtin' | 'claude-code' | 'codex' | 'gemini' | 'hermes';
 ```
 
 ### Runtime Source
@@ -720,7 +720,7 @@ config.multiAgentRuntime (磁盘/React state)
   ├── Node factory.ts: getCurrentRuntimeType()
   │     → 读取 process.env.BLEXAGENT_RUNTIME
   │     → 未设置 → 'builtin'
-  │     → 识别 'claude-code' | 'codex' | 'gemini'
+  │     → 识别 'claude-code' | 'codex' | 'gemini' | 'hermes'
   │
   └── React Chat.tsx:
         const currentRuntime = multiAgentRuntimeEnabled

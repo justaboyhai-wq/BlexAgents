@@ -192,37 +192,48 @@ function uniqueSkillCacheCandidates(workspacePath: string | undefined, homeDir: 
   label: string;
   path: string;
 }> {
-  const binaryName = process.platform === 'win32' ? 'cuse.exe' : 'cuse';
+  // Skill directories are portable and can outlive the platform that populated
+  // their cache. In particular, a workspace copied from macOS/Linux to Windows
+  // can still contain `scripts/cuse`, while a workspace copied the other way can
+  // contain `scripts/cuse.exe`. Diagnostics must fingerprint both cache names;
+  // selecting only the host-native suffix silently hides stale binaries.
+  const binaryNames = process.platform === 'win32'
+    ? ['cuse.exe', 'cuse']
+    : ['cuse', 'cuse.exe'];
   const candidates: Array<{
     source: CuseSkillCacheDiagnostic['source'];
     label: string;
     path: string;
   }> = [];
   if (workspacePath) {
-    candidates.push({
-      source: 'workspace',
-      label: 'workspace .claude skill',
-      path: join(workspacePath, '.claude', 'skills', 'cuse', 'scripts', binaryName),
-    });
+    for (const binaryName of binaryNames) {
+      candidates.push({
+        source: 'workspace',
+        label: 'workspace .claude skill',
+        path: join(workspacePath, '.claude', 'skills', 'cuse', 'scripts', binaryName),
+      });
+    }
   }
   if (homeDir) {
-    candidates.push(
-      {
-        source: 'blexagent-user',
-        label: '~/.blexagent skill',
-        path: join(homeDir, '.blexagent', 'skills', 'cuse', 'scripts', binaryName),
-      },
-      {
-        source: 'codex-user',
-        label: '~/.codex skill',
-        path: join(homeDir, '.codex', 'skills', 'cuse', 'scripts', binaryName),
-      },
-      {
-        source: 'claude-user',
-        label: '~/.claude skill',
-        path: join(homeDir, '.claude', 'skills', 'cuse', 'scripts', binaryName),
-      },
-    );
+    for (const binaryName of binaryNames) {
+      candidates.push(
+        {
+          source: 'blexagent-user',
+          label: '~/.blexagent skill',
+          path: join(homeDir, '.blexagent', 'skills', 'cuse', 'scripts', binaryName),
+        },
+        {
+          source: 'codex-user',
+          label: '~/.codex skill',
+          path: join(homeDir, '.codex', 'skills', 'cuse', 'scripts', binaryName),
+        },
+        {
+          source: 'claude-user',
+          label: '~/.claude skill',
+          path: join(homeDir, '.claude', 'skills', 'cuse', 'scripts', binaryName),
+        },
+      );
+    }
   }
 
   const seen = new Set<string>();

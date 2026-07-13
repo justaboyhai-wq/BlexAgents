@@ -11,6 +11,7 @@ const detections: RuntimeDetections = {
   'claude-code': { installed: true, version: '1.0.0' },
   codex: { installed: true, version: '1.0.0' },
   gemini: { installed: false },
+  hermes: { installed: false },
 };
 
 describe('RuntimeSelector i18n', () => {
@@ -22,17 +23,20 @@ describe('RuntimeSelector i18n', () => {
     const user = userEvent.setup();
     render(
       <RuntimeSelector
-        value="codex"
+        value="builtin"
         detections={detections}
         onChange={vi.fn()}
         onOpenSettings={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByTitle('Runtime: Codex CLI'));
+    await user.click(screen.getByTitle('Runtime: BlexAgent (Claude Agent SDK)'));
 
     expect(screen.getByText('Runtime')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Settings/ })).toBeInTheDocument();
-    expect(screen.getByText('Not installed')).toBeInTheDocument();
+    expect(screen.getByText('BlexAgent (Claude Agent SDK)')).toBeInTheDocument();
+    expect(screen.queryByText('Codex CLI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Claude Code CLI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gemini CLI')).not.toBeInTheDocument();
   });
 });

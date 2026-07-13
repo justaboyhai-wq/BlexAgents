@@ -5,10 +5,8 @@ import { join } from '@tauri-apps/api/path';
 import type { Provider, ProviderVerifyStatus, AppConfig, Project } from '../types';
 import {
     PRESET_PROVIDERS,
-    applyManagedCodexProviderReadiness,
     applyProviderEnablementAndOrder,
     isProviderEnabled,
-    withManagedCodexProviderCatalog,
 } from '../types';
 import type { AgentConfig } from '../../../shared/types/agent';
 import {
@@ -97,13 +95,12 @@ export async function loadCustomProviders(): Promise<Provider[]> {
 }
 
 export async function getAllProviders(): Promise<Provider[]> {
-    const config = await loadAppConfig();
     if (isBrowserDevMode()) {
-        return withManagedCodexProviderCatalog(PRESET_PROVIDERS, config);
+        return PRESET_PROVIDERS;
     }
 
     const customProviders = await loadCustomProviders();
-    return withManagedCodexProviderCatalog([...PRESET_PROVIDERS, ...customProviders], config);
+    return [...PRESET_PROVIDERS, ...customProviders];
 }
 
 export async function saveCustomProvider(provider: Provider): Promise<void> {
@@ -223,14 +220,11 @@ export async function rebuildAndPersistAvailableProviders(): Promise<void> {
         ]);
         const verifyStatus = config.providerVerifyStatus ?? {};
 
-        const mergedProviders = applyManagedCodexProviderReadiness(
-            applyProviderEnablementAndOrder(
-                mergePresetCustomModels(
-                    allProviders,
-                    config.presetCustomModels,
-                    config.presetRemovedModels as Record<string, string[]> | undefined,
-                ),
-                config,
+        const mergedProviders = applyProviderEnablementAndOrder(
+            mergePresetCustomModels(
+                allProviders,
+                config.presetCustomModels,
+                config.presetRemovedModels as Record<string, string[]> | undefined,
             ),
             config,
         );

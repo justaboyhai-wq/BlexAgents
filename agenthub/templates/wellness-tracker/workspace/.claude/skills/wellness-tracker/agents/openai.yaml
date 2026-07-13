@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wellness Tracker"
+  short_description: "Record wellness habits and trends"
+  default_prompt: "Help me record my wellness habits and reflect on trends without medical advice."

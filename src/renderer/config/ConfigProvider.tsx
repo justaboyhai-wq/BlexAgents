@@ -16,20 +16,13 @@ import {
     PRESET_PROVIDERS,
     PROXY_DEFAULTS,
     MANAGED_CODEX_REQUIRED_RUNTIME,
-    applyManagedCodexProviderReadiness,
     applyProviderEnablementAndOrder,
-    getManagedCodexProviderReadiness,
-    isManagedCodexProviderGateEnabled,
-    withManagedCodexProviderCatalog,
 } from './types';
-import type { RuntimeModelInfo } from '../../shared/types/runtime';
 import type { AgentConfig } from '../../shared/types/agent';
-import { apiGetJson } from '@/api/apiFetch';
 import {
     loadAppConfig,
     atomicModifyConfig,
     ensureBundledWorkspace,
-    ensureManagedCodexProviderDevGateDefault,
     mergePresetCustomModels,
 } from './services/appConfigService';
 import {
@@ -46,20 +39,19 @@ import {
 import {
     loadProjects,
     saveProjects,
-    addProject as addProjectService,
     updateProject as updateProjectService,
     patchProject as patchProjectService,
     removeOrHideProject as removeOrHideProjectService,
     touchProject as touchProjectService,
 } from './services/projectService';
 import {
-    addAgentConfig,
     buildAgentForProject,
     configureMemoryEvolutionTasksForAgent,
     ensureAllProjectsHaveAgent,
     migrateImBotConfigsToAgents,
     persistAgents,
 } from './services/agentConfigService';
+import { registerProjectWithAgent } from './services/projectRegistrationService';
 import { isTauriEnvironment } from '@/utils/browserMock';
 import { listenWithCleanup } from '@/utils/tauriListen';
 import { workspacePathsEqual } from '../../shared/workspacePath';
@@ -142,7 +134,6 @@ async function reconcileMemoryEvolutionTasks(
 }
 
 function shouldAutoUpdateManagedCodexRuntime(config: AppConfig): boolean {
-    if (!isManagedCodexProviderGateEnabled(config)) return false;
     const install = config.managedCodexRuntimeInstall;
     const userEngaged = Boolean(install?.status || install?.installedVersion || install?.installedAt);
     if (!userEngaged || !install) return false;
@@ -220,7 +211,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
     const [projects, setProjects] = useState<Project[]>([]);
     const [rawProviders, setRawProviders] = useState<Provider[]>(PRESET_PROVIDERS);
-    const [managedCodexRuntimeModels, setManagedCodexRuntimeModels] = useState<RuntimeModelInfo[]>([]);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [providerVerifyStatus, setProviderVerifyStatus] = useState<Record<string, ProviderVerifyStatus>>({});
     const [isLoading, setIsLoading] = useState(true);
@@ -228,18 +218,14 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     // Derived: merge preset custom models + apply user primary model overrides
     const providers = useMemo(() => {
-        const catalog = withManagedCodexProviderCatalog(rawProviders, config, managedCodexRuntimeModels);
-        const merged = mergePresetCustomModels(catalog, config.presetCustomModels, config.presetRemovedModels);
+        const merged = mergePresetCustomModels(rawProviders, config.presetCustomModels, config.presetRemovedModels);
         const providerOrderSettings = {
             providerOrder: config.providerOrder,
             disabledProviderIds: config.disabledProviderIds,
         };
         const overrides = config.providerPrimaryModels;
         if (!overrides || Object.keys(overrides).length === 0) {
-            return applyManagedCodexProviderReadiness(
-                applyProviderEnablementAndOrder(merged, providerOrderSettings),
-                config,
-            );
+            return applyProviderEnablementAndOrder(merged, providerOrderSettings);
         }
         // Apply user's primaryModel override directly on the Provider object
         // so ALL consumers see the correct value without needing getEffectivePrimaryModel()
@@ -248,37 +234,11 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
             if (!userPrimary || !p.models?.some(m => m.model === userPrimary)) return p;
             return { ...p, primaryModel: userPrimary };
         });
-        return applyManagedCodexProviderReadiness(
-            applyProviderEnablementAndOrder(withPrimaryOverrides, providerOrderSettings),
-            config,
-        );
+        return applyProviderEnablementAndOrder(withPrimaryOverrides, providerOrderSettings);
     }, [
         config,
         rawProviders,
-        managedCodexRuntimeModels,
     ]);
-    const managedCodexReadiness = useMemo(
-        () => getManagedCodexProviderReadiness(config),
-        [config],
-    );
-    const managedCodexModelListKey = useMemo(
-        () => [
-            managedCodexReadiness.reason,
-            config.managedCodexRuntimeInstall?.installedVersion ?? '',
-            config.managedCodexRuntimeInstall?.requiredVersion ?? '',
-            config.managedCodexAuth?.status ?? '',
-            config.managedCodexAuth?.authMethod ?? '',
-            config.managedCodexAuth?.verifiedAt ?? '',
-        ].join('|'),
-        [
-            managedCodexReadiness.reason,
-            config.managedCodexRuntimeInstall?.installedVersion,
-            config.managedCodexRuntimeInstall?.requiredVersion,
-            config.managedCodexAuth?.status,
-            config.managedCodexAuth?.authMethod,
-            config.managedCodexAuth?.verifiedAt,
-        ],
-    );
 
     // Mount guard
     const isMountedRef = useRef(true);
@@ -318,12 +278,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                 }
             } catch (e) {
                 console.warn('[ConfigProvider] Agent/CLI/system-skills sync failed:', e);
-            }
-
-            try {
-                await ensureManagedCodexProviderDevGateDefault();
-            } catch (e) {
-                console.warn('[ConfigProvider] Managed Codex provider default migration failed:', e);
             }
 
             const [rawConfig, loadedProjects, loadedProviders, loadedApiKeys, loadedVerifyStatus] = await Promise.all([
@@ -478,30 +432,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         config,
         isLoading,
         load,
-    ]);
-
-    useEffect(() => {
-        if (managedCodexReadiness.reason !== 'ready' && managedCodexReadiness.reason !== 'provider-disabled') {
-            setManagedCodexRuntimeModels([]);
-            return;
-        }
-
-        let cancelled = false;
-        apiGetJson<{ models?: RuntimeModelInfo[] }>('/api/runtime/models?type=codex&source=managed-provider')
-            .then((result) => {
-                if (cancelled) return;
-                setManagedCodexRuntimeModels(Array.isArray(result.models) ? result.models : []);
-            })
-            .catch((err) => {
-                if (cancelled) return;
-                console.warn('[managed-codex] failed to load provider model list', err);
-                setManagedCodexRuntimeModels([]);
-            });
-
-        return () => { cancelled = true; };
-    }, [
-        managedCodexReadiness.reason,
-        managedCodexModelListKey,
     ]);
 
     const syncNativeUiLanguageFromConfig = useCallback(async () => {
@@ -683,46 +613,34 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     // --- Projects ---
 
     const addProject = useCallback(async (path: string, options: AddProjectOptions = {}) => {
-        let project = await addProjectService(path);
-
         const metadataPatch: Partial<Omit<Project, 'id'>> = {};
         if (options.icon) metadataPatch.icon = options.icon;
         if (options.displayName) metadataPatch.displayName = options.displayName;
         if (options.templateId) metadataPatch.templateId = options.templateId;
         if (options.templateSource) metadataPatch.templateSource = options.templateSource;
-        if (project.hidden) {
-            metadataPatch.hidden = false;
-            metadataPatch.hiddenAt = undefined;
-        }
-        if (Object.keys(metadataPatch).length > 0) {
-            const updated = await patchProjectService(project.id, metadataPatch);
-            if (updated) project = updated;
-        }
 
-        // Auto-create basicAgent for new projects (or re-opened projects without agentId)
-        if (!project.agentId) {
-            const basicAgent = buildAgentForProject(project, {
+        const { project, createdAgent } = await registerProjectWithAgent({
+            path,
+            metadataPatch,
+            buildAgent: project => buildAgentForProject(project, {
                 defaultPermissionMode: config.defaultPermissionMode,
                 agentDefaults: options.agentDefaults,
-            });
-            await addAgentConfig(basicAgent);
-            const updated = await patchProjectService(project.id, {
-                agentId: basicAgent.id,
-                ...(basicAgent.enabled ? { isAgent: true } : {}),
-            });
-            project = updated ?? { ...project, agentId: basicAgent.id, ...(basicAgent.enabled ? { isAgent: true } : {}) };
-            if (basicAgent.memoryEvolution?.enabled) {
+            }),
+        });
+
+        if (createdAgent) {
+            if (createdAgent.memoryEvolution?.enabled) {
                 try {
-                    await configureMemoryEvolutionTasksForAgent(basicAgent, project.id, true);
+                    await configureMemoryEvolutionTasksForAgent(createdAgent, project.id, true);
                 } catch (err) {
                     console.warn(
-                        `[ConfigProvider] Memory evolution task provisioning failed for agent ${basicAgent.id}:`,
+                        `[ConfigProvider] Memory evolution task provisioning failed for agent ${createdAgent.id}:`,
                         err,
                     );
                 }
             }
             // Update config state so agent is immediately available
-            setConfig(prev => ({ ...prev, agents: [...(prev.agents ?? []), basicAgent] }));
+            setConfig(prev => ({ ...prev, agents: [...(prev.agents ?? []), createdAgent] }));
         }
 
         setProjects((prev) => {

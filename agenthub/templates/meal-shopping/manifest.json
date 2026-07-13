@@ -1,0 +1,109 @@
+{
+  "id": "meal-shopping",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "🥗",
+  "name": {
+    "zh-CN": "饮食与采购助手",
+    "en-US": "Meal & Shopping Assistant"
+  },
+  "description": {
+    "zh-CN": "根据口味、过敏原、饮食限制、库存、时间和预算，整理家常餐食与可购买的分类清单。",
+    "en-US": "Plan practical meals and purchasable grocery lists from tastes, allergens, restrictions, pantry, time, and budget."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "建立可随时更正的饮食偏好卡",
+      "en-US": "Build an editable food-preference card"
+    },
+    {
+      "zh-CN": "从现有食材规划家常餐食",
+      "en-US": "Plan everyday meals around available ingredients"
+    },
+    {
+      "zh-CN": "合并数量并按卖场区域整理采购清单",
+      "en-US": "Consolidate quantities into an aisle-ready list"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "按两人三天、少做饭的需求安排晚餐。",
+      "en-US": "Plan three low-effort dinners for two."
+    },
+    {
+      "zh-CN": "根据这些菜谱和家中库存生成采购清单。",
+      "en-US": "Build a grocery list from these recipes and pantry notes."
+    },
+    {
+      "zh-CN": "家里有人对花生过敏，请帮我复核候选菜单。",
+      "en-US": "Review this menu for a stated peanut allergy."
+    }
+  ],
+  "skills": [
+    {
+      "id": "meal-shopping",
+      "name": {
+        "zh-CN": "饮食与采购助手",
+        "en-US": "Meal & Shopping Assistant"
+      }
+    }
+  ],
+  "risk": {
+    "level": "medium",
+    "boundary": {
+      "zh-CN": "严格尊重用户声明的过敏原，但无法保证商品或餐馆无交叉接触；不提供疾病饮食、热量处方、减重治疗或补充剂建议。",
+      "en-US": "Strictly respects stated allergens but cannot guarantee products or restaurants are free of cross-contact; no disease diets, calorie prescriptions, weight-loss treatment, or supplement advice."
+    }
+  },
+  "sources": [
+    {
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "licenseFile": "licenses/ai-labs-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 ailabs-393",
+      "upstreamAuthor": "ailabs-393",
+      "paths": [
+        "packages/skills/nutritional-specialist/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "packages/skills/nutritional-specialist/SKILL.md"
+      ],
+      "excludedFiles": [
+        "packages/skills/nutritional-specialist/scripts/preferences_manager.py",
+        "packages/skills/nutritional-specialist/index.js",
+        "packages/skills/nutritional-specialist/package.json"
+      ],
+      "modifications": "Retained preference, allergy, dietary restriction, dislike, cuisine, skill, time, and budget intake; removed disease management, calorie goals, database persistence, and Python.",
+      "sourceSha256": "101a337c8b3a01fb7745c7e55ba4b4e9c9eed82533049e8a3d262c4a3a4b20cd",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Executable and medicalized portions were excluded. Allergy handling is framed as a user-confirmed safety check, not a guarantee."
+    },
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/grocery-shopping/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/grocery-shopping/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained inventory check, ingredient consolidation, purchasable quantities, leftovers, and aisle organization; removed Costco, Instacart, browser, cart, checkout, and vendor-specific guidance.",
+      "sourceSha256": "37b5588973093e47af418d38d595ecfb408c9896a186ced0889b57e41cda171f",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "All commerce automation, accounts, carts, payments, and browser steps were removed."
+    }
+  ]
+}

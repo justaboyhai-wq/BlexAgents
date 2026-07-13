@@ -3,12 +3,14 @@ import { initReactI18next } from 'react-i18next';
 
 import { resolveEffectiveLocale, type SupportedLocale } from '../../shared/i18n';
 import appEn from './locales/en-US/app.json';
+import agenthubEn from './locales/en-US/agenthub.json';
 import chatEn from './locales/en-US/chat.json';
 import commonEn from './locales/en-US/common.json';
 import launcherEn from './locales/en-US/launcher.json';
 import settingsEn from './locales/en-US/settings.json';
 import taskEn from './locales/en-US/task.json';
 import appZh from './locales/zh-CN/app.json';
+import agenthubZh from './locales/zh-CN/agenthub.json';
 import chatZh from './locales/zh-CN/chat.json';
 import commonZh from './locales/zh-CN/common.json';
 import launcherZh from './locales/zh-CN/launcher.json';
@@ -17,6 +19,7 @@ import taskZh from './locales/zh-CN/task.json';
 
 export const resources = {
   'zh-CN': {
+    agenthub: agenthubZh,
     app: appZh,
     chat: chatZh,
     common: commonZh,
@@ -25,6 +28,7 @@ export const resources = {
     task: taskZh,
   },
   'en-US': {
+    agenthub: agenthubEn,
     app: appEn,
     chat: chatEn,
     common: commonEn,
@@ -53,7 +57,7 @@ void i18n
     lng: getInitialLocale(),
     fallbackLng: 'zh-CN',
     defaultNS: DEFAULT_I18N_NAMESPACE,
-    ns: ['common', 'app', 'settings', 'chat', 'launcher', 'task'],
+    ns: ['common', 'app', 'settings', 'chat', 'launcher', 'task', 'agenthub'],
     interpolation: {
       escapeValue: false,
     },

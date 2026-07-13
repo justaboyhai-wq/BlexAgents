@@ -24,7 +24,6 @@ pub async fn cmd_start_im_bot(
     dingtalkClientSecret: Option<String>,
     dingtalkUseAiCard: Option<bool>,
     dingtalkCardTemplateId: Option<String>,
-    telegramUseDraft: Option<bool>,
     heartbeatConfigJson: Option<String>,
     botName: Option<String>,
     openclawPluginId: Option<String>,
@@ -39,7 +38,9 @@ pub async fn cmd_start_im_bot(
             let channel_id = p.strip_prefix("openclaw:").unwrap_or("").to_string();
             ImPlatform::OpenClaw(channel_id)
         }
-        _ => ImPlatform::Telegram,
+        _ => {
+            return Err("Unsupported IM platform; Telegram channels have been removed".to_string())
+        }
     };
     let heartbeat_config = heartbeatConfigJson
         .as_deref()
@@ -66,7 +67,6 @@ pub async fn cmd_start_im_bot(
         dingtalk_client_secret: dingtalkClientSecret,
         dingtalk_use_ai_card: dingtalkUseAiCard,
         dingtalk_card_template_id: dingtalkCardTemplateId,
-        telegram_use_draft: telegramUseDraft,
         provider_id: None, // Not needed here — frontend passes providerEnvJson directly
         model,
         provider_env_json: providerEnvJson,
@@ -127,13 +127,6 @@ pub async fn cmd_im_bot_status(
 
             // Compute bind_url/bind_code like get_im_bot_status does
             let (bind_url, bind_code) = match ch.bot_instance.platform {
-                types::ImPlatform::Telegram => {
-                    let url = health_state
-                        .bot_username
-                        .as_ref()
-                        .map(|u| format!("https://t.me/{}?start={}", u, ch.bot_instance.bind_code));
-                    (url, None)
-                }
                 types::ImPlatform::Feishu => (None, Some(ch.bot_instance.bind_code.clone())),
                 types::ImPlatform::Dingtalk => (None, Some(ch.bot_instance.bind_code.clone())),
                 _ => (None, None),
@@ -304,11 +297,6 @@ pub(super) fn persist_bot_config_patch(bot_id: &str, patch: &BotConfigPatch) -> 
             bot["dingtalkUseAiCard"] = serde_json::json!(val);
         }
 
-        // telegram_use_draft → boolean field
-        if let Some(val) = patch.telegram_use_draft {
-            bot["telegramUseDraft"] = serde_json::json!(val);
-        }
-
         // mcp_enabled_servers → persisted as "mcpEnabledServers"
         if let Some(ref servers) = patch.mcp_enabled_servers {
             bot["mcpEnabledServers"] = serde_json::json!(servers);
@@ -424,7 +412,6 @@ async fn update_bot_config_internal<R: Runtime>(
     let patch_dingtalk_secret = patch.dingtalk_client_secret.clone();
     let patch_dingtalk_ai_card = patch.dingtalk_use_ai_card;
     let patch_dingtalk_template = patch.dingtalk_card_template_id.clone();
-    let patch_telegram_draft = patch.telegram_use_draft;
     let patch_group_perms = patch.group_permissions.clone();
     let patch_group_activation = patch.group_activation.clone();
     let patch_group_tools_deny = patch.group_tools_deny.clone();
@@ -447,7 +434,6 @@ async fn update_bot_config_internal<R: Runtime>(
         dingtalk_client_secret: patch_dingtalk_secret,
         dingtalk_use_ai_card: patch_dingtalk_ai_card,
         dingtalk_card_template_id: patch_dingtalk_template,
-        telegram_use_draft: patch_telegram_draft,
         enabled: patch_enabled,
         setup_completed: patch_setup,
         group_permissions: patch_group_perms.clone(),

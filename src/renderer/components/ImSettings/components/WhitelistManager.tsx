@@ -6,7 +6,7 @@ import type { ImPlatform } from '../../../../shared/types/im';
 export default function WhitelistManager({
     users,
     onChange,
-    platform = 'telegram',
+    platform = 'feishu',
 }: {
     users: string[];
     onChange: (users: string[]) => void;
@@ -14,8 +14,7 @@ export default function WhitelistManager({
 	}) {
     const { t } = useTranslation('settings');
     const [newUser, setNewUser] = useState('');
-    const placeholderText = platform === 'telegram' ? t('agentSettings.imComponents.placeholderTelegram')
-        : platform === 'feishu' ? t('agentSettings.imComponents.placeholderFeishu')
+    const placeholderText = platform === 'feishu' ? t('agentSettings.imComponents.placeholderFeishu')
         : platform === 'dingtalk' ? t('agentSettings.imComponents.placeholderDingtalk')
         : t('agentSettings.imComponents.placeholderUser');
 
@@ -68,7 +67,7 @@ export default function WhitelistManager({
         );
     }
 
-    // Telegram: manual add input + tag list
+    // All supported native and plugin channels bind users through BIND codes.
     return (
         <div className="space-y-3">
             <label className="text-sm font-medium text-[var(--ink)]">

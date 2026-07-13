@@ -52,7 +52,7 @@ grep '\[boot\]' ./logs/unified-*.log | tail -5
 | 网络/代理、Provider 可达性、npm 拉包、终端和 BlexAgent env 差异 | `references/proxy-env.md` |
 | 白屏、整页“界面渲染出错”、点击某处 UI 崩溃 | `references/frontend-render.md` |
 | 功能入口不存在、设置项看不到、Runtime/CLI 工具注册表/实验功能没出现 | `references/feature-gates.md` |
-| 桌面宠物/悬浮窗打不开、一直“正在连接 Mino”、提示 `Global sidecar startup timeout`、悬浮窗能打开但不能对话 | 先按本文件“桌面宠物 / 悬浮窗”小节查日志，再视结果转 `references/session-sidecar.md` 或 `references/frontend-render.md` |
+| 桌面宠物/悬浮窗打不开、一直“正在连接 Blex”（旧版本可能显示“正在连接 Mino”）、提示 `Global sidecar startup timeout`、悬浮窗能打开但不能对话 | 先按本文件“桌面宠物 / 悬浮窗”小节查日志，再视结果转 `references/session-sidecar.md` 或 `references/frontend-render.md` |
 
 ## Step 3 - 被动证据 vs active probe
 
@@ -103,10 +103,10 @@ rg -n "ERROR|WARN|auth error|401|403|provider/verify|subscription/verify|termina
 - `[fb-session]`：悬浮窗会话链路，包括 boot、mint session、ensure sidecar、sync config、connect SSE、history load、send。
 - `[tauriClient] Global sidecar`：Global Sidecar URL 获取、等待、超时。
 
-用户说“桌宠一直显示正在连接 Mino”或看到 `Global sidecar startup timeout` 时，先查最近窗口：
+用户说“桌宠一直显示正在连接 Blex”（或旧版本的“正在连接 Mino”）或看到 `Global sidecar startup timeout` 时，先查最近窗口：
 
 ```bash
-rg -n "fb-ball|fb-companion|fb-session|Global sidecar|正在连接 Mino|startup timeout|cmd_get_global_server_url" ./logs/unified-*.log | tail -160
+rg -n "fb-ball|fb-companion|fb-session|Global sidecar|正在连接 (Blex|Mino)|startup timeout|cmd_get_global_server_url" ./logs/unified-*.log | tail -160
 ```
 
 判断顺序：

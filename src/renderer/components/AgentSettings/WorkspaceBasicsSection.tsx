@@ -65,6 +65,7 @@ export default function WorkspaceBasicsSection({ project, agent, agentDir }: Wor
     'claude-code': { installed: false },
     'codex': { installed: false },
     'gemini': { installed: false },
+    'hermes': { installed: false },
   });
   // When multiAgentRuntime is off, treat as builtin regardless of agent config (方案 C)
   const agentRuntimeConfig = agent?.runtimeConfig as RuntimeConfig | undefined;

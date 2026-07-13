@@ -102,7 +102,7 @@ function renderRail(options: {
                 onToggleProjectPin={vi.fn()}
                 onAddFolder={vi.fn()}
                 onCreateFromTemplate={vi.fn()}
-                onShowLogs={vi.fn()}
+                onOpenAgentHub={vi.fn()}
             />
         </ToastProvider>,
     );
@@ -111,6 +111,20 @@ function renderRail(options: {
 
 describe('LauncherRightRail', () => {
     beforeEach(() => {
+        if (!window.localStorage) {
+            const values = new Map<string, string>();
+            Object.defineProperty(window, 'localStorage', {
+                configurable: true,
+                value: {
+                    getItem: (key: string) => values.get(key) ?? null,
+                    setItem: (key: string, value: string) => values.set(key, String(value)),
+                    removeItem: (key: string) => values.delete(key),
+                    clear: () => values.clear(),
+                    key: (index: number) => [...values.keys()][index] ?? null,
+                    get length() { return values.size; },
+                } satisfies Storage,
+            });
+        }
         window.localStorage.removeItem('blexagent.launcher.showAutomationHistorySessions');
         Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
             configurable: true,
@@ -184,10 +198,43 @@ describe('LauncherRightRail', () => {
         renderRail({ projects, sessions: [] });
 
         expect(screen.getByRole('heading', { name: 'Agent Workspaces' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'AgentHub' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Show 2 more/ })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Chat History' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Filter chat history: All/ })).toBeInTheDocument();
         expect(screen.getByText('No chat history')).toBeInTheDocument();
+    });
+
+    it('always exposes AgentHub and no longer renders the Logs launcher entry', () => {
+        const onOpenAgentHub = vi.fn();
+        const view = render(
+            <ToastProvider>
+                <LauncherRightRail
+                    projects={[]}
+                    agentLookup={new Map()}
+                    isProjectsLoading={false}
+                    launchingProjectId={null}
+                    taskCenterData={taskCenterData([])}
+                    onLaunch={vi.fn()}
+                    onOpenTask={vi.fn()}
+                    onOpenOverlay={vi.fn()}
+                    onRemoveProject={vi.fn()}
+                    onArchiveProject={vi.fn()}
+                    onUnarchiveProject={vi.fn()}
+                    onAgentSettings={vi.fn()}
+                    onOpenProjectFolder={vi.fn()}
+                    onToggleProjectPin={vi.fn()}
+                    onAddFolder={vi.fn()}
+                    onCreateFromTemplate={vi.fn()}
+                    onOpenAgentHub={onOpenAgentHub}
+                />
+            </ToastProvider>,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'AgentHub' }));
+
+        expect(onOpenAgentHub).toHaveBeenCalledTimes(1);
+        expect(view.queryByText('Logs')).not.toBeInTheDocument();
     });
 
     it('shows six collapsed workspaces before revealing the expand button', () => {

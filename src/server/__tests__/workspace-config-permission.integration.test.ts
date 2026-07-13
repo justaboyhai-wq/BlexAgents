@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SessionMetadata } from '../types/session';
+import { SUBSCRIPTION_PROVIDER_ID } from '../../shared/config-types';
 
 let scratch: string;
 let prevHome: string | undefined;
@@ -48,6 +49,19 @@ function customApiProvider(id: string, model: string, baseUrl: string): Record<s
   };
 }
 
+function customSubscriptionProvider(id: string, model: string): Record<string, unknown> {
+  return {
+    id,
+    name: id,
+    vendor: id,
+    cloudProvider: id,
+    type: 'subscription',
+    primaryModel: model,
+    isBuiltin: false,
+    models: [{ model, modelName: model, modelSeries: model }],
+  };
+}
+
 beforeEach(() => {
   scratch = mkdtempSync(join(tmpdir(), 'blexagent-workspace-perm-'));
   mkdirSync(join(scratch, '.blexagent'), { recursive: true });
@@ -59,8 +73,10 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  process.env.HOME = prevHome;
-  process.env.USERPROFILE = prevUserProfile;
+  if (prevHome === undefined) delete process.env.HOME;
+  else process.env.HOME = prevHome;
+  if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = prevUserProfile;
   rmSync(scratch, { recursive: true, force: true });
 });
 
@@ -336,10 +352,20 @@ describe('resolveWorkspaceConfig runtime-aware model snapshots', () => {
 
   it('honors a snapshotted providerId without falling back to the live agent provider', async () => {
     const workspacePath = join(scratch, 'workspace');
+    writeCustomProvider(customApiProvider(
+      'snapshot-provider',
+      'snapshot-model',
+      'https://snapshot-provider.invalid/anthropic',
+    ));
+    writeCustomProvider(customApiProvider(
+      'live-agent-provider',
+      'live-agent-model',
+      'https://live-agent-provider.invalid/anthropic',
+    ));
     writeConfig({
       providerApiKeys: {
-        deepseek: 'sk-test-deepseek',
-        minimax: 'sk-test-minimax',
+        'snapshot-provider': 'sk-test-snapshot',
+        'live-agent-provider': 'sk-test-live-agent',
       },
       agents: [{
         id: 'agent-1',
@@ -347,8 +373,8 @@ describe('resolveWorkspaceConfig runtime-aware model snapshots', () => {
         enabled: true,
         workspacePath,
         runtime: 'builtin',
-        providerId: 'minimax',
-        model: 'MiniMax-M2.7',
+        providerId: 'live-agent-provider',
+        model: 'live-agent-model',
       }],
     });
     writeProjects([]);
@@ -361,14 +387,14 @@ describe('resolveWorkspaceConfig runtime-aware model snapshots', () => {
       createdAt: '2026-06-23T00:00:00.000Z',
       lastActiveAt: '2026-06-23T00:00:00.000Z',
       runtime: 'builtin',
-      providerId: 'deepseek',
+      providerId: 'snapshot-provider',
       configSnapshotAt: '2026-06-23T00:00:00.000Z',
     } as SessionMetadata, { includeMcp: false });
 
-    expect(resolved.providerEnv?.providerId).toBe('deepseek');
-    expect(resolved.providerEnv?.apiKey).toBe('sk-test-deepseek');
-    expect(resolved.providerEnv?.baseUrl).toBe('https://api.deepseek.com/anthropic');
-    expect(resolved.model).not.toBe('MiniMax-M2.7');
+    expect(resolved.providerEnv?.providerId).toBe('snapshot-provider');
+    expect(resolved.providerEnv?.apiKey).toBe('sk-test-snapshot');
+    expect(resolved.providerEnv?.baseUrl).toBe('https://snapshot-provider.invalid/anthropic');
+    expect(resolved.model).not.toBe('live-agent-model');
   });
 
   it('auto-repairs model-only owned snapshots using only credential-configured API providers', async () => {
@@ -401,11 +427,12 @@ describe('resolveWorkspaceConfig runtime-aware model snapshots', () => {
     expect(resolved.providerEnv?.baseUrl).toBe('https://a.example.com');
   });
 
-  it('treats Anthropic subscription account evidence as credential-configured for model-only repair', async () => {
+  it('treats subscription account evidence as credential-configured for model-only repair', async () => {
     const workspacePath = join(scratch, 'workspace');
+    writeCustomProvider(customSubscriptionProvider(SUBSCRIPTION_PROVIDER_ID, 'fixture-subscription-model'));
     writeConfig({
       providerVerifyStatus: {
-        'anthropic-sub': {
+        [SUBSCRIPTION_PROVIDER_ID]: {
           status: 'invalid',
           verifiedAt: '2026-01-01T00:00:00.000Z',
           accountEmail: 'user@example.com',
@@ -423,13 +450,17 @@ describe('resolveWorkspaceConfig runtime-aware model snapshots', () => {
       createdAt: '2026-06-23T00:00:00.000Z',
       lastActiveAt: '2026-06-23T00:00:00.000Z',
       runtime: 'builtin',
-      model: 'claude-sonnet-4-6',
+      model: 'fixture-subscription-model',
       configSnapshotAt: '2026-06-23T00:00:00.000Z',
     } as SessionMetadata, { includeMcp: false });
 
-    expect(resolved.providerRoute).toEqual({ kind: 'subscription', providerId: 'anthropic-sub', model: 'claude-sonnet-4-6' });
+    expect(resolved.providerRoute).toEqual({
+      kind: 'subscription',
+      providerId: SUBSCRIPTION_PROVIDER_ID,
+      model: 'fixture-subscription-model',
+    });
     expect(resolved.providerEnv).toBeUndefined();
-    expect(resolved.model).toBe('claude-sonnet-4-6');
+    expect(resolved.model).toBe('fixture-subscription-model');
   });
 
   it("preserves external-runtime snapshot reasoningEffort='default' over agent non-default", async () => {

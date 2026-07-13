@@ -94,8 +94,8 @@ export function migrateImBotConfig(config: AppConfig): AppConfig {
             ...DEFAULT_IM_BOT_CONFIG,
             ...legacy,
             id: legacy.id || crypto.randomUUID(),
-            name: legacy.name || 'Telegram Bot',
-            platform: legacy.platform || 'telegram',
+            name: legacy.name || 'Feishu Bot',
+            platform: legacy.platform || 'feishu',
             setupCompleted: true,
         };
         config.imBotConfigs = [migrated];
@@ -104,6 +104,36 @@ export function migrateImBotConfig(config: AppConfig): AppConfig {
         // this also runs inside loadAppConfig, so a fire-and-forget save races
         // atomicModifyConfig's withConfigLock and clobbers the modifier write.
         // Disk heals on the next real config write.
+    }
+    return config;
+}
+
+/**
+ * Telegram is no longer a supported native Channel. Remove its persisted
+ * configuration while loading, so an upgrade cannot display or re-enable an
+ * old Telegram bot. The next normal save persists the cleaned shape.
+ */
+export function removeTelegramChannels(config: AppConfig): AppConfig {
+    const raw = config as unknown as Record<string, unknown>;
+    if (raw.imBotConfig && typeof raw.imBotConfig === 'object'
+        && (raw.imBotConfig as { platform?: unknown }).platform === 'telegram') {
+        delete raw.imBotConfig;
+    }
+    if (Array.isArray(raw.imBotConfigs)) {
+        raw.imBotConfigs = raw.imBotConfigs.filter(entry =>
+            !(entry && typeof entry === 'object' && (entry as { platform?: unknown }).platform === 'telegram'));
+    }
+    if (Array.isArray(raw.agents)) {
+        raw.agents = raw.agents.map(entry => {
+            if (!entry || typeof entry !== 'object') return entry;
+            const agent = { ...(entry as Record<string, unknown>) };
+            if (Array.isArray(agent.channels)) {
+                agent.channels = agent.channels.filter(channel =>
+                    !(channel && typeof channel === 'object'
+                        && (channel as { type?: unknown }).type === 'telegram'));
+            }
+            return agent;
+        });
     }
     return config;
 }
@@ -127,43 +157,10 @@ export function migrateUiLanguageField(config: AppConfig): AppConfig {
 }
 
 function normalizeLoadedConfig(config: AppConfig): AppConfig {
+    removeTelegramChannels(config);
     normalizeStringifiedJsonFields(config);
     promoteAgentMcpJsonToGlobal(config);
     return normalizeDeveloperSettings(config);
-}
-
-export async function ensureManagedCodexProviderDevGateDefault(): Promise<void> {
-    if (isBrowserDevMode()) {
-        let latest: Partial<AppConfig> = {};
-        try {
-            const stored = localStorage.getItem('blexagent:config');
-            latest = stored ? JSON.parse(stored) as Partial<AppConfig> : {};
-        } catch {
-            latest = {};
-        }
-        if (Object.prototype.hasOwnProperty.call(latest, 'managedCodexProviderDevGate')) {
-            return;
-        }
-        localStorage.setItem('blexagent:config', JSON.stringify({
-            ...latest,
-            managedCodexProviderDevGate: true,
-        }));
-        return;
-    }
-
-    await withConfigLock(async () => {
-        await ensureConfigDir();
-        const dir = await getConfigDir();
-        const configPath = await join(dir, CONFIG_FILE);
-        const latest = await safeLoadJson<Partial<AppConfig>>(configPath, isValidAppConfig) ?? {};
-        if (Object.prototype.hasOwnProperty.call(latest, 'managedCodexProviderDevGate')) {
-            return;
-        }
-        await safeWriteJson(configPath, {
-            ...latest,
-            managedCodexProviderDevGate: true,
-        });
-    });
 }
 
 // ============= Load / Save =============
@@ -404,7 +401,7 @@ export async function ensureBundledWorkspace(): Promise<boolean> {
         }
 
         const project = await addProject(result.path);
-        // Set Mino icon and display name for the bundled workspace
+        // Set the Blex icon and display name for the bundled workspace.
         const { patchProject } = await import('./projectService');
         try {
             const metadataPatch = getSystemPresetProjectMetadataPatch(project, DEFAULT_SYSTEM_PRESET_WORKSPACE_ID);

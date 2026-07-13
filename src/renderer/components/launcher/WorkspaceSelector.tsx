@@ -3,7 +3,7 @@
  *
  * Layout (post-PRD-0.2.7 layout polish):
  *   ┌─ Agent 工作区 ─────────────────────────────────┐
- *   │ [icon] mino [默认]                  [设为默认] │  ← line 1
+ *   │ [icon] Blex [默认]                  [设为默认] │  ← line 1
  *   │        ~/Documents/.../mino                    │  ← line 2 (full width)
  *   │ [icon] zao_translate                [设为默认] │
  *   │        ~/Documents/.../zao_translate           │

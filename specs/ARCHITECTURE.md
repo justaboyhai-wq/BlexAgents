@@ -334,9 +334,11 @@ Project (工作区)
     └── Channels: Telegram / Dingtalk / OpenClaw Plugin（飞书/微信/QQ 等）
 ```
 
-**模板默认能力**：工作区文件模板内容与产品级 Agent 默认策略分离。Mino 文件模板来自打包资源/外部模板仓库；BlexAgent 在 `WorkspaceTemplate.agentDefaults` 声明产品默认能力。新建 Mino project 会记录 `templateId=mino` / `templateSource=builtin`，随后 `buildAgentForProject()` 生成默认开启的 Agent（heartbeat + memory update），但不自动创建 channel；Rust 仍只在 `agent.enabled && channel.enabled && credentials` 成立时启动 channel/Agent heartbeat。
+**模板默认能力**：工作区文件模板内容与产品级 Agent 默认策略分离。Blex 默认工作区的文件基座来自打包资源/外部 OpenMino 模板仓库，内部兼容 ID 与目录仍为 `mino`；BlexAgent 在 `WorkspaceTemplate.agentDefaults` 声明产品默认能力。新建 Blex project 会记录 `templateId=mino` / `templateSource=builtin`，随后 `buildAgentForProject()` 生成默认开启的 Agent（heartbeat + memory update），但不自动创建 channel；Rust 仍只在 `agent.enabled && channel.enabled && credentials` 成立时启动 channel/Agent heartbeat。
 
-Memory auto-update 的默认指令文件不属于 Mino 文件模板的硬依赖：`src-tauri/src/im/memory_update.rs` 在执行自动更新流程时会确保工作区根目录 `UPDATE_MEMORY.md` 存在，缺失则从 `src/shared/default-update-memory.md` 初始化；已有文件始终是用户内容权威。
+**AgentHub 官方目录**：AgentHub 与 Blex 默认工作区/用户本地模板是两条独立链路。`agenthub/catalogue.json` 固定列出经许可证与安全审核的离线模板，`src-tauri/src/agent_hub.rs` 只从应用签名资源目录读取并在每次安装前重验清单，禁止回退到用户可写目录。启动页入口使用 staging + 原子重命名创建新工作区，并用 receipt 在配置写入失败时回滚；Agent 设置入口先生成绑定模板版本、目标路径与文件指纹的 preview，再以备份事务应用到当前工作区。模板包不得包含脚本、可执行文件、密钥、软链接或运行时依赖，用户设备不需要访问 GitHub、VPN 或 CLI。
+
+Memory auto-update 的默认指令文件不属于 Blex 默认工作区文件模板的硬依赖：`src-tauri/src/im/memory_update.rs` 在执行自动更新流程时会确保工作区根目录 `UPDATE_MEMORY.md` 存在，缺失则从 `src/shared/default-update-memory.md` 初始化；已有文件始终是用户内容权威。
 
 **适配器：**
 

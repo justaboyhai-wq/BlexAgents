@@ -5,13 +5,14 @@ import type { AgentRuntime } from './types';
 import { ClaudeCodeRuntime } from './claude-code';
 import { CodexRuntime } from './codex';
 import { GeminiRuntime } from './gemini';
+import { HermesRuntime } from './hermes';
 
 // ─── Runtime registry ───
 
 const runtimes: Partial<Record<RuntimeType, AgentRuntime>> = {};
 
 // Runtime types that have actual implementations
-const SUPPORTED_EXTERNAL_RUNTIMES = new Set<RuntimeType>(['claude-code', 'codex', 'gemini']);
+const SUPPORTED_EXTERNAL_RUNTIMES = new Set<RuntimeType>(['claude-code', 'codex', 'gemini', 'hermes']);
 
 function ensureRuntime(type: RuntimeType): AgentRuntime {
   if (!runtimes[type]) {
@@ -24,6 +25,9 @@ function ensureRuntime(type: RuntimeType): AgentRuntime {
         break;
       case 'gemini':
         runtimes[type] = new GeminiRuntime();
+        break;
+      case 'hermes':
+        runtimes[type] = new HermesRuntime();
         break;
       default:
         throw new Error(`Runtime "${type}" is not yet supported. Available: ${[...SUPPORTED_EXTERNAL_RUNTIMES].join(', ')}`);
@@ -62,7 +66,7 @@ export function isExternalRuntime(type: RuntimeType | undefined): boolean {
  */
 export function getCurrentRuntimeType(): RuntimeType {
   const env = process.env.BLEXAGENT_RUNTIME;
-  if (env === 'claude-code' || env === 'codex' || env === 'gemini') return env;
+  if (env === 'claude-code' || env === 'codex' || env === 'gemini' || env === 'hermes') return env;
   return 'builtin';
 }
 

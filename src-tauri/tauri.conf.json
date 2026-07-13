@@ -7,7 +7,7 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "npm run dev:web",
-    "beforeBuildCommand": "npm run build:web && npm run build:server && npm run build:bridge && npm run build:cli"
+    "beforeBuildCommand": "npm run validate:bundled-resources && npm run build:web && npm run build:server && npm run build:bridge && npm run build:cli"
   },
   "app": {
     "macOSPrivateApi": true,
@@ -53,6 +53,7 @@
       "../bundled-agents": "bundled-agents",
       "../src-tauri/resources/cli": "cli",
       "../mino": "mino",
+      "../agenthub": "agenthub",
       "infoplist/en.lproj/InfoPlist.strings": "en.lproj/InfoPlist.strings",
       "infoplist/zh-Hans.lproj/InfoPlist.strings": "zh-Hans.lproj/InfoPlist.strings"
     },

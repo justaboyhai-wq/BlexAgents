@@ -17,12 +17,12 @@ import { type ImageAttachment } from '@/components/SimpleChatInput';
 import { projectCronExecutionOverrides } from '@/utils/cronExecutionProjection';
 import { coerceRuntimeBirthPermissionMode } from '../../shared/runtimeBirthFields';
 import { useToast } from '@/components/Toast';
-import { UnifiedLogsPanel } from '@/components/UnifiedLogsPanel';
 import PathInputDialog from '@/components/PathInputDialog';
 import ConfirmDialog from '@/components/ConfirmDialog';
 // P1: click-opened overlays — lazy so their subtrees (which transitively pull
 // Markdown → mermaid/katex/syntax-highlighter) leave the eager entry chunk.
 const TaskCenterOverlay = lazy(() => import('@/components/TaskCenterOverlay'));
+const AgentHubCreateDialog = lazy(() => import('@/components/agent-hub/AgentHubCreateDialog'));
 import { BrandSection, LauncherRightRail, TemplateLibraryDialog, WorkspaceEditDialog } from '@/components/launcher';
 const WorkspaceConfigPanel = lazy(() => import('@/components/WorkspaceConfigPanel'));
 import { useConfig } from '@/hooks/useConfig';
@@ -131,10 +131,10 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
 
     const [_addError, setAddError] = useState<string | null>(null);
     const [launchingProjectId, setLaunchingProjectId] = useState<string | null>(null);
-    const [showLogs, setShowLogs] = useState(false);
     const [projectToRemove, setProjectToRemove] = useState<Project | null>(null);
     const [showOverlay, setShowOverlay] = useState(false);
     const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+    const [showAgentHub, setShowAgentHub] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     // Agent overlay — opens WorkspaceConfigPanel for agent settings or upgrade
     const [agentOverlay, setAgentOverlay] = useState<{ workspacePath: string; initialTab: 'agent' } | null>(null);
@@ -216,6 +216,7 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
         'claude-code': { installed: false },
         codex: { installed: false },
         gemini: { installed: false },
+        hermes: { installed: false },
     });
     useEffect(() => {
         if (!multiAgentRuntimeEnabled) return;
@@ -1044,8 +1045,9 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
 
     const handleOpenTemplateDialog = useCallback(() => setShowTemplateDialog(true), []);
     const handleCloseTemplateDialog = useCallback(() => setShowTemplateDialog(false), []);
+    const handleOpenAgentHub = useCallback(() => setShowAgentHub(true), []);
+    const handleCloseAgentHub = useCallback(() => setShowAgentHub(false), []);
     const handleCloseEditDialog = useCallback(() => setEditingProject(null), []);
-    const handleShowLogs = useCallback(() => setShowLogs(true), []);
 
     // Agent overlay handlers
     const handleAgentSettings = useCallback((project: Project) => {
@@ -1112,13 +1114,6 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
                 defaultPath={pendingDefaultPath}
                 onConfirm={handlePathConfirm}
                 onCancel={handlePathCancel}
-            />
-
-            {/* Logs Panel */}
-            <UnifiedLogsPanel
-                sseLogs={[]}
-                isVisible={showLogs}
-                onClose={() => setShowLogs(false)}
             />
 
             {/* Remove Workspace Confirm Dialog */}
@@ -1198,7 +1193,6 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
                     isProjectsLoading={isLoading}
                     isStarting={isStarting}
                     launchingProjectId={launchingProjectId}
-                    showDevTools={config.showDevTools}
                     taskCenterData={taskCenterData}
                     sessionNotificationBadgeCounts={sessionNotificationBadgeCounts}
                     onLaunch={handleLaunch}
@@ -1212,7 +1206,7 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
                     onToggleProjectPin={handleToggleProjectPin}
                     onAddFolder={handleAddProject}
                     onCreateFromTemplate={handleOpenTemplateDialog}
-                    onShowLogs={handleShowLogs}
+                    onOpenAgentHub={handleOpenAgentHub}
                 />
             </main>
 
@@ -1235,6 +1229,16 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
                     onCreateWorkspace={handleCreateFromTemplate}
                     onClose={handleCloseTemplateDialog}
                 />
+            )}
+
+            {/* Curated offline AgentHub — separate from Blex/user template CRUD. */}
+            {showAgentHub && (
+                <Suspense fallback={null}>
+                    <AgentHubCreateDialog
+                        onCreateWorkspace={handleCreateFromTemplate}
+                        onClose={handleCloseAgentHub}
+                    />
+                </Suspense>
             )}
 
             {/* Workspace Edit Dialog */}

@@ -174,7 +174,7 @@ cd BlexAgent
 .\build_windows.ps1
 ```
 
-`setup.sh` 会准备内置 Node.js runtime、安装依赖并拉取默认工作区 `mino`。如果你没有 GitHub SSH key，`openmino` 的 SSH clone 可能失败；可以先配置 GitHub SSH，或手动把默认工作区准备到仓库根目录的 `mino/` 后重新运行。
+`setup.sh` 会准备内置 Node.js runtime、安装依赖，并从 OpenMino 上游准备 Blex 默认工作区（内部兼容目录仍为 `mino/`）。如果你没有 GitHub SSH key，OpenMino 的 SSH clone 可能失败；可以先配置 GitHub SSH，或手动把默认工作区资源准备到仓库根目录的 `mino/` 后重新运行。
 
 ### 常用命令
 
@@ -434,7 +434,7 @@ cd BlexAgent
 .\build_windows.ps1
 ```
 
-`setup.sh` prepares the bundled Node.js runtime, installs dependencies, and pulls the default `mino` workspace. If you do not have a GitHub SSH key, the SSH clone for `openmino` may fail. Configure GitHub SSH first, or prepare the default workspace manually under `mino/` and rerun the script.
+`setup.sh` prepares the bundled Node.js runtime, installs dependencies, and derives the default Blex workspace from the OpenMino upstream (the compatibility resource directory remains `mino/`). If you do not have a GitHub SSH key, the OpenMino SSH clone may fail. Configure GitHub SSH first, or prepare the default workspace resource manually under `mino/` and rerun the script.
 
 ### Common Commands
 

@@ -13,7 +13,39 @@ const SPACE_BUILD_ENV_KEYS: &[&str] = &[
 
 fn main() {
     expose_space_build_env();
-    tauri_build::build()
+    let mut attributes = tauri_build::Attributes::new();
+    if is_windows_msvc_target() {
+        emit_windows_manifest_link_args();
+        // tauri-build normally embeds its Common Controls manifest in
+        // resource.lib, but embed-resource intentionally links that resource
+        // only to application binaries. The library unit-test harness then
+        // imports TaskDialogIndirect without activating Common Controls v6 and
+        // fails in the Windows loader before tests start. Embed the manifest at
+        // the linker instead so both the app binary and test harness receive it;
+        // omit the duplicate manifest from resource.lib while retaining its
+        // icon and version resources.
+        attributes = attributes
+            .windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
+    }
+    tauri_build::try_build(attributes).expect("failed to run tauri build script")
+}
+
+fn is_windows_msvc_target() -> bool {
+    env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows")
+        && env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc")
+}
+
+/// Embed one Common Controls v6 manifest in every linked crate target.
+///
+/// Cargo's target-specific `rustc-link-arg-tests` instruction applies only to
+/// explicit `[[test]]` integration targets, not the library unit-test harness.
+/// The general instruction covers both that harness and the application binary.
+fn emit_windows_manifest_link_args() {
+    let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap_or_default())
+        .join("common-controls.manifest");
+    println!("cargo:rerun-if-changed={}", manifest.display());
+    println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+    println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
 }
 
 fn expose_space_build_env() {

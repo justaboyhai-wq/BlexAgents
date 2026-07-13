@@ -1,0 +1,108 @@
+{
+  "id": "wellness-tracker",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "🌿",
+  "name": {
+    "zh-CN": "健康习惯记录",
+    "en-US": "Wellness Tracker"
+  },
+  "description": {
+    "zh-CN": "用用户自选指标记录睡眠、活动、饮水、心情或恢复感受，只观察趋势并支持温和复盘。",
+    "en-US": "Record user-chosen sleep, activity, hydration, mood, or recovery signals and reflect on trends without medical interpretation."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "建立用户自选的轻量记录表",
+      "en-US": "Create a lightweight user-chosen log"
+    },
+    {
+      "zh-CN": "总结时间范围内的变化和相关性",
+      "en-US": "Summarize changes and associations over time"
+    },
+    {
+      "zh-CN": "根据记录调整一个低风险习惯实验",
+      "en-US": "Adjust one low-risk habit experiment from evidence"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "帮我做一个只记录睡眠和精力的两周表格。",
+      "en-US": "Make a two-week log for sleep and energy only."
+    },
+    {
+      "zh-CN": "总结这些记录里的趋势，不要做医学判断。",
+      "en-US": "Summarize trends in these records without medical conclusions."
+    },
+    {
+      "zh-CN": "我连续几天状态差，哪些信息适合带给医生？",
+      "en-US": "What information from these rough days should I bring to a clinician?"
+    }
+  ],
+  "skills": [
+    {
+      "id": "wellness-tracker",
+      "name": {
+        "zh-CN": "健康习惯记录",
+        "en-US": "Wellness Tracker"
+      }
+    }
+  ],
+  "risk": {
+    "level": "medium",
+    "boundary": {
+      "zh-CN": "只做记录、趋势描述和一般生活习惯复盘；绝不诊断、处方、解释症状、调整药物或建议药物与补充剂。紧急或持续担忧应联系当地专业人员。",
+      "en-US": "Limited to logging, descriptive trends, and general habit review; never diagnoses, prescribes, interprets symptoms, changes medication, or recommends drugs or supplements. Urgent or persistent concerns require local professional care."
+    }
+  },
+  "sources": [
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/tracking-habits/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/tracking-habits/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained user-defined habit records, simple status, weekly patterns, friction, and compassionate restart; removed automated accountability, health claims, and aggressive streak framing.",
+      "sourceSha256": "f8a72ae7f3e960af4a0bc19b283801dd1f5ff6b8385ab49e1ac829f238925cc7",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No monitoring or automation is included. Health content is restricted to descriptive user records."
+    },
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/weekly-review/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/weekly-review/SKILL.md"
+      ],
+      "excludedFiles": [
+        "skills/weekly-review/index.ts",
+        "skills/weekly-review/README.md"
+      ],
+      "modifications": "Retained evidence review, wins, friction, learning, and next-week adjustment; removed integrations, commands, reminders, and diagnostic interpretations.",
+      "sourceSha256": "887a43d8f5b0e3cad5933ad76c8b2b4a1d870225c7fcdb68f1bb1ddc914fc6b5",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "External tools and medical interpretation were excluded."
+    }
+  ]
+}

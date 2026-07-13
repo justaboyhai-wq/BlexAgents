@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "hashAlgorithm": "sha256",
+  "hashScope": "raw-git-blob-bytes",
+  "lineEndingNormalization": "none",
+  "generatedAt": "2026-07-13",
+  "sources": [
+    {
+      "key": "ailabs-393/ai-labs-claude-skills@1a12bc7aadcc7b211f77a7455db454b77a71f827:packages/skills/brand-analyzer/SKILL.md",
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "path": "packages/skills/brand-analyzer/SKILL.md",
+      "sha256": "1c3b52b28efd819e13917c306899fb9100f7d96610d6ae6d62ab20f83b7058b5"
+    },
+    {
+      "key": "ailabs-393/ai-labs-claude-skills@1a12bc7aadcc7b211f77a7455db454b77a71f827:packages/skills/nutritional-specialist/SKILL.md",
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "path": "packages/skills/nutritional-specialist/SKILL.md",
+      "sha256": "101a337c8b3a01fb7745c7e55ba4b4e9c9eed82533049e8a3d262c4a3a4b20cd"
+    },
+    {
+      "key": "ailabs-393/ai-labs-claude-skills@1a12bc7aadcc7b211f77a7455db454b77a71f827:packages/skills/travel-planner/SKILL.md",
+      "repository": "ailabs-393/ai-labs-claude-skills",
+      "repositoryUrl": "https://github.com/ailabs-393/ai-labs-claude-skills",
+      "commit": "1a12bc7aadcc7b211f77a7455db454b77a71f827",
+      "path": "packages/skills/travel-planner/SKILL.md",
+      "sha256": "aefbddc96ba0a9c54a1fb3208380c3a09cd2242ed05aca1e1202af4af2cdbb3a"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:marketing-skill/skills/brand-guidelines/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "marketing-skill/skills/brand-guidelines/SKILL.md",
+      "sha256": "2c4bce4eaf394a76d6e0f81394c2b13078153408f56cf4b7fe46d3bbb88eacd2"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:marketing-skill/skills/content-strategy/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "marketing-skill/skills/content-strategy/SKILL.md",
+      "sha256": "eddbe5788b8bf6806dabe308c0f8babdd7d0e79a04e848d112c016cccd05bc83"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:marketing-skill/skills/copy-editing/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "marketing-skill/skills/copy-editing/SKILL.md",
+      "sha256": "ecdbe7a6ff18422470eb277f5e9a307e76601c2fb54d4b6bf7ba7cb76caabeb1"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:marketing-skill/skills/copywriting/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "marketing-skill/skills/copywriting/SKILL.md",
+      "sha256": "f6415e5e3f1a2e0e62b112bb29566e8050c087f5aa6b674e5712805f2633c9b8"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:marketing-skill/skills/social-content/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "marketing-skill/skills/social-content/SKILL.md",
+      "sha256": "02008f95432fd0c9088bccd71a3358b3ead1f06ac6115f3fe3fe5f562fc2da37"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:product-team/skills/ui-design-system/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "product-team/skills/ui-design-system/SKILL.md",
+      "sha256": "7f8c1714af2602bcd2b3b49b6aaf0f53351fb739b26062d548f6a9c8c1b10e8d"
+    },
+    {
+      "key": "alirezarezvani/claude-skills@0241f43765572f15146fcef692defbf96d473f37:product-team/skills/ux-researcher-designer/SKILL.md",
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "path": "product-team/skills/ux-researcher-designer/SKILL.md",
+      "sha256": "e19ce820e246bf34834e99ea361afcf93fb780ffbb2a4248b32a9947ae4a43ca"
+    },
+    {
+      "key": "charlie947/social-media-skills@94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1:skills/content-matrix/SKILL.md",
+      "repository": "charlie947/social-media-skills",
+      "repositoryUrl": "https://github.com/charlie947/social-media-skills",
+      "commit": "94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1",
+      "path": "skills/content-matrix/SKILL.md",
+      "sha256": "dae28fbfc83e66afd2c8f90cb6eb396b0c0aaaddade999820b204dc273161ed6"
+    },
+    {
+      "key": "charlie947/social-media-skills@94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1:skills/post-writer/SKILL.md",
+      "repository": "charlie947/social-media-skills",
+      "repositoryUrl": "https://github.com/charlie947/social-media-skills",
+      "commit": "94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1",
+      "path": "skills/post-writer/SKILL.md",
+      "sha256": "a0c91645648df1cb933489fd3ef0c50fed196661c5374d95dadf637407866c1f"
+    },
+    {
+      "key": "charlie947/social-media-skills@94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1:skills/voice-builder/SKILL.md",
+      "repository": "charlie947/social-media-skills",
+      "repositoryUrl": "https://github.com/charlie947/social-media-skills",
+      "commit": "94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1",
+      "path": "skills/voice-builder/SKILL.md",
+      "sha256": "7f47bd4b5c131331be274abed100d21e4021aa7d90ac29802f18f39891de2b5a"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/analyzing-schedule/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/analyzing-schedule/SKILL.md",
+      "sha256": "9abbbe26104c4d36ff75deaeec63f753c8f564a2e7d27e575e83ff7e3ecf154e"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/conducting-life-assessment/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/conducting-life-assessment/SKILL.md",
+      "sha256": "e68e2c0a7e4e8287a7207ad3fae0de014e12811a86f49dee760cabf1af2c7b81"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/daily-planning/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/daily-planning/SKILL.md",
+      "sha256": "4cba3a4804c02984d5817ae33b2aa97ecfc390b1fac4e34f2057371b9aad9bea"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/goal-setting/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/goal-setting/SKILL.md",
+      "sha256": "c406e2031ad6461db35a11736bb87bd4a3199731582d97b40346e24eeb79d57a"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/grocery-shopping/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/grocery-shopping/SKILL.md",
+      "sha256": "37b5588973093e47af418d38d595ecfb408c9896a186ced0889b57e41cda171f"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/scheduling-tasks/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/scheduling-tasks/SKILL.md",
+      "sha256": "387c05e82084eb235717fe49ee4eb914f86616f581a6a6b85d40b2531f017af9"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/smart-recommendations/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/smart-recommendations/SKILL.md",
+      "sha256": "a5b7c3cd0f0a87c62965c2d243be01b61c92585f1f03d9e07b9bf0463d072bcf"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/tracking-habits/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/tracking-habits/SKILL.md",
+      "sha256": "f8a72ae7f3e960af4a0bc19b283801dd1f5ff6b8385ab49e1ac829f238925cc7"
+    },
+    {
+      "key": "natea/ExoMind@8794d26d9a334ff386d0fe4b90b4919b95ac201a:skills/weekly-review/SKILL.md",
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "path": "skills/weekly-review/SKILL.md",
+      "sha256": "887a43d8f5b0e3cad5933ad76c8b2b4a1d870225c7fcdb68f1bb1ddc914fc6b5"
+    }
+  ]
+}

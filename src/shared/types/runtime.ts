@@ -7,8 +7,9 @@
  * - claude-code: Claude Code CLI (user-installed `claude`)
  * - codex: OpenAI Codex CLI (user-installed `codex`)
  * - gemini: Google Gemini CLI in ACP mode (user-installed `gemini`, v0.1.66+)
+ * - hermes: Hermes Agent by Nous Research in ACP mode (user-installed `hermes`)
  */
-export type RuntimeType = 'builtin' | 'claude-code' | 'codex' | 'gemini';
+export type RuntimeType = 'builtin' | 'claude-code' | 'codex' | 'gemini' | 'hermes';
 
 /**
  * Distinguishes user-managed CLI runtimes from product-managed runtime-backed
@@ -34,6 +35,7 @@ export const VALID_RUNTIMES = [
   'claude-code',
   'codex',
   'gemini',
+  'hermes',
 ] as const satisfies readonly RuntimeType[];
 
 /**
@@ -59,6 +61,7 @@ export const RUNTIME_DISPLAY_NAMES: Record<RuntimeType, string> = {
   'claude-code': 'Claude Code CLI',
   codex: 'OpenAI Codex CLI',
   gemini: 'Google Gemini CLI (ACP)',
+  hermes: 'Hermes Agent (Nous Research)',
 };
 
 /**
@@ -103,6 +106,11 @@ export function modelLooksLikeRuntime(model: string, runtime: RuntimeType): bool
   if (runtime === 'claude-code') {
     if (modelHasFamily(m, ['sonnet', 'opus', 'haiku', 'claude'])) return true;
     if (modelHasFamily(m, ['gpt', 'o1', 'o3', 'o4', 'codex', 'chatgpt', 'gemini'])) return false;
+    return true;
+  }
+  if (runtime === 'hermes') {
+    // Hermes supports multiple providers via ACP (xAI Grok, OpenAI, etc.)
+    // so we don't reject any model family — all are plausible.
     return true;
   }
   return true;
@@ -393,6 +401,35 @@ export const GEMINI_PERMISSION_MODES: RuntimePermissionMode[] = [
   },
 ];
 
+// ─── Hermes Agent permission modes (ACP, like Gemini) ───
+
+export const HERMES_PERMISSION_MODES: RuntimePermissionMode[] = [
+  {
+    value: 'default',
+    label: 'Default',
+    icon: '\u{1F6E1}',  // 🛡
+    description: '每次工具调用都需要确认',
+  },
+  {
+    value: 'autoEdit',
+    label: 'Auto Edit',
+    icon: '\u{1F4DD}',  // 📝
+    description: '自动接受文件编辑,其他需确认',
+  },
+  {
+    value: 'yolo',
+    label: 'YOLO',
+    icon: '⚡',      // ⚡
+    description: '跳过所有工具确认',
+  },
+  {
+    value: 'plan',
+    label: 'Plan',
+    icon: '\u{1F4CB}',  // 📋
+    description: '规划模式,只读不执行',
+  },
+];
+
 // ─── Built-in Claude Agent SDK permission modes ───
 //
 // These mirror the `PermissionMode` string union in `src/server/agent-session.ts`
@@ -469,6 +506,7 @@ export function getRuntimePermissionModes(runtime: RuntimeType): RuntimePermissi
     case 'claude-code': return CC_PERMISSION_MODES;
     case 'codex': return CODEX_PERMISSION_MODES;
     case 'gemini': return GEMINI_PERMISSION_MODES;
+    case 'hermes': return HERMES_PERMISSION_MODES;
     case 'builtin': return BUILTIN_PERMISSION_MODES;
     default: return [];
   }
@@ -532,6 +570,7 @@ export function getDefaultRuntimePermissionMode(runtime: RuntimeType): string {
     case 'claude-code': return 'default';
     case 'codex': return 'full-auto';
     case 'gemini': return 'autoEdit';  // D5: desktop default = Auto Edit
+    case 'hermes': return 'autoEdit';  // ACP default, same as Gemini
     case 'builtin': return 'auto';
     default: return '';
   }
@@ -562,6 +601,7 @@ export function getMaxPermissionForRuntime(runtime: RuntimeType): string {
     case 'claude-code': return 'bypassPermissions';
     case 'codex':       return 'no-restrictions';
     case 'gemini':      return 'yolo';
+    case 'hermes':      return 'yolo';      // ACP: skip all confirmations
     default:            return 'fullAgency';
   }
 }

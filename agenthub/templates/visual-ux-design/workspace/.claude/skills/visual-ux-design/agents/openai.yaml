@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visual and UX Design Assistant"
+  short_description: "Plan accessible visual experiences"
+  default_prompt: "Help me turn user evidence and brand constraints into a clear design brief."

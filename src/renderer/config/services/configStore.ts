@@ -114,14 +114,48 @@ export async function safeLoadJson<T>(
     filePath: string,
     validate?: (data: unknown) => data is T,
 ): Promise<T | null> {
+    return loadJsonCandidates(filePath, validate, false);
+}
+
+export class JsonStoreUnreadableError extends Error {
+    readonly code = 'JSON_STORE_UNREADABLE';
+
+    constructor() {
+        super('No readable valid JSON candidate was available.');
+        this.name = 'JsonStoreUnreadableError';
+    }
+}
+
+/**
+ * Strict recovery read for read-modify-write transactions.
+ *
+ * A brand-new store (main/bak/tmp all absent) is still represented as null.
+ * If at least one candidate exists but none can be parsed and validated, this
+ * throws instead of turning damaged state into an empty array that a later
+ * write could persist over the only recoverable copies.
+ */
+export async function safeLoadJsonStrict<T>(
+    filePath: string,
+    validate?: (data: unknown) => data is T,
+): Promise<T | null> {
+    return loadJsonCandidates(filePath, validate, true);
+}
+
+async function loadJsonCandidates<T>(
+    filePath: string,
+    validate: ((data: unknown) => data is T) | undefined,
+    strict: boolean,
+): Promise<T | null> {
     const candidates = [
         { path: filePath, label: 'main' },
         { path: filePath + '.bak', label: 'bak' },
         { path: filePath + '.tmp', label: 'tmp' },
     ];
+    let existingCandidates = 0;
 
     for (const { path, label } of candidates) {
         if (!(await exists(path))) continue;
+        existingCandidates += 1;
         try {
             const content = await readTextFile(path);
             const parsed = JSON.parse(stripBom(content));
@@ -136,6 +170,9 @@ export async function safeLoadJson<T>(
         } catch (err) {
             console.error(`[configStore] ${label} file corrupted or unreadable:`, err);
         }
+    }
+    if (strict && existingCandidates > 0) {
+        throw new JsonStoreUnreadableError();
     }
     return null;
 }

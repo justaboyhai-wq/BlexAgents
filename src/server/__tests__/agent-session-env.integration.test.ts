@@ -1,20 +1,53 @@
-import { mkdtempSync, readFileSync, rmSync } from 'fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { delimiter, resolve } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SUBSCRIPTION_PROVIDER_ID } from '../../shared/config-types';
 import { applyWindowsUtf8SubprocessEnv, buildClaudeSessionEnv } from '../agent-session';
+import { __resetModelCapabilityCacheForTests } from '../utils/model-capabilities';
+
+interface TestModelCapability {
+  model: string;
+  contextLength: number;
+}
+
+const modelRegistryHomes: string[] = [];
+
+function useIsolatedModelRegistry(models: TestModelCapability[]): void {
+  const home = mkdtempSync(resolve(tmpdir(), 'blexagent-model-registry-'));
+  modelRegistryHomes.push(home);
+  const providersDir = resolve(home, '.blexagent', 'providers');
+  mkdirSync(providersDir, { recursive: true });
+  writeFileSync(resolve(providersDir, 'integration-test-provider.json'), JSON.stringify({
+    id: 'integration-test-provider',
+    models,
+  }));
+  vi.stubEnv('HOME', home);
+  vi.stubEnv('USERPROFILE', home);
+  __resetModelCapabilityCacheForTests();
+}
+
+function cleanupIsolatedModelRegistries(): void {
+  __resetModelCapabilityCacheForTests();
+  for (const home of modelRegistryHomes.splice(0)) {
+    rmSync(home, { recursive: true, force: true });
+  }
+}
 
 describe('buildClaudeSessionEnv npm prefix isolation', () => {
+  const tempHomes: string[] = [];
+
   afterEach(() => {
     vi.unstubAllEnvs();
+    for (const home of tempHomes.splice(0)) {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 
   it('does not leak BlexAgent npm prefix variables into the SDK shell env', () => {
-    const home = process.platform === 'win32'
-      ? 'C:\\Users\\blexagent-test'
-      : '/tmp/blexagent-env-home';
+    const home = mkdtempSync(resolve(tmpdir(), 'blexagent-env-home-'));
+    tempHomes.push(home);
     const prefix = process.platform === 'win32'
       ? resolve(home, '.blexagent', 'npm-global')
       : `${home}/.blexagent/npm-global`;
@@ -128,6 +161,11 @@ describe('Windows SDK subprocess UTF-8 env', () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32');
     vi.stubEnv('USERPROFILE', home);
     vi.stubEnv('CLAUDE_CODE_GIT_BASH_PATH', resolve(home, 'missing-bash.exe'));
+    // Keep this a PATH-fallback test even on Windows development machines that
+    // have Git installed in one of BlexAgent's auto-detection locations.
+    vi.stubEnv('PROGRAMFILES', resolve(home, 'program-files'));
+    vi.stubEnv('PROGRAMFILES(X86)', resolve(home, 'program-files-x86'));
+    vi.stubEnv('LOCALAPPDATA', resolve(home, 'local-app-data'));
 
     const env = buildClaudeSessionEnv();
 
@@ -138,33 +176,46 @@ describe('Windows SDK subprocess UTF-8 env', () => {
 });
 
 describe('session model alias resolution', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    cleanupIsolatedModelRegistries();
+  });
+
   it('uses the active model for built-in subagent alias env when aliases are collapsed', () => {
+    const activeModel = 'integration-test-extended-context';
+    useIsolatedModelRegistry([{ model: activeModel, contextLength: 204_800 }]);
+
     const env = buildClaudeSessionEnv(
       {
-        baseUrl: 'https://api.minimax.example',
+        providerId: 'integration-test-provider',
+        baseUrl: 'https://api.test-provider.example',
         apiKey: 'test-key',
         modelAliases: {
-          sonnet: 'MiniMax-M2.7',
-          opus: 'MiniMax-M2.7',
-          haiku: 'MiniMax-M2.7',
+          sonnet: 'provider-default',
+          opus: 'provider-default',
+          haiku: 'provider-default',
         },
       },
-      'MiniMax-M2.5',
+      activeModel,
     );
 
-    // #335 — MiniMax-M2.5's preset contextLength is 204_800 (> the SDK 200K
-    // default), so the SDK-ingress `_MODEL` envs carry the `[1m]` unlock; the
-    // display-label `_MODEL_NAME` env stays raw (applyContextWindowSuffix
-    // contract: wrapped values flow ONLY into SDK ingress points).
-    expect(env.ANTHROPIC_DEFAULT_SONNET_MODEL).toBe('MiniMax-M2.5[1m]');
-    expect(env.ANTHROPIC_DEFAULT_OPUS_MODEL).toBe('MiniMax-M2.5[1m]');
-    expect(env.ANTHROPIC_DEFAULT_HAIKU_MODEL).toBe('MiniMax-M2.5[1m]');
-    expect(env.ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME).toBe('MiniMax-M2.5');
+    // #335 — a registered contextLength above the SDK 200K default makes the
+    // SDK-ingress `_MODEL` envs carry `[1m]`; display `_MODEL_NAME` stays raw.
+    expect(env.ANTHROPIC_DEFAULT_SONNET_MODEL).toBe(`${activeModel}[1m]`);
+    expect(env.ANTHROPIC_DEFAULT_OPUS_MODEL).toBe(`${activeModel}[1m]`);
+    expect(env.ANTHROPIC_DEFAULT_HAIKU_MODEL).toBe(`${activeModel}[1m]`);
+    expect(env.ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME).toBe(activeModel);
   });
 
   it('keeps split subagent alias env unchanged', () => {
+    useIsolatedModelRegistry([
+      { model: 'provider-pro', contextLength: 200_000 },
+      { model: 'provider-flash', contextLength: 128_000 },
+    ]);
+
     const env = buildClaudeSessionEnv(
       {
+        providerId: 'integration-test-provider',
         baseUrl: 'https://api.deepseek.example',
         apiKey: 'test-key',
         modelAliases: {
@@ -217,9 +268,11 @@ describe('Claude Code provider-managed host env', () => {
 describe('Claude SDK context window env', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
+    cleanupIsolatedModelRegistries();
   });
 
-  it('keeps Claude 4.6 defaults at 200K without forcing SDK 1M disable flags (#392)', () => {
+  it('keeps the registered Claude 4.6 safe default at 200K without forcing SDK 1M disable flags (#392)', () => {
+    useIsolatedModelRegistry([{ model: 'claude-opus-4-6', contextLength: 200_000 }]);
     vi.stubEnv('CLAUDE_CODE_DISABLE_1M_CONTEXT', '');
     vi.stubEnv('CLAUDE_CODE_ENABLE_1M_CONTEXT', '1');
 
@@ -230,28 +283,35 @@ describe('Claude SDK context window env', () => {
     expect(env.CLAUDE_CODE_AUTO_COMPACT_WINDOW).toBe('200000');
   });
 
-  it('keeps Opus 4.7 / 4.8 on the default 1M window', () => {
+  it('uses registered 1M windows for Opus 4.7 / 4.8', () => {
+    useIsolatedModelRegistry([
+      { model: 'claude-opus-4-7', contextLength: 1_000_000 },
+      { model: 'claude-opus-4-8', contextLength: 1_000_000 },
+    ]);
     expect(buildClaudeSessionEnv(undefined, 'claude-opus-4-7').CLAUDE_CODE_AUTO_COMPACT_WINDOW).toBe('1000000');
     expect(buildClaudeSessionEnv(undefined, 'claude-opus-4-8').CLAUDE_CODE_AUTO_COMPACT_WINDOW).toBe('1000000');
   });
 
   it('keeps provider-routed sessions eligible for registry-backed SDK 1M unlocks', () => {
+    const activeModel = 'integration-test-provider-routed-model';
+    useIsolatedModelRegistry([{ model: activeModel, contextLength: 204_800 }]);
+
     const env = buildClaudeSessionEnv(
       {
-        providerId: 'minimax',
-        baseUrl: 'https://api.minimax.example',
+        providerId: 'integration-test-provider',
+        baseUrl: 'https://api.test-provider.example',
         apiKey: 'test-key',
         modelAliases: {
-          sonnet: 'MiniMax-M2.7',
-          opus: 'MiniMax-M2.7',
-          haiku: 'MiniMax-M2.7',
+          sonnet: 'provider-default',
+          opus: 'provider-default',
+          haiku: 'provider-default',
         },
       },
-      'MiniMax-M2.5',
+      activeModel,
     );
 
     expect(env.CLAUDE_CODE_DISABLE_1M_CONTEXT).toBeUndefined();
     expect(env.CLAUDE_CODE_AUTO_COMPACT_WINDOW).toBe('204800');
-    expect(env.ANTHROPIC_DEFAULT_SONNET_MODEL).toBe('MiniMax-M2.5[1m]');
+    expect(env.ANTHROPIC_DEFAULT_SONNET_MODEL).toBe(`${activeModel}[1m]`);
   });
 });

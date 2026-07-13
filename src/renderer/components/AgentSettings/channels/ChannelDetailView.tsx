@@ -6,7 +6,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Loader2, Power, PowerOff, Trash2 } from 'lucide-react';
 import QRCode from 'qrcode';
-import telegramIcon from '../../ImSettings/assets/telegram.png';
 import feishuIcon from '../../ImSettings/assets/feishu.jpeg';
 import dingtalkIcon from '../../ImSettings/assets/dingtalk.svg';
 import { track } from '@/analytics';
@@ -24,12 +23,10 @@ import {
 } from '../../../../shared/types/agent';
 import type { RuntimeConfig } from '../../../../shared/types/runtime';
 import { runtimeConfigForRuntimeBackedProviderDefault, toProviderExecutionIntent } from '../../../../shared/providerExecution';
-import BotTokenInput from '../../ImSettings/components/BotTokenInput';
 import FeishuCredentialInput from '../../ImSettings/components/FeishuCredentialInput';
 import DingtalkCredentialInput from '../../ImSettings/components/DingtalkCredentialInput';
 import WhitelistManager from '../../ImSettings/components/WhitelistManager';
 import PermissionModeSelect from '../../ImSettings/components/PermissionModeSelect';
-import BindQrPanel from '../../ImSettings/components/BindQrPanel';
 import BindCodePanel from '../../ImSettings/components/BindCodePanel';
 import AiConfigCard from '../../ImSettings/components/AiConfigCard';
 import DingtalkCardConfig from '../../ImSettings/components/DingtalkCardConfig';
@@ -179,7 +176,7 @@ export default function ChannelDetailView({
                 ? !!(channel.dingtalkClientId && channel.dingtalkClientSecret)
                 : channel.type.startsWith('openclaw:')
                     ? !!channel.openclawPluginId
-                    : !!channel.botToken
+                    : false
         : false;
     const hasUsers = (channel?.allowedUsers?.length ?? 0) > 0;
 
@@ -268,9 +265,7 @@ export default function ChannelDetailView({
                             // Auto-sync channel name from platform username (once)
                             if (!nameSyncedRef.current && !togglingRef.current) {
                                 nameSyncedRef.current = true;
-                                const displayName = ch?.type === 'telegram'
-                                    ? `@${status.botUsername}`
-                                    : status.botUsername;
+                                const displayName = status.botUsername;
                                 if (ch?.name !== displayName) {
                                     const updatedChannels = (agent.channels ?? []).map(c =>
                                         c.id === channelId ? { ...c, name: displayName } : c,
@@ -355,9 +350,7 @@ export default function ChannelDetailView({
             } else {
                 const ch = channelRef.current;
                 if (!channelHasCredentials(ch)) {
-                    toastRef.current.error(ch.type === 'telegram'
-                        ? t('agentSettings.channelDetail.missingBotToken')
-                        : t('agentSettings.channelDetail.missingCredentials'));
+                    toastRef.current.error(t('agentSettings.channelDetail.missingCredentials'));
                     setToggling(false);
                     return;
                 }
@@ -633,7 +626,6 @@ export default function ChannelDetailView({
 
     // Platform icon for header
     const detailPlatformIcon = (() => {
-        if (channel.type === 'telegram') return telegramIcon;
         if (channel.type === 'feishu') return feishuIcon;
         if (channel.type === 'dingtalk') return dingtalkIcon;
         const promoted = findPromotedByPlatform(channel.type);
@@ -641,8 +633,7 @@ export default function ChannelDetailView({
         return undefined;
     })();
 
-    const platformLabel = channel.type === 'telegram' ? 'Telegram'
-        : channel.type === 'feishu' ? '飞书'
+    const platformLabel = channel.type === 'feishu' ? '飞书'
         : channel.type === 'dingtalk' ? '钉钉'
         : findPromotedByPlatform(channel.type)?.name || channel.type;
 
@@ -737,7 +728,7 @@ export default function ChannelDetailView({
                         <h3 className="text-sm font-semibold text-[var(--ink)]">
                             {isOpenClaw
                                 ? (findPromotedByPlatform(channel.type)?.setupGuide?.credentialTitle || t('agentSettings.channelDetail.pluginConfig'))
-                                : channel.type === 'feishu' ? t('agentSettings.channelDetail.credentialTitleFeishu') : channel.type === 'dingtalk' ? t('agentSettings.channelDetail.credentialTitleDingtalk') : t('agentSettings.channelDetail.credentialTitleTelegram')}
+                                : channel.type === 'feishu' ? t('agentSettings.channelDetail.credentialTitleFeishu') : t('agentSettings.channelDetail.credentialTitleDingtalk')}
                         </h3>
                         {!isCredentialsExpanded && hasCredentials && (
                             <span className="text-xs text-[var(--success)]">
@@ -869,23 +860,7 @@ export default function ChannelDetailView({
                                 verifyStatus={verifyStatus}
                                 botName={botUsername}
                             />
-                        ) : (
-                            <BotTokenInput
-                                value={channel.botToken ?? ''}
-                                onChange={(token) => {
-                                    const allChannels = (config.agents ?? [])
-                                        .flatMap(a => a.channels)
-                                        .filter(ch => ch.id !== channelId && ch.setupCompleted);
-                                    if (allChannels.some(ch => ch.botToken === token)) {
-                                        toastRef.current.error(t('agentSettings.channelDetail.duplicateBotToken'));
-                                        return;
-                                    }
-                                    patchChannel({ botToken: token });
-                                }}
-                                verifyStatus={verifyStatus}
-                                botUsername={botUsername}
-                            />
-                        )}
+                        ) : null}
                     </div>
                 )}
             </div>
@@ -986,12 +961,6 @@ export default function ChannelDetailView({
                                 bindCode={botStatus.bindCode}
                                 hasWhitelistUsers={(channel.allowedUsers?.length ?? 0) > 0}
                                 platformName={channel.type === 'dingtalk' ? '钉钉' : channel.type === 'feishu' ? '飞书' : (channel.name || t('agentSettings.channelDetail.pluginBot'))}
-                            />
-                        )}
-                        {isRunning && channel.type === 'telegram' && botStatus?.bindUrl && (
-                            <BindQrPanel
-                                bindUrl={botStatus.bindUrl}
-                                hasWhitelistUsers={(channel.allowedUsers?.length ?? 0) > 0}
                             />
                         )}
                         {isQrLoginPlugin ? (
@@ -1131,37 +1100,6 @@ export default function ChannelDetailView({
                             await patchChannel({ dingtalkCardTemplateId: value || undefined });
                         }}
                     />
-                </div>
-            )}
-
-            {/* Telegram Draft Streaming */}
-            {channel.type === 'telegram' && (
-                <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-[var(--ink)]">{t('agentSettings.channelDetail.draftStreamingTitle')}</p>
-                            <p className="text-xs text-[var(--ink-muted)] mt-0.5">
-                                {t('agentSettings.channelDetail.draftStreamingDescription')}
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            role="switch"
-                            aria-checked={channel.telegramUseDraft ?? true}
-                            onClick={async () => {
-                                await patchChannel({ telegramUseDraft: !(channel.telegramUseDraft ?? true) });
-                            }}
-                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                (channel.telegramUseDraft ?? true) ? 'bg-[var(--accent)]' : 'bg-[var(--ink-muted)]/30'
-                            }`}
-                        >
-                            <span
-                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[var(--toggle-thumb)] shadow ring-0 transition duration-200 ease-in-out ${
-                                    (channel.telegramUseDraft ?? true) ? 'translate-x-4' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
-                    </div>
                 </div>
             )}
 

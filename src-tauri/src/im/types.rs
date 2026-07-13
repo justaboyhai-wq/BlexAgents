@@ -32,8 +32,6 @@ pub struct BotConfigPatch {
     pub dingtalk_client_secret: Option<String>,
     pub dingtalk_use_ai_card: Option<bool>,
     pub dingtalk_card_template_id: Option<String>,
-    // ===== Telegram-specific options =====
-    pub telegram_use_draft: Option<bool>,
     pub enabled: Option<bool>,
     pub setup_completed: Option<bool>,
     pub group_permissions: Option<Vec<GroupPermission>>,
@@ -47,7 +45,6 @@ pub struct BotConfigPatch {
 /// IM platform type
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImPlatform {
-    Telegram,
     Feishu,
     Dingtalk,
     /// OpenClaw route identity. Historical data may store either the protocol
@@ -60,7 +57,6 @@ pub enum ImPlatform {
 impl Serialize for ImPlatform {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::Telegram => serializer.serialize_str("telegram"),
             Self::Feishu => serializer.serialize_str("feishu"),
             Self::Dingtalk => serializer.serialize_str("dingtalk"),
             Self::OpenClaw(id) => serializer.serialize_str(&format!("openclaw:{}", id)),
@@ -72,7 +68,6 @@ impl<'de> Deserialize<'de> for ImPlatform {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         match s.as_str() {
-            "telegram" => Ok(Self::Telegram),
             "feishu" => Ok(Self::Feishu),
             "dingtalk" => Ok(Self::Dingtalk),
             other if other.starts_with("openclaw:") => {
@@ -85,7 +80,7 @@ impl<'de> Deserialize<'de> for ImPlatform {
             }
             _ => Err(serde::de::Error::unknown_variant(
                 &s,
-                &["telegram", "feishu", "dingtalk", "openclaw:<id>"],
+                &["feishu", "dingtalk", "openclaw:<id>"],
             )),
         }
     }
@@ -94,7 +89,6 @@ impl<'de> Deserialize<'de> for ImPlatform {
 impl std::fmt::Display for ImPlatform {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Telegram => write!(f, "telegram"),
             Self::Feishu => write!(f, "feishu"),
             Self::Dingtalk => write!(f, "dingtalk"),
             Self::OpenClaw(id) => write!(f, "openclaw:{}", id),
@@ -287,7 +281,7 @@ pub enum ImAttachmentType {
     File,
 }
 
-/// Media attachment downloaded from Telegram
+/// Media attachment downloaded from an IM adapter.
 #[derive(Debug, Clone)]
 pub struct ImAttachment {
     pub file_name: String,
@@ -364,9 +358,6 @@ pub struct ImConfig {
     pub dingtalk_use_ai_card: Option<bool>,
     #[serde(default)]
     pub dingtalk_card_template_id: Option<String>,
-    // ===== Telegram-specific options =====
-    #[serde(default)]
-    pub telegram_use_draft: Option<bool>,
     // ===== AI config =====
     #[serde(default)]
     pub provider_id: Option<String>,
@@ -403,13 +394,13 @@ pub struct ImConfig {
 }
 
 fn default_platform() -> ImPlatform {
-    ImPlatform::Telegram
+    ImPlatform::Feishu
 }
 
 impl Default for ImConfig {
     fn default() -> Self {
         Self {
-            platform: ImPlatform::Telegram,
+            platform: ImPlatform::Feishu,
             name: None,
             bot_token: String::new(),
             allowed_users: Vec::new(),
@@ -422,7 +413,6 @@ impl Default for ImConfig {
             dingtalk_client_secret: None,
             dingtalk_use_ai_card: None,
             dingtalk_card_template_id: None,
-            telegram_use_draft: None,
             provider_id: None,
             model: None,
             provider_env_json: None,
@@ -935,50 +925,6 @@ impl HeartbeatWake {
     }
 }
 
-/// Telegram API error types
-#[derive(Debug)]
-pub enum TelegramError {
-    /// Network timeout during API call
-    NetworkTimeout,
-    /// Rate limited by Telegram (retry after N seconds)
-    RateLimited(u64),
-    /// Markdown parsing failed (should retry as plain text)
-    MarkdownParseError,
-    /// Message content didn't change (safe to ignore)
-    MessageNotModified,
-    /// Message exceeds 4096 char limit
-    MessageTooLong,
-    /// Group thread no longer exists
-    ThreadNotFound,
-    /// Bot was kicked from group
-    BotKicked,
-    /// Bot token is invalid
-    TokenUnauthorized,
-    /// sendMessageDraft not supported for this peer/chat type
-    DraftPeerInvalid,
-    /// Other API error
-    Other(String),
-}
-
-impl std::fmt::Display for TelegramError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::NetworkTimeout => write!(f, "Network timeout"),
-            Self::RateLimited(secs) => write!(f, "Rate limited, retry after {}s", secs),
-            Self::MarkdownParseError => write!(f, "Markdown parse error"),
-            Self::MessageNotModified => write!(f, "Message not modified"),
-            Self::MessageTooLong => write!(f, "Message too long"),
-            Self::ThreadNotFound => write!(f, "Thread not found"),
-            Self::BotKicked => write!(f, "Bot kicked from group"),
-            Self::TokenUnauthorized => write!(f, "Token unauthorized"),
-            Self::DraftPeerInvalid => write!(f, "Draft peer invalid"),
-            Self::Other(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
-impl std::error::Error for TelegramError {}
-
 // ===== Agent Architecture types (v0.1.41) =====
 
 /// Channel-level config overrides (None = inherit from Agent)
@@ -1008,8 +954,6 @@ pub struct ChannelConfigRust {
     // Platform credentials
     #[serde(default)]
     pub bot_token: Option<String>,
-    #[serde(default)]
-    pub telegram_use_draft: Option<bool>,
     #[serde(default)]
     pub feishu_app_id: Option<String>,
     #[serde(default)]
@@ -1346,7 +1290,6 @@ impl ChannelConfigRust {
             dingtalk_client_secret: self.dingtalk_client_secret.clone(),
             dingtalk_use_ai_card: self.dingtalk_use_ai_card,
             dingtalk_card_template_id: self.dingtalk_card_template_id.clone(),
-            telegram_use_draft: self.telegram_use_draft,
             // Fallback chain: overrides → channel root (legacy pre-v0.1.45) → agent default
             // Channel root has higher priority than agent default because the user explicitly
             // chose a provider for this specific channel via /provider command (written to root
@@ -1438,11 +1381,10 @@ mod tests {
     fn base_channel() -> ChannelConfigRust {
         ChannelConfigRust {
             id: "channel-1".to_string(),
-            channel_type: ImPlatform::Telegram,
+            channel_type: ImPlatform::Feishu,
             name: None,
             enabled: true,
             bot_token: Some("token".to_string()),
-            telegram_use_draft: None,
             feishu_app_id: None,
             feishu_app_secret: None,
             dingtalk_client_id: None,

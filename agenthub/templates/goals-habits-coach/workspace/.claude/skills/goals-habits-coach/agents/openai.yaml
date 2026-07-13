@@ -1,0 +1,4 @@
+interface:
+  display_name: "Goals and Habits Coach"
+  short_description: "Turn goals into sustainable habits"
+  default_prompt: "Help me define one goal and a small habit I can sustain."

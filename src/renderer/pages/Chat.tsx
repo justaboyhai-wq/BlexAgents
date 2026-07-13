@@ -1195,6 +1195,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     'claude-code': { installed: false },
     'codex': { installed: false },
     'gemini': { installed: false },
+    'hermes': { installed: false },
   });
   // Gate: when multiAgentRuntime is off, treat everything as builtin regardless of agent config.
   // This gate is applied at the definition of currentRuntime itself so ALL downstream

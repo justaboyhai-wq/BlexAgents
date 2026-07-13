@@ -35,7 +35,7 @@
   },
   "rightRail": {
     "workspaceTitle": "Agent Workspaces",
-    "logsTitle": "View Rust logs",
+    "agentHubTitle": "AgentHub",
     "loading": "Loading...",
     "emptyWorkspaceTitle": "No workspaces yet",
     "emptyWorkspaceDescription": "Add a local project folder or create one from a template",

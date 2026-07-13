@@ -1004,7 +1004,7 @@ export default function App() {
     // This ensures MCP and other global API calls work from any page
     void startGlobalSidecarSilent();
 
-    // NOTE: Bundled workspace (mino) initialization is handled by
+    // NOTE: Bundled Blex workspace (internal template id: mino) initialization is handled by
     // ensureBundledWorkspace() inside ConfigProvider.load(), which runs
     // before loadProjects() to eliminate race conditions.
 

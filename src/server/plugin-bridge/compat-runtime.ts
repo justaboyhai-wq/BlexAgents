@@ -26,6 +26,14 @@ const IMAGE_MIME_PREFIXES = ['image/'];
 
 /** Maximum file size for bridge media transfer (20 MB raw → ~27 MB base64). */
 const MAX_MEDIA_FILE_SIZE = 20 * 1024 * 1024;
+const MANAGEMENT_TOKEN_HEADER = 'X-BlexAgent-Management-Token';
+
+function managementApiHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = process.env.BLEXAGENT_MANAGEMENT_TOKEN;
+  if (token) headers[MANAGEMENT_TOKEN_HEADER] = token;
+  return headers;
+}
 
 /** Fallback MIME type detection by file extension (when plugin provides no MIME). */
 const EXT_TO_MIME: Record<string, string> = {
@@ -520,7 +528,7 @@ export function createCompatRuntime(rustPort: number, botId: string, pluginId: s
           try {
             const resp = await cancellableFetch(`${rustBaseUrl}/api/im-bridge/message`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: managementApiHeaders(),
               body: JSON.stringify({
                 botId,
                 pluginId: currentPluginId,
@@ -675,7 +683,7 @@ export function createCompatRuntime(rustPort: number, botId: string, pluginId: s
               `${rustBaseUrl}/api/im-bridge/message`,
               {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: managementApiHeaders(),
                 body: JSON.stringify({
                   botId,
                   pluginId: currentPluginId,

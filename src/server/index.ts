@@ -92,6 +92,11 @@ import {
   PluginStoreError,
 } from './plugins/store';
 import { handleQrCodeAssetRoute } from './routes/qr-code-asset';
+import {
+  beginFeishuOneClickAppCreation,
+  cancelFeishuOneClickAppCreation,
+  getFeishuOneClickAppCreation,
+} from './feishu/one-click-app';
 
 type SpaceSkillExportPackage = {
   tempId: string;
@@ -4534,6 +4539,29 @@ async function main() {
       }
 
       // ============= PROVIDER VERIFICATION API =============
+
+      // POST /api/feishu/one-click-app/start — create a short-lived Feishu
+      // device-authorisation session and return its QR destination. Credentials
+      // never enter logs; they are available only to the session polling route.
+      if (pathname === '/api/feishu/one-click-app/start' && request.method === 'POST') {
+        try {
+          return jsonResponse(await beginFeishuOneClickAppCreation());
+        } catch {
+          return jsonResponse({ error: 'Unable to start Feishu app creation.' }, 502);
+        }
+      }
+
+      // GET /api/feishu/one-click-app/:sessionId — pending or completed app credentials.
+      const oneClickStatus = pathname.match(/^\/api\/feishu\/one-click-app\/([0-9a-f-]+)$/i);
+      if (oneClickStatus && request.method === 'GET') {
+        const result = getFeishuOneClickAppCreation(oneClickStatus[1]);
+        return jsonResponse(result, result.status === 'missing' ? 404 : 200);
+      }
+
+      if (oneClickStatus && request.method === 'DELETE') {
+        cancelFeishuOneClickAppCreation(oneClickStatus[1]);
+        return jsonResponse({ ok: true });
+      }
 
       // POST /api/provider/verify - Verify API key via SDK (same path as normal chat)
       if (pathname === '/api/provider/verify' && request.method === 'POST') {

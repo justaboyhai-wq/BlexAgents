@@ -3,7 +3,7 @@
 /**
  * IM platform type
  */
-export type ImPlatform = 'telegram' | 'feishu' | 'dingtalk' | `openclaw:${string}`;
+export type ImPlatform = 'feishu' | 'dingtalk' | `openclaw:${string}`;
 
 /**
  * Message source identifier
@@ -62,7 +62,7 @@ export interface ImBotConfig {
   platform: ImPlatform;         // Platform type
 
   // ===== Platform connection =====
-  botToken: string;             // Telegram Bot Token
+  botToken: string;             // Legacy bot token field (kept for migration compatibility)
   allowedUsers: string[];       // user_id or username
 
   // ===== Feishu-specific credentials =====
@@ -75,9 +75,6 @@ export interface ImBotConfig {
   dingtalkUseAiCard?: boolean;
   dingtalkCardTemplateId?: string;
 
-  // ===== Telegram-specific options =====
-  /** Telegram: 使用 sendMessageDraft 实现打字机流式效果 (实验性, v0.1.34) */
-  telegramUseDraft?: boolean;
 
   // ===== AI config (independent from Desktop client) =====
   providerId?: string;          // Provider ID (e.g. 'anthropic-sub', 'deepseek')
@@ -221,7 +218,7 @@ export type MemoryEvolutionJobStatus = 'completed' | 'skipped' | 'error' | 'time
  * product-owned managed tasks.
  */
 export interface MemoryEvolutionConfig {
-  /** Enable/disable long-term memory evolution (default: true for Mino templates) */
+  /** Enable/disable long-term memory evolution (default: true for the Blex builtin template) */
   enabled: boolean;
   /** ISO timestamp of last memory gardener run */
   lastGardenerAt?: string;
@@ -302,12 +299,12 @@ export function getOpenClawChannelId(platform: ImPlatform): string | null {
 }
 
 /**
- * Default Telegram Bot configuration
+ * Default legacy bot configuration.
  */
 export const DEFAULT_IM_BOT_CONFIG: ImBotConfig = {
   id: '',           // Generated on creation
-  name: 'Telegram Bot',
-  platform: 'telegram',
+  name: 'Feishu Bot',
+  platform: 'feishu',
   botToken: '',
   allowedUsers: [],
   providerId: undefined,
@@ -362,8 +359,6 @@ export const DEFAULT_DINGTALK_BOT_CONFIG: ImBotConfig = {
  */
 const SOURCE_LABELS_MAP: Record<string, string> = {
   desktop: '桌面端',
-  telegram_private: 'Telegram 私聊',
-  telegram_group: 'Telegram 群聊',
   feishu_private: '飞书私聊',
   feishu_group: '飞书群聊',
   dingtalk_private: '钉钉私聊',
@@ -389,8 +384,6 @@ export const SOURCE_LABELS = SOURCE_LABELS_MAP as Record<MessageSource, string>;
  */
 const SOURCE_ICONS_MAP: Record<string, string> = {
   desktop: '🖥',
-  telegram_private: '📱',
-  telegram_group: '👥',
   feishu_private: '📱',
   feishu_group: '👥',
   dingtalk_private: '📱',

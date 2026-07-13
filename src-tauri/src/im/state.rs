@@ -82,7 +82,6 @@ use feishu::FeishuAdapter;
 use group_history::GroupHistoryBuffer;
 use health::HealthManager;
 use router::{EnsureSidecarPrep, SessionRouter};
-use telegram::TelegramAdapter;
 use types::{GroupActivation, GroupPermission, ImConfig, ImPlatform};
 
 pub(super) fn normalize_runtime_type(runtime: Option<&str>) -> String {
@@ -397,7 +396,6 @@ pub(super) async fn sync_runtime_config_to_sidecars(
 
 /// Platform-agnostic adapter enum — avoids dyn dispatch overhead.
 pub(crate) enum AnyAdapter {
-    Telegram(Arc<TelegramAdapter>),
     Feishu(Arc<FeishuAdapter>),
     Dingtalk(Arc<DingtalkAdapter>),
     Bridge(Arc<BridgeAdapter>),
@@ -406,7 +404,6 @@ pub(crate) enum AnyAdapter {
 impl adapter::ImAdapter for AnyAdapter {
     async fn verify_connection(&self) -> adapter::AdapterResult<String> {
         match self {
-            Self::Telegram(a) => a.verify_connection().await,
             Self::Feishu(a) => a.verify_connection().await,
             Self::Dingtalk(a) => a.verify_connection().await,
             Self::Bridge(a) => a.verify_connection().await,
@@ -414,7 +411,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn register_commands(&self) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => a.register_commands().await,
             Self::Feishu(a) => a.register_commands().await,
             Self::Dingtalk(a) => a.register_commands().await,
             Self::Bridge(a) => a.register_commands().await,
@@ -422,7 +418,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn listen_loop(&self, shutdown_rx: tokio::sync::watch::Receiver<bool>) {
         match self {
-            Self::Telegram(a) => a.listen_loop(shutdown_rx).await,
             Self::Feishu(a) => a.listen_loop(shutdown_rx).await,
             Self::Dingtalk(a) => a.listen_loop(shutdown_rx).await,
             Self::Bridge(a) => a.listen_loop(shutdown_rx).await,
@@ -430,7 +425,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn send_message(&self, chat_id: &str, text: &str) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => adapter::ImAdapter::send_message(a.as_ref(), chat_id, text).await,
             Self::Feishu(a) => adapter::ImAdapter::send_message(a.as_ref(), chat_id, text).await,
             Self::Dingtalk(a) => adapter::ImAdapter::send_message(a.as_ref(), chat_id, text).await,
             Self::Bridge(a) => adapter::ImAdapter::send_message(a.as_ref(), chat_id, text).await,
@@ -438,9 +432,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn ack_received(&self, chat_id: &str, message_id: &str) {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImAdapter::ack_received(a.as_ref(), chat_id, message_id).await
-            }
             Self::Feishu(a) => {
                 adapter::ImAdapter::ack_received(a.as_ref(), chat_id, message_id).await
             }
@@ -454,9 +445,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn ack_processing(&self, chat_id: &str, message_id: &str) {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImAdapter::ack_processing(a.as_ref(), chat_id, message_id).await
-            }
             Self::Feishu(a) => {
                 adapter::ImAdapter::ack_processing(a.as_ref(), chat_id, message_id).await
             }
@@ -470,9 +458,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn ack_clear(&self, chat_id: &str, message_id: &str) {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImAdapter::ack_clear(a.as_ref(), chat_id, message_id).await
-            }
             Self::Feishu(a) => adapter::ImAdapter::ack_clear(a.as_ref(), chat_id, message_id).await,
             Self::Dingtalk(a) => {
                 adapter::ImAdapter::ack_clear(a.as_ref(), chat_id, message_id).await
@@ -482,7 +467,6 @@ impl adapter::ImAdapter for AnyAdapter {
     }
     async fn send_typing(&self, chat_id: &str) {
         match self {
-            Self::Telegram(a) => a.send_typing(chat_id).await,
             Self::Feishu(a) => a.send_typing(chat_id).await,
             Self::Dingtalk(a) => a.send_typing(chat_id).await,
             Self::Bridge(a) => a.send_typing(chat_id).await,
@@ -497,7 +481,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         text: &str,
     ) -> adapter::AdapterResult<Option<String>> {
         match self {
-            Self::Telegram(a) => a.send_message_returning_id(chat_id, text).await,
             Self::Feishu(a) => a.send_message_returning_id(chat_id, text).await,
             Self::Dingtalk(a) => a.send_message_returning_id(chat_id, text).await,
             Self::Bridge(a) => a.send_message_returning_id(chat_id, text).await,
@@ -510,9 +493,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         text: &str,
     ) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImStreamAdapter::edit_message(a.as_ref(), chat_id, message_id, text).await
-            }
             Self::Feishu(a) => {
                 adapter::ImStreamAdapter::edit_message(a.as_ref(), chat_id, message_id, text).await
             }
@@ -526,9 +506,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     async fn delete_message(&self, chat_id: &str, message_id: &str) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImStreamAdapter::delete_message(a.as_ref(), chat_id, message_id).await
-            }
             Self::Feishu(a) => {
                 adapter::ImStreamAdapter::delete_message(a.as_ref(), chat_id, message_id).await
             }
@@ -542,7 +519,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     fn max_message_length(&self) -> usize {
         match self {
-            Self::Telegram(a) => a.max_message_length(),
             Self::Feishu(a) => a.max_message_length(),
             Self::Dingtalk(a) => a.max_message_length(),
             Self::Bridge(a) => a.max_message_length(),
@@ -556,10 +532,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         tool_input: &str,
     ) -> adapter::AdapterResult<Option<String>> {
         match self {
-            Self::Telegram(a) => a
-                .send_approval_card(chat_id, request_id, tool_name, tool_input)
-                .await
-                .map_err(|e| e.to_string()),
             Self::Feishu(a) => {
                 a.send_approval_card(chat_id, request_id, tool_name, tool_input)
                     .await
@@ -587,10 +559,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         status: &str,
     ) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => a
-                .update_approval_status(chat_id, message_id, status)
-                .await
-                .map_err(|e| e.to_string()),
             Self::Feishu(a) => a.update_approval_status(message_id, status).await,
             Self::Dingtalk(a) => {
                 adapter::ImStreamAdapter::update_approval_status(
@@ -619,15 +587,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         source_type: &ImSourceType,
     ) -> adapter::AdapterResult<Option<String>> {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImStreamAdapter::send_question_card(
-                    a.as_ref(),
-                    chat_id,
-                    payload,
-                    source_type,
-                )
-                .await
-            }
             Self::Feishu(a) => a.send_question_card(chat_id, payload, source_type).await,
             Self::Dingtalk(a) => {
                 adapter::ImStreamAdapter::send_question_card(
@@ -656,15 +615,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         status: &str,
     ) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => {
-                adapter::ImStreamAdapter::update_question_status(
-                    a.as_ref(),
-                    chat_id,
-                    message_id,
-                    status,
-                )
-                .await
-            }
             Self::Feishu(a) => a.update_question_status(message_id, status).await,
             Self::Dingtalk(a) => {
                 adapter::ImStreamAdapter::update_question_status(
@@ -694,7 +644,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         caption: Option<&str>,
     ) -> adapter::AdapterResult<Option<String>> {
         match self {
-            Self::Telegram(a) => a.send_photo(chat_id, data, filename, caption).await,
             Self::Feishu(a) => a.send_photo(chat_id, data, filename, caption).await,
             Self::Dingtalk(a) => a.send_photo(chat_id, data, filename, caption).await,
             Self::Bridge(a) => a.send_photo(chat_id, data, filename, caption).await,
@@ -709,10 +658,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         caption: Option<&str>,
     ) -> adapter::AdapterResult<Option<String>> {
         match self {
-            Self::Telegram(a) => {
-                a.send_file(chat_id, data, filename, mime_type, caption)
-                    .await
-            }
             Self::Feishu(a) => {
                 a.send_file(chat_id, data, filename, mime_type, caption)
                     .await
@@ -734,7 +679,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         text: &str,
     ) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => a.finalize_message(chat_id, message_id, text).await,
             Self::Feishu(a) => a.finalize_message(chat_id, message_id, text).await,
             Self::Dingtalk(a) => a.finalize_message(chat_id, message_id, text).await,
             Self::Bridge(a) => a.finalize_message(chat_id, message_id, text).await,
@@ -742,7 +686,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     fn use_draft_streaming(&self) -> bool {
         match self {
-            Self::Telegram(a) => a.use_draft_streaming(),
             Self::Feishu(a) => a.use_draft_streaming(),
             Self::Dingtalk(a) => a.use_draft_streaming(),
             Self::Bridge(a) => a.use_draft_streaming(),
@@ -750,7 +693,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     fn preferred_throttle_ms(&self) -> u64 {
         match self {
-            Self::Telegram(a) => a.preferred_throttle_ms(),
             Self::Feishu(a) => a.preferred_throttle_ms(),
             Self::Dingtalk(a) => a.preferred_throttle_ms(),
             Self::Bridge(a) => a.preferred_throttle_ms(),
@@ -758,7 +700,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     fn supports_edit(&self) -> bool {
         match self {
-            Self::Telegram(a) => a.supports_edit(),
             Self::Feishu(a) => a.supports_edit(),
             Self::Dingtalk(a) => a.supports_edit(),
             Self::Bridge(a) => a.supports_edit(),
@@ -766,7 +707,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     fn bridge_context(&self) -> Option<(u16, String, Vec<String>)> {
         match self {
-            Self::Telegram(a) => a.bridge_context(),
             Self::Feishu(a) => a.bridge_context(),
             Self::Dingtalk(a) => a.bridge_context(),
             Self::Bridge(a) => a.bridge_context(),
@@ -774,7 +714,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     fn supports_streaming(&self) -> bool {
         match self {
-            Self::Telegram(a) => a.supports_streaming(),
             Self::Feishu(a) => a.supports_streaming(),
             Self::Dingtalk(a) => a.supports_streaming(),
             Self::Bridge(a) => a.supports_streaming(),
@@ -786,7 +725,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         initial_text: &str,
     ) -> adapter::AdapterResult<String> {
         match self {
-            Self::Telegram(a) => a.start_stream(chat_id, initial_text).await,
             Self::Feishu(a) => a.start_stream(chat_id, initial_text).await,
             Self::Dingtalk(a) => a.start_stream(chat_id, initial_text).await,
             Self::Bridge(a) => a.start_stream(chat_id, initial_text).await,
@@ -801,10 +739,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         is_thinking: bool,
     ) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => {
-                a.stream_chunk(chat_id, stream_id, text, sequence, is_thinking)
-                    .await
-            }
             Self::Feishu(a) => {
                 a.stream_chunk(chat_id, stream_id, text, sequence, is_thinking)
                     .await
@@ -826,7 +760,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
         final_text: &str,
     ) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => a.finalize_stream(chat_id, stream_id, final_text).await,
             Self::Feishu(a) => a.finalize_stream(chat_id, stream_id, final_text).await,
             Self::Dingtalk(a) => a.finalize_stream(chat_id, stream_id, final_text).await,
             Self::Bridge(a) => a.finalize_stream(chat_id, stream_id, final_text).await,
@@ -834,7 +767,6 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     async fn abort_stream(&self, chat_id: &str, stream_id: &str) -> adapter::AdapterResult<()> {
         match self {
-            Self::Telegram(a) => a.abort_stream(chat_id, stream_id).await,
             Self::Feishu(a) => a.abort_stream(chat_id, stream_id).await,
             Self::Dingtalk(a) => a.abort_stream(chat_id, stream_id).await,
             Self::Bridge(a) => a.abort_stream(chat_id, stream_id).await,
@@ -842,7 +774,7 @@ impl adapter::ImStreamAdapter for AnyAdapter {
     }
     async fn post_stream_cleanup(&self, chat_id: &str) {
         match self {
-            Self::Telegram(_) | Self::Feishu(_) | Self::Bridge(_) => { /* no-op */ }
+            Self::Feishu(_) | Self::Bridge(_) => { /* no-op */ }
             Self::Dingtalk(a) => {
                 adapter::ImStreamAdapter::post_stream_cleanup(a.as_ref(), chat_id).await
             }

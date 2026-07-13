@@ -1,0 +1,108 @@
+{
+  "id": "life-manager",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "🧭",
+  "name": {
+    "zh-CN": "生活管家",
+    "en-US": "Life Manager"
+  },
+  "description": {
+    "zh-CN": "用温和的生活盘点、优先级梳理和小步行动，帮助你把重要的事安排进现实生活。",
+    "en-US": "Turn a gentle life assessment into clear priorities, small actions, and a realistic review rhythm."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "盘点由你选择的生活领域",
+      "en-US": "Assess only the life areas you choose"
+    },
+    {
+      "zh-CN": "找出一至三个当前优先事项",
+      "en-US": "Identify one to three current priorities"
+    },
+    {
+      "zh-CN": "形成可执行的本周行动与复盘",
+      "en-US": "Create practical weekly actions and reviews"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "帮我盘点最近的生活状态，先从工作、家庭和休息开始。",
+      "en-US": "Help me assess work, family, and rest first."
+    },
+    {
+      "zh-CN": "我有很多想改善的事，帮我只选三个优先项。",
+      "en-US": "I want to improve many things; help me choose only three priorities."
+    },
+    {
+      "zh-CN": "根据这份近况记录，做一份不压迫的本周行动计划。",
+      "en-US": "Turn these notes into a low-pressure action plan for this week."
+    }
+  ],
+  "skills": [
+    {
+      "id": "life-manager",
+      "name": {
+        "zh-CN": "生活管家",
+        "en-US": "Life Manager"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "仅处理用户主动提供的生活信息；不主动监控，不替代医疗、法律、财务或心理专业意见。",
+      "en-US": "Uses only information the user explicitly provides; no active monitoring and no substitute for medical, legal, financial, or mental-health professionals."
+    }
+  },
+  "sources": [
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/conducting-life-assessment/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/conducting-life-assessment/SKILL.md"
+      ],
+      "excludedFiles": [
+        "skills/conducting-life-assessment/index.ts",
+        "skills/conducting-life-assessment/README.md"
+      ],
+      "modifications": "Translated and condensed the reflective assessment, optional scoring, priority selection, and action-plan workflow; removed persistence and assumed ten-area coverage.",
+      "sourceSha256": "e68e2c0a7e4e8287a7207ad3fae0de014e12811a86f49dee760cabf1af2c7b81",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Reviewed as a prose workflow. Storage automation and integration assumptions were excluded."
+    },
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/smart-recommendations/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/smart-recommendations/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained user-controlled prioritization, quick wins, energy awareness, and feedback; removed passive data collection, prediction, notifications, and recommendation engines.",
+      "sourceSha256": "a5b7c3cd0f0a87c62965c2d243be01b61c92585f1f03d9e07b9bf0463d072bcf",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No executable was included. Active monitoring, behavioral inference, and automatic actions were removed."
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import {
     getConfigDir,
     PROJECTS_FILE,
     safeLoadJson,
+    safeLoadJsonStrict,
     safeWriteJson,
 } from './configStore';
 import {
@@ -208,6 +209,38 @@ export async function patchProject(projectId: string, updates: Partial<Omit<Proj
             return projects[index];
         }
         return null;
+    });
+}
+
+/** Strict variant for transactions that will write projects.json afterwards. */
+export async function loadProjectsStrict(): Promise<Project[]> {
+    if (isBrowserDevMode()) return sortProjectsByLastOpened(mockLoadProjects());
+
+    await ensureConfigDir();
+    const dir = await getConfigDir();
+    const projectsPath = await join(dir, PROJECTS_FILE);
+    const projects = await safeLoadJsonStrict<Project[]>(projectsPath, isValidProjectsArray);
+    return projects ? sortProjectsByLastOpened(projects) : [];
+}
+
+/**
+ * Restore the project registry after a multi-file project registration fails.
+ *
+ * Registration updates projects.json and config.json under different file
+ * locks, so a later Agent write can fail after the project row was already
+ * persisted. Restore only the workspace owned by that registration instead of
+ * replacing the whole projects array, which would discard unrelated concurrent
+ * project changes.
+ */
+export async function restoreProjectRegistrationSnapshot(
+    path: string,
+    previousProject: Project | null,
+): Promise<void> {
+    return withProjectsLock(async () => {
+        const projects = await loadProjectsStrict();
+        const restored = projects.filter(project => !workspacePathsEqual(project.path, path));
+        if (previousProject) restored.push(previousProject);
+        await saveProjects(restored);
     });
 }
 

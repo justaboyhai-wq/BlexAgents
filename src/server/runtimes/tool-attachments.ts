@@ -21,6 +21,7 @@ import { isIP } from 'node:net';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
+import * as ipaddr from 'ipaddr.js';
 import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from 'undici';
 
 import { withAbortSignal } from '../utils/cancellation';
@@ -298,31 +299,16 @@ async function referenceExternalPath(sourcePath: string, ctx: SaveContext): Prom
  * Shared by the lexical pre-check (`isUrlSchemeSafe`) and the DNS-resolution
  * post-check (`assertPublicHostname`) so both judge addresses identically.
  */
-function isBlockedHostLiteral(host: string): boolean {
-  if (
-    host === 'localhost' ||
-    host === '127.0.0.1' || host.startsWith('127.') ||
-    host === '0.0.0.0' ||
-    host === '::1' || host === '[::1]' ||
-    host.startsWith('10.') ||
-    host.startsWith('192.168.') ||
-    host.startsWith('169.254.') ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host) ||
-    /^\[?fc00:/i.test(host) || /^\[?fd[0-9a-f]{2}:/i.test(host) || /^\[?fe80:/i.test(host)
-  ) {
-    return true;
-  }
-  // IPv6 forms the lexical IPv4 checks above miss (cross-review W1). Node keeps
-  // the brackets in `hostname` for IPv6 literals — strip + lower-case first.
-  //  - `::` / unspecified routes to loopback on many stacks.
-  //  - `::ffff:<v4>` (IPv4-mapped IPv6, dotted `::ffff:127.0.0.1` OR hex
-  //    `::ffff:7f00:1`) is a classic SSRF bypass for loopback/private targets;
-  //    reject the literal form outright — legitimate image hosts don't use it.
-  const h6 = host.replace(/^\[|\]$/g, '').toLowerCase();
-  if (h6 === '::' || h6 === '::0' || /^(?:0:){7}0$/.test(h6) || h6.startsWith('::ffff:')) {
-    return true;
-  }
-  return false;
+export function isPublicUnicastAddress(host: string): boolean {
+  const normalized = host.replace(/^\[|\]$/g, '');
+  if (!ipaddr.isValid(normalized)) return normalized.toLowerCase() !== 'localhost';
+  const address = ipaddr.parse(normalized);
+  // IPv4-mapped IPv6 inherits the IPv4 address's security range. This catches
+  // both dotted and hexadecimal mapped forms without a second parser.
+  const range = address.kind() === 'ipv6' && (address as ipaddr.IPv6).isIPv4MappedAddress()
+    ? (address as ipaddr.IPv6).toIPv4Address().range()
+    : address.range();
+  return range === 'unicast';
 }
 
 export function isUrlSchemeSafe(parsed: URL): { ok: true } | { ok: false; reason: string } {
@@ -332,7 +318,7 @@ export function isUrlSchemeSafe(parsed: URL): { ok: true } | { ok: false; reason
   // Lexical pre-check — rejects literal private/loopback hosts before any DNS.
   // Hostname SSRF (a public name resolving to a private IP) is caught by the
   // DNS post-check in `assertPublicHostname` just before fetch.
-  if (isBlockedHostLiteral(parsed.hostname)) {
+  if (!isPublicUnicastAddress(parsed.hostname)) {
     return { ok: false, reason: `Blocked private/loopback host: ${parsed.hostname}` };
   }
   return { ok: true };
@@ -369,7 +355,7 @@ async function buildSsrfGuardedDispatcher(parsed: URL): Promise<Agent | undefine
     throw new AttachmentSaveError(ATTACHMENT_ERROR_CODES.FETCH_FAILED, `DNS resolution failed for ${host}`);
   }
   for (const { address } of addresses) {
-    if (isBlockedHostLiteral(address)) {
+    if (!isPublicUnicastAddress(address)) {
       throw new AttachmentSaveError(
         ATTACHMENT_ERROR_CODES.UNSUPPORTED_URL,
         `Blocked: ${host} resolves to private/loopback address`,

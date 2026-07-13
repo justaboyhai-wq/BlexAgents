@@ -20,7 +20,6 @@ pub mod reply_router;
 pub mod router;
 pub mod runtime_change;
 pub(crate) mod state;
-pub mod telegram;
 pub mod types;
 mod util;
 
@@ -86,7 +85,6 @@ pub(crate) use state::{
     AgentChannelLink, AnyAdapter, ImConsumerHandle, ImConsumers, PeerLocks, PendingApproval,
     PendingApprovals, PendingQuestion, PendingQuestions, SharedAgentLink,
 };
-use telegram::TelegramAdapter;
 use types::{
     AgentConfigPatch, AgentConfigRust, AgentStatus, AskUserQuestionItem, AskUserQuestionPayload,
     BotConfigPatch, ChannelConfigRust, ChannelStatus, GroupActivation, GroupEvent, GroupPermission,

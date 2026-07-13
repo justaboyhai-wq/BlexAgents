@@ -1,0 +1,105 @@
+{
+  "id": "calendar-focus",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "⏱️",
+  "name": {
+    "zh-CN": "日历与专注安排",
+    "en-US": "Calendar & Focus Planner"
+  },
+  "description": {
+    "zh-CN": "从你提供的日程和任务中看见时间分配、冲突与精力匹配，生成带缓冲的专注计划。",
+    "en-US": "Review user-provided schedules and tasks to reveal conflicts, energy fit, and a buffered focus plan."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "分析日程中的拥挤、空档和冲突",
+      "en-US": "Analyze congestion, gaps, and conflicts"
+    },
+    {
+      "zh-CN": "保护高价值专注时段",
+      "en-US": "Protect high-value focus blocks"
+    },
+    {
+      "zh-CN": "按时间、精力和截止期安排任务",
+      "en-US": "Schedule tasks by time, energy, and deadline"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "这是我下周的日程，帮我找出专注时间。",
+      "en-US": "Find focus time in this schedule for next week."
+    },
+    {
+      "zh-CN": "这些任务和会议是否已经超出容量？",
+      "en-US": "Do these tasks and meetings exceed my capacity?"
+    },
+    {
+      "zh-CN": "帮我做一个保留缓冲的时间块草案。",
+      "en-US": "Draft time blocks that preserve buffer."
+    }
+  ],
+  "skills": [
+    {
+      "id": "calendar-focus",
+      "name": {
+        "zh-CN": "日历与专注安排",
+        "en-US": "Calendar & Focus Planner"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "只分析用户粘贴或上传的日程，不连接、不读取、不修改外部日历；任何取消或改期均由用户决定。",
+      "en-US": "Analyzes only pasted or uploaded schedules; never connects to, reads, or modifies external calendars, and the user decides all cancellations or changes."
+    }
+  },
+  "sources": [
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/analyzing-schedule/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/analyzing-schedule/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained time categorization, capacity, focus, buffers, priority alignment, and energy-fit analysis; removed MCP calendar retrieval, automatic metrics, and burnout diagnosis.",
+      "sourceSha256": "9abbbe26104c4d36ff75deaeec63f753c8f564a2e7d27e575e83ff7e3ecf154e",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "All external calendar calls and command examples were removed. Stress signals are framed as planning concerns, not diagnosis."
+    },
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/scheduling-tasks/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/scheduling-tasks/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained task sizing, priority order, time blocking, batching, capacity checks, buffers, and review; removed task/calendar writes and integrations.",
+      "sourceSha256": "387c05e82084eb235717fe49ee4eb914f86616f581a6a6b85d40b2531f017af9",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No external writes, automation, or executable material is included."
+    }
+  ]
+}

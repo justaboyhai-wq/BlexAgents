@@ -4013,6 +4013,8 @@ function hintForMissingRuntime(runtime: RuntimeType): string {
       return 'Install the OpenAI Codex CLI — `npm i -g @openai/codex` or see https://github.com/openai/codex';
     case 'gemini':
       return 'Install the Gemini CLI — `npm i -g @google/gemini-cli` or see https://github.com/google/gemini-cli';
+    case 'hermes':
+      return 'Install the Hermes Agent — `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash` or see https://github.com/NousResearch/hermes-agent';
     default:
       return '';
   }

@@ -204,14 +204,14 @@ pub(super) async fn create_bot_instance<R: Runtime>(
     }
 
     // Determine default workspace (filter empty strings from frontend)
-    // Fallback chain: configured path → bundled mino → home dir
+    // Fallback chain: configured path → bundled Blex workspace → home dir
     let default_workspace = config
         .default_workspace_path
         .as_ref()
         .filter(|p| !p.is_empty())
         .map(PathBuf::from)
         .unwrap_or_else(|| {
-            // Try bundled mino workspace first
+            // Try the bundled Blex workspace at the legacy mino path first.
             dirs::home_dir()
                 .map(|h| h.join(".blexagent").join("projects").join("mino"))
                 .filter(|p| p.exists())
@@ -286,13 +286,6 @@ pub(super) async fn create_bot_instance<R: Runtime>(
     let msg_tx_for_reinjection = msg_tx.clone(); // For media group merge re-injection
     let mut bridge_process_handle: Option<bridge::BridgeProcess> = None;
     let adapter: Arc<AnyAdapter> = match config.platform {
-        ImPlatform::Telegram => Arc::new(AnyAdapter::Telegram(Arc::new(TelegramAdapter::new(
-            &config,
-            msg_tx.clone(),
-            Arc::clone(&allowed_users),
-            approval_tx.clone(),
-            group_event_tx.clone(),
-        )))),
         ImPlatform::Feishu => {
             let dedup_path = Some(match &agent_id {
                 Some(aid) => health::agent_channel_dedup_path(aid, &bot_id),
@@ -1009,13 +1002,10 @@ pub(super) async fn create_bot_instance<R: Runtime>(
 
                     // ── Bot command dispatch (inline — fast, no Sidecar I/O) ──
 
-                    // QR code binding: /start BIND_xxxx
-                    // Bind code handling: Telegram uses "/start BIND_xxx", Feishu uses plain "BIND_xxx"
-                    let is_telegram_bind = text.starts_with("/start BIND_");
                     let is_feishu_bind = text.starts_with("BIND_") && msg.platform == ImPlatform::Feishu;
                     let is_dingtalk_bind = text.starts_with("BIND_") && msg.platform == ImPlatform::Dingtalk;
                     let is_openclaw_bind = text.starts_with("BIND_") && matches!(msg.platform, ImPlatform::OpenClaw(_));
-                    if is_telegram_bind || is_feishu_bind || is_dingtalk_bind || is_openclaw_bind {
+                    if is_feishu_bind || is_dingtalk_bind || is_openclaw_bind {
                         // If sender is already bound, silently ignore stale BIND_ messages
                         // (Feishu may re-deliver old messages after bot restart clears dedup cache)
                         let already_bound = {
@@ -1027,11 +1017,7 @@ pub(super) async fn create_bot_instance<R: Runtime>(
                             continue;
                         }
 
-                        let code = if is_telegram_bind {
-                            text.strip_prefix("/start ").unwrap_or("")
-                        } else {
-                            text.as_str()
-                        };
+                        let code = text.as_str();
                         if code == bind_code_for_loop {
                             // Valid bind — add user to whitelist
                             let user_id_str = msg.sender_id.clone();
@@ -2807,12 +2793,6 @@ pub(super) async fn create_bot_instance<R: Runtime>(
     // Build status (include bind URL for QR code flow / bind code for text bind)
     let bot_username_for_url = health.get_state().await.bot_username.clone();
     let (bind_url, bind_code_for_status) = match config.platform {
-        ImPlatform::Telegram => {
-            let url = bot_username_for_url
-                .as_ref()
-                .map(|u| format!("https://t.me/{}?start={}", u, bind_code));
-            (url, None)
-        }
         ImPlatform::Feishu => (None, Some(bind_code.clone())),
         ImPlatform::Dingtalk => (None, Some(bind_code.clone())),
         ImPlatform::OpenClaw(_) => (None, Some(bind_code.clone())),
@@ -3000,13 +2980,6 @@ pub async fn get_im_bot_status(im_state: &ManagedImBots, bot_id: &str) -> ImBotS
         status.active_sessions = instance.router.lock().await.active_sessions();
 
         let (bind_url, bind_code_opt) = match instance.platform {
-            ImPlatform::Telegram => {
-                let url = status
-                    .bot_username
-                    .as_ref()
-                    .map(|u| format!("https://t.me/{}?start={}", u, instance.bind_code));
-                (url, None)
-            }
             ImPlatform::Feishu => (None, Some(instance.bind_code.clone())),
             ImPlatform::Dingtalk => (None, Some(instance.bind_code.clone())),
             ImPlatform::OpenClaw(_) => (None, Some(instance.bind_code.clone())),
@@ -3041,13 +3014,6 @@ pub async fn get_all_bots_status(im_state: &ManagedImBots) -> HashMap<String, Im
         status.active_sessions = instance.router.lock().await.active_sessions();
 
         let (bind_url, bind_code_opt) = match instance.platform {
-            ImPlatform::Telegram => {
-                let url = status
-                    .bot_username
-                    .as_ref()
-                    .map(|u| format!("https://t.me/{}?start={}", u, instance.bind_code));
-                (url, None)
-            }
             ImPlatform::Feishu => (None, Some(instance.bind_code.clone())),
             ImPlatform::Dingtalk => (None, Some(instance.bind_code.clone())),
             ImPlatform::OpenClaw(_) => (None, Some(instance.bind_code.clone())),

@@ -12,7 +12,7 @@ export interface FbProject {
 
 /**
  * 解析悬浮球当前应绑定的工作区。
- * 优先级：① 显式覆盖（钉死，存在即用）→ ② 跟随主端默认工作区 → ③ /mino 后缀
+ * 优先级：① 显式覆盖（钉死，存在即用）→ ② 跟随主端默认工作区 → ③ Blex 兼容路径 /mino
  * 兜底 → ④ 第一个项目。override 指向的工作区已不存在时落回默认链（不卡死）。
  */
 export function resolveBoundWorkspace<T extends { path: string }>(

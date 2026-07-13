@@ -5,7 +5,6 @@ import {
 import { loadConfig, type AdminAppConfig } from './admin-config';
 
 type ManagedCodexReadinessConfig = Pick<AppConfig,
-  | 'managedCodexProviderDevGate'
   | 'disabledProviderIds'
   | 'managedCodexRuntimeInstall'
   | 'managedCodexAuth'
@@ -18,7 +17,7 @@ export function isManagedCodexProviderReady(
 }
 
 export function managedCodexNotReadyMessage(context: string): string {
-  return `Managed Codex Provider is not ready for ${context}. Open 设置 → 模型供应商, enable Codex (订阅), download the pinned runtime, and log in.`;
+  return `Managed Codex runtime is not ready for ${context}. Download the pinned runtime and log in.`;
 }
 
 export function assertManagedCodexProviderReady(

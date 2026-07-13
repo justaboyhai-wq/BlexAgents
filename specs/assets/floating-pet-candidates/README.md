@@ -2,7 +2,7 @@
 
 Version: `0.2.34_desktop_pet_settings`
 
-This folder contains single-icon Mino desktop-pet candidates for choosing future built-in presets. The visual direction comes from image-gen reference art, while the final Codex Pets atlases were rebuilt deterministically so every used cell contains one complete centered icon and every unused cell is transparent.
+This folder contains single-icon Blex desktop-pet candidates for choosing future built-in presets. The visual direction comes from image-gen reference art, while the final Codex Pets atlases were rebuilt deterministically so every used cell contains one complete centered icon and every unused cell is transparent.
 
 Each candidate folder contains:
 
@@ -17,7 +17,7 @@ All 11 candidates pass `validate_atlas.py` with zero errors and zero warnings. M
 
 | ID | Direction |
 | --- | --- |
-| `mino-folder-spark` | Baseline living folder, closest to the current Mino visual. |
+| `mino-folder-spark` | Baseline living folder for the current Blex visual. |
 | `mino-memory-capsule` | Archive capsule and memory-card accents. |
 | `mino-terminal-cube` | Terminal-screen companion with a stronger hacker-workbench tone. |
 | `mino-cloud-sync` | Cloud + Git branch continuity across machines. |

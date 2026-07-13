@@ -1,0 +1,4 @@
+interface:
+  display_name: "Daily and Weekly Review"
+  short_description: "Plan days and review weeks"
+  default_prompt: "Help me plan today or run a calm weekly review."

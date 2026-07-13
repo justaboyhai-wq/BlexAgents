@@ -11,7 +11,6 @@ import type { ChannelType } from '../../../../shared/types/agent';
 import type { InstalledPlugin } from '../../../../shared/types/im';
 import { upsertInstalledPlugin } from '../../ImSettings/pluginInstallState';
 import { PROMOTED_PLUGINS } from '../../ImSettings/promotedPlugins';
-import telegramIcon from '../../ImSettings/assets/telegram.png';
 import dingtalkIcon from '../../ImSettings/assets/dingtalk.svg';
 
 interface PlatformEntry {
@@ -25,7 +24,6 @@ interface PlatformEntry {
 
 function staticPlatforms(t: TFunction<'settings'>): PlatformEntry[] {
   return [
-  { id: 'telegram', name: 'Telegram', description: t('agentSettings.channels.telegramDescription'), icon: telegramIcon },
   // 内置飞书已被官方 OpenClaw 插件替代（在 PROMOTED_PLUGINS 中），新用户不再显示
   { id: 'dingtalk', name: '钉钉', description: t('agentSettings.channels.dingtalkDescription'), icon: dingtalkIcon },
   ];

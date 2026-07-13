@@ -15,7 +15,6 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import type { InstalledPlugin } from '../../../shared/types/im';
 import { upsertInstalledPlugin } from './pluginInstallState';
 import { PROMOTED_PLUGINS } from './promotedPlugins';
-import telegramIcon from './assets/telegram.png';
 // feishuIcon import removed — old built-in Feishu hidden from this page (replaced by OpenClaw plugin)
 import dingtalkIcon from './assets/dingtalk.svg';
 
@@ -40,7 +39,6 @@ interface PlatformEntry {
 
 function staticPlatforms(t: TFunction<'settings'>): PlatformEntry[] {
   return [
-  { id: 'telegram', name: 'Telegram', description: t('agentSettings.channels.telegramDescription'), icon: telegramIcon, badge: t('agentSettings.botRegistry.builtinBadge'), badgeVariant: 'builtin' },
   // Old built-in Feishu hidden from UI — replaced by official OpenClaw plugin (@larksuite/openclaw-lark).
   // Code retained for backward compatibility with existing channels; entry removed from display.
   // { id: 'feishu', name: '飞书', ... platformBadge: 'deprecated' },

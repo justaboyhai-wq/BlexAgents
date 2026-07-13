@@ -1,0 +1,4 @@
+interface:
+  display_name: "Life Manager"
+  short_description: "Plan and review everyday life"
+  default_prompt: "Help me assess my priorities and create a practical life plan."

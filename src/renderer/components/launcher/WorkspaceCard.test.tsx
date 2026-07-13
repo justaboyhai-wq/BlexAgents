@@ -63,7 +63,7 @@ describe('WorkspaceCard', () => {
             enabled: true,
             channels: [{
                 channelId: 'channel-1',
-                channelType: 'telegram',
+                channelType: 'feishu',
                 status: 'online',
                 uptimeSeconds: 12,
                 activeSessions: [],
@@ -76,7 +76,7 @@ describe('WorkspaceCard', () => {
             agent: agent({
                 channels: [{
                     id: 'channel-1',
-                    type: 'telegram',
+                    type: 'feishu',
                     enabled: true,
                     setupCompleted: true,
                 }],
@@ -84,7 +84,7 @@ describe('WorkspaceCard', () => {
             agentStatus: status,
         });
 
-        expect(screen.getByText('Telegram')).toBeInTheDocument();
+        expect(screen.getByText('飞书')).toBeInTheDocument();
     });
 
     it('keeps channel tags in a fade-clipped row and moves actions into an overlay', () => {
@@ -94,7 +94,7 @@ describe('WorkspaceCard', () => {
             enabled: true,
             channels: [{
                 channelId: 'channel-1',
-                channelType: 'telegram',
+                channelType: 'feishu',
                 status: 'online',
                 uptimeSeconds: 12,
                 activeSessions: [],
@@ -107,7 +107,7 @@ describe('WorkspaceCard', () => {
             agent: agent({
                 channels: [{
                     id: 'channel-1',
-                    type: 'telegram',
+                    type: 'feishu',
                     enabled: true,
                     setupCompleted: true,
                 }],
@@ -115,7 +115,7 @@ describe('WorkspaceCard', () => {
             agentStatus: status,
         });
 
-        expect(screen.getByText('Telegram').closest('.workspace-card-channel-tags-fade')).not.toBeNull();
+        expect(screen.getByText('飞书').closest('.workspace-card-channel-tags-fade')).not.toBeNull();
         const moreButton = screen.getByLabelText('更多');
         expect(moreButton.closest('button')).toHaveClass('overflow-hidden', 'hover:z-20');
         expect(moreButton.parentElement).toHaveClass('workspace-card-action-overlay', 'z-20');

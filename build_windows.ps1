@@ -558,6 +558,11 @@ try {
     # ========================================
     Write-Host "[5/7] 构建前端和服务端..." -ForegroundColor Blue
 
+    & node (Join-Path $ProjectDir "scripts/validate-bundled-resources.mjs")
+    if ($LASTEXITCODE -ne 0) {
+        throw "内置 Blex 工作区资源（mino/）不完整，请先运行 .\setup_windows.ps1"
+    }
+
     # Sidecar / Bridge / CLI 三件套统一通过 npm scripts，由
     # `scripts/esbuild-bundle.mjs` 单一入口驱动。Driver 自带 post-build：
     #   - cli: 复制 blexagent.cmd 到 resources/cli/

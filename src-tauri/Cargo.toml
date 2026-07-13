@@ -21,6 +21,14 @@ rust-version = "1.81"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# `src/main.rs` is a thin GUI bootstrap with no unit tests. Skip its empty
+# synthetic harness; all Rust business tests live in the library harness.
+[[bin]]
+name = "blexagent"
+path = "src/main.rs"
+test = false
+bench = false
+
 [build-dependencies]
 tauri-build = { version = "2.5.3", features = [] }
 url = "2"

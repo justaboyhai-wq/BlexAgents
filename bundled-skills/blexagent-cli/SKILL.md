@@ -180,7 +180,7 @@ blexagent agent runtime-status                           # 看所有 Agent 的�
 ### Agent Runtime 发现（runtime）
 
 ```bash
-blexagent runtime list                                   # 4 个 runtime（builtin/claude-code/codex/gemini）的装机情况 + 版本
+blexagent runtime list                                   # 5 个 runtime（builtin/claude-code/codex/gemini/hermes）的装机情况 + 版本
 blexagent runtime list --json                            # 机读：installed/version/path
 blexagent runtime describe <runtime>                     # 某 runtime 的 model 清单 + permissionMode 枚举
 blexagent runtime diagnose codex [--workspacePath PATH]  # Codex 的 auth/features/MCP/apps/effective-env 快照（issue #194）
@@ -193,7 +193,7 @@ blexagent diagnose runtime codex                         # 同上的 sugar 写�
 - 用户问"codex 支持什么 model" → `runtime describe codex`
 - 「@oai/artifact-tool 我从终端能调用、BlexAgent 里就不行」/「Codex MCP 在 BlexAgent 里看不到」/「Codex 是不是用错代理了」→ `runtime diagnose codex`。它 spawn 一个临时 codex app-server，跑 `getAuthStatus` / `experimentalFeature/list` / `mcpServerStatus/list` / `app/list` 四个 RPC，把 Codex 自己看到的状态原样吐出来，省得猜。effectiveEnv 节里能看到 BlexAgent 注入的代理是不是真到了子进程，feature flag 是不是真生效。
 
-每个外部 runtime 有自己的动态 model 清单（Codex/Gemini 会 spawn CLI 查）和自己的 permissionMode 枚举（`suggest` / `auto-edit` / `full-auto` ≠ 内置的 `auto` / `plan` / `fullAgency`）——别混。
+每个外部 runtime 有自己的动态 model 清单（Codex/Gemini/Hermes 会 spawn CLI 查）和自己的 permissionMode 枚举（`suggest` / `auto-edit` / `full-auto` / `yolo` ≠ 内置的 `auto` / `plan` / `fullAgency`）——别混。
 
 ### Skills（skill）
 
@@ -289,7 +289,7 @@ blexagent task delete <taskId>                           # 软删除（30 天保
 
 | Flag | 语义 |
 |------|------|
-| `--runtime` | `builtin` / `claude-code` / `codex` / `gemini`，不传则继承 |
+| `--runtime` | `builtin` / `claude-code` / `codex` / `gemini` / `hermes`，不传则继承 |
 | `--model` | 值取决于 runtime，**先 `runtime describe <runtime>` 查** |
 | `--permissionMode` | 值取决于 runtime，**同样先 `runtime describe`** |
 | `--runtimeConfig` | JSON 对象字符串，runtime 专属配置（罕用） |

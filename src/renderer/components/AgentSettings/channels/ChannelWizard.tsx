@@ -8,19 +8,17 @@ import { track } from '@/analytics';
 import { isTauriEnvironment } from '@/utils/browserMock';
 import { listenWithCleanup } from '@/utils/tauriListen';
 import { useToast } from '@/components/Toast';
+import { apiDelete, apiGetJson, apiPostJson } from '@/api/apiFetch';
 import { useConfig } from '@/hooks/useConfig';
 import { patchAgentConfig, invokeStartAgentChannel } from '@/config/services/agentConfigService';
 import { isDirtyChannelName } from '@/utils/channelDisplayName';
-import BotTokenInput from '../../ImSettings/components/BotTokenInput';
 import FeishuCredentialInput from '../../ImSettings/components/FeishuCredentialInput';
 import DingtalkCredentialInput from '../../ImSettings/components/DingtalkCredentialInput';
-import BindQrPanel from '../../ImSettings/components/BindQrPanel';
 import BindCodePanel from '../../ImSettings/components/BindCodePanel';
 import WhitelistManager from '../../ImSettings/components/WhitelistManager';
 import type { AgentConfig, ChannelConfig, ChannelType } from '../../../../shared/types/agent';
 import type { InstalledPlugin } from '../../../../shared/types/im';
 import type { ChannelStatusData } from '@/hooks/useAgentStatuses';
-import telegramBotAddImg from '../../ImSettings/assets/telegram_bot_add.png';
 import feishuStep1Img from '../../ImSettings/assets/feishu_step1.png';
 import feishuStep2PermImg from '../../ImSettings/assets/feishu_step2_permissions.png';
 import feishuStep2EventImg from '../../ImSettings/assets/feishu_step2_events.png';
@@ -31,7 +29,6 @@ import dingtalkStep1CredentialsImg from '../../ImSettings/assets/dingtalk_step1_
 import dingtalkStep2AddRobotImg from '../../ImSettings/assets/dingtalk_step2_add_robot.png';
 import dingtalkStep2StreamModeImg from '../../ImSettings/assets/dingtalk_step2_stream_mode.png';
 import dingtalkStep2PublishImg from '../../ImSettings/assets/dingtalk_step2_publish.png';
-import telegramIcon from '../../ImSettings/assets/telegram.png';
 import feishuIcon from '../../ImSettings/assets/feishu.jpeg';
 import dingtalkIcon from '../../ImSettings/assets/dingtalk.svg';
 import { findPromotedByPlatform } from '../../ImSettings/promotedPlugins';
@@ -169,11 +166,15 @@ export default function ChannelWizard({
     const isOpenClaw = platform.startsWith('openclaw:');
     const openclawPluginId = isOpenClaw ? platform.slice('openclaw:'.length) : undefined;
     const promoted = isOpenClaw ? findPromotedByPlatform(platform) : undefined;
+    // The promoted official Feishu plugin is configured through the OpenClaw
+    // wizard, rather than the native `feishu` Channel wizard.
+    const isFeishuOpenClawPlugin = isOpenClaw && (
+        promoted?.channelBrand === 'feishu' || openclawPluginId === 'openclaw-lark'
+    );
 
     // OpenClaw: config(1) → start(2) → binding(3)
     // OpenClaw QR: qrLogin(1) → binding(2)
     // OpenClaw dualConfig: config-or-qr(1) → start(2) → binding(3)
-    // Telegram: credentials(1) → binding(2)
     // Feishu:   credentials(1) → permissions(2) → binding(3)
     // DingTalk: credentials(1) → permissions(2) → binding(3)
     // isQrLogin is computed below after installedPlugin state is declared
@@ -182,11 +183,13 @@ export default function ChannelWizard({
     const totalStepsBase = isQrLoginFromPreset ? 2 : isOpenClaw ? 3 : (isFeishu || isDingtalk) ? 3 : 2;
 
     const [step, setStep] = useState(1);
-    // Telegram credentials
-    const [botToken, setBotToken] = useState('');
     // Feishu credentials
     const [feishuAppId, setFeishuAppId] = useState('');
     const [feishuAppSecret, setFeishuAppSecret] = useState('');
+    const [feishuCreationSessionId, setFeishuCreationSessionId] = useState<string | null>(null);
+    const [feishuQrUrl, setFeishuQrUrl] = useState<string | null>(null);
+    const [feishuQrExpiresIn, setFeishuQrExpiresIn] = useState<number | null>(null);
+    const [feishuCreationError, setFeishuCreationError] = useState<string | null>(null);
     // DingTalk credentials
     const [dingtalkClientId, setDingtalkClientId] = useState('');
     const [dingtalkClientSecret, setDingtalkClientSecret] = useState('');
@@ -480,9 +483,7 @@ export default function ChannelWizard({
             ? true // OpenClaw uses its own validation
             : isFeishu
                 ? feishuAppId.trim() && feishuAppSecret.trim()
-                : isDingtalk
-                    ? dingtalkClientId.trim() && dingtalkClientSecret.trim()
-                    : botToken.trim();
+                : dingtalkClientId.trim() && dingtalkClientSecret.trim();
 
     // Build channel config from current wizard state
     const buildChannelConfig = useCallback((): ChannelConfig => {
@@ -524,9 +525,8 @@ export default function ChannelWizard({
         return {
             id: channelId,
             type: platform,
-            name: isDingtalk ? '钉钉 Bot' : isFeishu ? '飞书 Bot' : 'Telegram Bot',
+            name: isDingtalk ? '钉钉 Bot' : '飞书 Bot',
             enabled: true,
-            botToken: (isFeishu || isDingtalk) ? undefined : botToken.trim(),
             feishuAppId: isFeishu ? feishuAppId.trim() : undefined,
             feishuAppSecret: isFeishu ? feishuAppSecret.trim() : undefined,
             dingtalkClientId: isDingtalk ? dingtalkClientId.trim() : undefined,
@@ -534,7 +534,7 @@ export default function ChannelWizard({
             allowedUsers: [],
             setupCompleted: false,
         };
-    }, [channelId, platform, isFeishu, isDingtalk, isOpenClaw, isDualConfig, dualConfigMode, wecomQrBotId, wecomQrSecret, botToken, feishuAppId, feishuAppSecret, dingtalkClientId, dingtalkClientSecret, openclawPluginId, promoted, installedPlugin, buildOpenclawConfig]);
+    }, [channelId, platform, isFeishu, isDingtalk, isOpenClaw, isDualConfig, dualConfigMode, wecomQrBotId, wecomQrSecret, feishuAppId, feishuAppSecret, dingtalkClientId, dingtalkClientSecret, openclawPluginId, promoted, installedPlugin, buildOpenclawConfig]);
 
     // Start channel via shared utility (resolves MCP + overrides)
     const startChannel = useCallback(async (channelCfg: ChannelConfig) => {
@@ -544,6 +544,122 @@ export default function ChannelWizard({
         const { invoke } = await import('@tauri-apps/api/core');
         return invoke<ChannelStatusData | null>('cmd_agent_channel_status', { agentId: agent.id, channelId: channelCfg.id });
     }, [agent]);
+
+    const createFeishuAppByQr = useCallback(async () => {
+        setFeishuCreationError(null);
+        try {
+            const result = await apiPostJson<{ sessionId: string; qr: { url: string; expiresIn: number } }>(
+                '/api/feishu/one-click-app/start', {},
+            );
+            if (!isMountedRef.current) return;
+            setFeishuCreationSessionId(result.sessionId);
+            setFeishuQrUrl(result.qr.url);
+            setQrDataUrl(result.qr.url);
+            setFeishuQrExpiresIn(result.qr.expiresIn);
+        } catch (error) {
+            if (isMountedRef.current) setFeishuCreationError(String(error));
+        }
+    }, []);
+
+    const startCreatedFeishuChannel = useCallback(async (appId: string, appSecret: string) => {
+        setStarting(true);
+        setVerifyStatus('verifying');
+        try {
+            const channelCfg: ChannelConfig = isFeishuOpenClawPlugin ? {
+                id: channelId,
+                type: platform,
+                name: promoted?.name || '飞书',
+                enabled: true,
+                allowedUsers: [],
+                setupCompleted: false,
+                openclawPluginId,
+                openclawNpmSpec: installedPlugin?.npmSpec,
+                openclawPluginConfig: {
+                    ...(promoted?.defaultConfig ?? {}),
+                    ...buildOpenclawConfig(),
+                    appId,
+                    appSecret,
+                },
+                openclawEnabledToolGroups: ['doc', 'chat', 'wiki_drive', 'bitable', 'calendar', 'task', 'sheet', 'search', 'common'],
+            } : {
+                id: channelId,
+                type: 'feishu',
+                name: '飞书 Bot',
+                enabled: true,
+                feishuAppId: appId,
+                feishuAppSecret: appSecret,
+                allowedUsers: [],
+                setupCompleted: false,
+            };
+            const { loadAppConfig } = await import('@/config/configService');
+            const latestConfig = await loadAppConfig();
+            const latestAgent = (latestConfig.agents ?? []).find(item => item.id === agent.id);
+            const existingChannels = (latestAgent?.channels ?? agent.channels ?? []).filter(ch => ch.id !== channelId);
+            await patchAgentConfig(agent.id, { channels: [...existingChannels, channelCfg] });
+            await refreshConfig();
+            const status = await startChannel(channelCfg);
+            if (!isMountedRef.current) return;
+            setFeishuAppId(appId);
+            setFeishuAppSecret(appSecret);
+            if (isFeishuOpenClawPlugin) {
+                setOpenclawSchemaValues(prev => ({ ...prev, appId, appSecret }));
+            }
+            setBotUsername(status?.botUsername ?? undefined);
+            setBotStatus(status);
+            setVerifyStatus('valid');
+            setStep(2);
+            toastRef.current.success(t('agentSettings.channelWizard.toast.channelStarted'));
+        } catch (error) {
+            if (isMountedRef.current) {
+                setVerifyStatus('invalid');
+                setFeishuCreationError(String(error));
+            }
+        } finally {
+            if (isMountedRef.current) setStarting(false);
+        }
+    }, [agent, buildOpenclawConfig, channelId, installedPlugin?.npmSpec, isFeishuOpenClawPlugin, openclawPluginId, platform, promoted?.defaultConfig, promoted?.name, refreshConfig, startChannel, t]);
+
+    useEffect(() => {
+        if (!feishuCreationSessionId) return;
+        let cancelled = false;
+        const poll = async () => {
+            try {
+                const result = await apiGetJson<
+                    | { status: 'pending' }
+                    | { status: 'completed'; app: { appId: string; appSecret: string } }
+                    | { status: 'failed'; error: string }
+                >(`/api/feishu/one-click-app/${feishuCreationSessionId}`);
+                if (cancelled) return;
+                if (result.status === 'completed') {
+                    setFeishuCreationSessionId(null);
+                    setFeishuQrUrl(null);
+                    setQrDataUrl(null);
+                    await startCreatedFeishuChannel(result.app.appId, result.app.appSecret);
+                    return;
+                }
+                if (result.status === 'failed') {
+                    setFeishuCreationSessionId(null);
+                    setFeishuCreationError(result.error);
+                    return;
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    // A missing/expired server session cannot become valid by polling again.
+                    setFeishuCreationError(String(error));
+                    setFeishuCreationSessionId(null);
+                    setFeishuQrUrl(null);
+                    setQrDataUrl(null);
+                    return;
+                }
+            }
+            if (!cancelled) setTimeout(poll, 1500);
+        };
+        void poll();
+        return () => {
+            cancelled = true;
+            void apiDelete(`/api/feishu/one-click-app/${feishuCreationSessionId}`).catch(() => undefined);
+        };
+    }, [feishuCreationSessionId, startCreatedFeishuChannel]);
 
     // OpenClaw: step 2 = start channel, then advance to binding step
     const handleOpenClawStart = useCallback(async () => {
@@ -734,8 +850,7 @@ export default function ChannelWizard({
         if (!hasCredentials) {
             toastRef.current.error(
                 isFeishu ? t('agentSettings.channelWizard.validation.feishuCredentials')
-                    : isDingtalk ? t('agentSettings.channelWizard.validation.dingtalkCredentials')
-                        : t('agentSettings.channelWizard.validation.botToken')
+                    : t('agentSettings.channelWizard.validation.dingtalkCredentials')
             );
             return;
         }
@@ -755,11 +870,6 @@ export default function ChannelWizard({
         } else if (isDingtalk) {
             if (allChannels.some(ch => ch.dingtalkClientId === dingtalkClientId.trim())) {
                 toastRef.current.error(t('agentSettings.channelWizard.validation.duplicateDingtalk'));
-                return;
-            }
-        } else {
-            if (allChannels.some(ch => ch.botToken === botToken.trim())) {
-                toastRef.current.error(t('agentSettings.channelWizard.validation.duplicateBotToken'));
                 return;
             }
         }
@@ -792,7 +902,7 @@ export default function ChannelWizard({
                 setBotStatus(status);
                 // Save channel name from verification
                 if (status?.botUsername) {
-                    const displayName = platform === 'telegram' ? `@${status.botUsername}` : status.botUsername;
+                    const displayName = status.botUsername;
                     const updatedChannels = (agent.channels ?? [])
                         .filter(ch => ch.id !== channelId)
                         .concat([{ ...channelCfg, name: displayName }]);
@@ -811,7 +921,7 @@ export default function ChannelWizard({
                 setStarting(false);
             }
         }
-    }, [hasCredentials, isFeishu, isDingtalk, isOpenClaw, step, botToken, feishuAppId, dingtalkClientId, channelId, platform, agent, config.agents, buildChannelConfig, startChannel, refreshConfig, t]);
+    }, [hasCredentials, isFeishu, isDingtalk, isOpenClaw, step, feishuAppId, dingtalkClientId, channelId, agent, config.agents, buildChannelConfig, startChannel, refreshConfig, t]);
 
     // Complete wizard — merge local users with any Rust-persisted users
     const handleComplete = useCallback(async () => {
@@ -878,13 +988,10 @@ export default function ChannelWizard({
         ? openclawPluginName
         : isDingtalk
             ? t('agentSettings.channelWizard.platform.dingtalk')
-            : isFeishu
-                ? t('agentSettings.channelWizard.platform.feishu')
-                : t('agentSettings.channelWizard.platform.telegram');
+            : t('agentSettings.channelWizard.platform.feishu');
 
     // Platform icon for header
     const platformIcon = (() => {
-        if (platform === 'telegram') return telegramIcon;
         if (platform === 'feishu') return feishuIcon;
         if (platform === 'dingtalk') return dingtalkIcon;
         if (promoted) return promoted.icon;
@@ -911,8 +1018,7 @@ export default function ChannelWizard({
             if (step === 2) return t('agentSettings.channelWizard.steps.configurePermissionsEvents');
             return t('agentSettings.channelWizard.steps.bindFeishu');
         }
-        if (step === 1) return t('agentSettings.channelWizard.steps.configureBotToken');
-        return t('agentSettings.channelWizard.steps.bindTelegram');
+        return t('agentSettings.channelWizard.steps.bindFeishu');
     })();
 
     // Reusable action bar for each step
@@ -1286,6 +1392,34 @@ export default function ChannelWizard({
                         </div>
                     </div>
 
+                    {isFeishuOpenClawPlugin && (
+                        <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--info-bg)]/40 p-5">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-[var(--ink)]">扫码创建飞书智能体</p>
+                                    <p className="mt-1 text-xs text-[var(--ink-muted)]">在飞书确认后，BlexAgent 会自动写入插件凭证并启动此 Channel。</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={createFeishuAppByQr}
+                                    disabled={Boolean(feishuCreationSessionId) || starting}
+                                    className="shrink-0 rounded-lg bg-[var(--button-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--button-primary-text)] disabled:opacity-50"
+                                >
+                                    {feishuCreationSessionId ? '等待扫码…' : '生成二维码'}
+                                </button>
+                            </div>
+                            {feishuQrUrl && (
+                                <div className="mt-4 flex items-center gap-4">
+                                    <div className="rounded-lg bg-white p-2">
+                                        <img src={qrImageUrl ?? undefined} alt="飞书创建智能体二维码" className="h-40 w-40 rounded-md" />
+                                    </div>
+                                    <p className="text-xs text-[var(--ink-muted)]">请使用飞书扫码确认创建。二维码有效期约 {Math.ceil((feishuQrExpiresIn ?? 0) / 60)} 分钟。</p>
+                                </div>
+                            )}
+                            {feishuCreationError && <p className="mt-3 text-xs text-[var(--error)]">{feishuCreationError}</p>}
+                        </div>
+                    )}
+
                     {/* Config section */}
                     <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
                         <h3 className="text-sm font-medium text-[var(--ink)]">
@@ -1472,6 +1606,31 @@ export default function ChannelWizard({
                         </div>
                     ) : isFeishu ? (
                         <div className="space-y-6">
+                            <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--info-bg)]/40 p-5">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-sm font-semibold text-[var(--ink)]">扫码创建飞书智能体</p>
+                                        <p className="mt-1 text-xs text-[var(--ink-muted)]">在飞书确认后，BlexAgent 会自动保存应用凭证并启动此 Channel。</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={createFeishuAppByQr}
+                                        disabled={Boolean(feishuCreationSessionId) || starting}
+                                        className="shrink-0 rounded-lg bg-[var(--button-primary-bg)] px-3 py-2 text-xs font-medium text-[var(--button-primary-text)] disabled:opacity-50"
+                                    >
+                                        {feishuCreationSessionId ? '等待扫码…' : '生成二维码'}
+                                    </button>
+                                </div>
+                                {feishuQrUrl && (
+                                    <div className="mt-4 flex items-center gap-4">
+                                        <div className="rounded-lg bg-white p-2">
+                                            <img src={qrImageUrl ?? undefined} alt="飞书创建智能体二维码" className="h-40 w-40 rounded-md" />
+                                        </div>
+                                        <p className="text-xs text-[var(--ink-muted)]">请使用飞书扫码确认创建。二维码有效期约 {Math.ceil((feishuQrExpiresIn ?? 0) / 60)} 分钟。</p>
+                                    </div>
+                                )}
+                                {feishuCreationError && <p className="mt-3 text-xs text-[var(--error)]">{feishuCreationError}</p>}
+                            </div>
                             <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
                                 <FeishuCredentialInput
                                     appId={feishuAppId}
@@ -1502,37 +1661,7 @@ export default function ChannelWizard({
                                 <img src={feishuStep1Img} alt={t('agentSettings.channelWizard.guides.feishu.altCredentials')} className="mt-4 w-full rounded-lg border border-[var(--line)]" />
                             </div>
                         </div>
-                    ) : (
-                        <>
-                            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
-                                <BotTokenInput
-                                    value={botToken}
-                                    onChange={setBotToken}
-                                    verifyStatus={verifyStatus}
-                                    botUsername={botUsername}
-                                />
-                            </div>
-                            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
-                                <h3 className="text-sm font-medium text-[var(--ink)]">
-                                    {t('agentSettings.channelWizard.guides.telegram.tokenTitle')}
-                                </h3>
-                                <div className="mt-3 flex gap-5">
-                                    <img
-                                        src={telegramBotAddImg}
-                                        alt={t('agentSettings.channelWizard.guides.telegram.altBotFather')}
-                                        className="h-[270px] flex-shrink-0 rounded-lg border border-[var(--line)] object-cover"
-                                    />
-                                    <ol className="flex-1 space-y-2 text-sm text-[var(--ink-muted)]">
-                                        <li>{t('agentSettings.channelWizard.guides.telegram.step1Prefix')}<span className="font-medium text-[var(--ink)]">@BotFather</span>{t('agentSettings.channelWizard.guides.telegram.step1Suffix')}</li>
-                                        <li>{t('agentSettings.channelWizard.guides.telegram.step2Prefix')}<code className="rounded bg-[var(--paper-inset)] px-1.5 py-0.5 text-xs">/newbot</code>{t('agentSettings.channelWizard.guides.telegram.step2Suffix')}</li>
-                                        <li>{t('agentSettings.channelWizard.guides.telegram.step3')}</li>
-                                        <li>{t('agentSettings.channelWizard.guides.telegram.step4Prefix')}<span className="font-medium text-[var(--ink)]">HTTP API Token</span></li>
-                                        <li>{t('agentSettings.channelWizard.guides.telegram.step5')}</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </>
-                    )}
+                    ) : null}
                 </div>
             )}
 
@@ -1827,23 +1956,7 @@ export default function ChannelWizard({
                                 </p>
                             </div>
                         </div>
-                    ) : (
-                        <>
-                            {botStatus?.bindUrl && (
-                                <BindQrPanel
-                                    bindUrl={botStatus.bindUrl}
-                                    hasWhitelistUsers={allowedUsers.length > 0}
-                                />
-                            )}
-                            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
-                                <WhitelistManager
-                                    users={allowedUsers}
-                                    onChange={setAllowedUsers}
-                                    platform={platform}
-                                />
-                            </div>
-                        </>
-                    )}
+                    ) : null}
 
                     {(isFeishu || isDingtalk || (isOpenClaw && !isQrLogin)) && allowedUsers.length > 0 && (
                         <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">

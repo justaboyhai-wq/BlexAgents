@@ -2,8 +2,17 @@ import { cancellableFetch } from './cancellation';
 import { readLoopbackJson } from './loopback-response';
 
 export const ADMIN_LOOPBACK_TIMEOUT_MS = 10_000;
+export const MANAGEMENT_TOKEN_HEADER = 'X-BlexAgent-Management-Token';
 
 const MGMT_PORT = process.env.BLEXAGENT_MANAGEMENT_PORT;
+
+/** Headers required by the Rust loopback management API. */
+export function managementApiHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = process.env.BLEXAGENT_MANAGEMENT_TOKEN;
+  if (token) headers[MANAGEMENT_TOKEN_HEADER] = token;
+  return headers;
+}
 
 export async function managementApi(
   path: string,
@@ -23,7 +32,7 @@ export async function managementApi(
   const url = `http://127.0.0.1:${MGMT_PORT}${path}`;
   const options: RequestInit = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: managementApiHeaders(),
   };
   if (body && method === 'POST') {
     options.body = JSON.stringify(body);

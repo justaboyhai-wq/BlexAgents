@@ -67,7 +67,6 @@ export interface ChannelConfig {
 
   // Platform credentials (vary by type)
   botToken?: string;
-  telegramUseDraft?: boolean;
 
   feishuAppId?: string;
   feishuAppSecret?: string;

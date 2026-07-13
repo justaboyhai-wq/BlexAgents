@@ -1,6 +1,14 @@
 // Agent config service — CRUD helpers, migration from ImBotConfigs
 import type { AppConfig, McpServerDefinition, Project, WorkspaceTemplate, WorkspaceTemplateAgentDefaults } from '../types';
-import { getEffectiveModelAliases, isProjectArchived, PRESET_TEMPLATES } from '../types';
+import {
+  DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME,
+  DEFAULT_SYSTEM_PRESET_WORKSPACE_ID,
+  getEffectiveModelAliases,
+  isProjectArchived,
+  isSystemPresetProject,
+  LEGACY_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME,
+  PRESET_TEMPLATES,
+} from '../types';
 import type { AgentConfig, ChannelConfig, ChannelOverrides } from '../../../shared/types/agent';
 import type { ImBotConfig } from '../../../shared/types/im';
 import { atomicModifyConfig, loadAppConfig } from './appConfigService';
@@ -118,6 +126,23 @@ export function buildAgentForProject(
   };
 }
 
+function migrateLegacySystemPresetBrand(project: Project, agent: AgentConfig | undefined): boolean {
+  if (!isSystemPresetProject(project) || project.systemPresetId !== DEFAULT_SYSTEM_PRESET_WORKSPACE_ID) {
+    return false;
+  }
+
+  let changed = false;
+  if (project.displayName === LEGACY_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME) {
+    project.displayName = DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME;
+    changed = true;
+  }
+  if (agent?.name === LEGACY_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME) {
+    agent.name = DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME;
+    changed = true;
+  }
+  return changed;
+}
+
 // ============= Migration: ImBotConfigs → Agents =============
 
 let _agentMigrationDone = false;
@@ -190,7 +215,6 @@ export function migrateImBotConfigsToAgents(config: AppConfig, projects: Project
         name: bot.name,
         enabled: bot.enabled,
         botToken: bot.botToken || undefined,
-        telegramUseDraft: bot.telegramUseDraft,
         feishuAppId: bot.feishuAppId,
         feishuAppSecret: bot.feishuAppSecret,
         dingtalkClientId: bot.dingtalkClientId,
@@ -265,15 +289,22 @@ export function ensureAllProjectsHaveAgent(
   const agentMap = new Map(agents.map(a => [a.id, a]));
   let changed = false;
   let createdCount = 0;
+  let rebrandedCount = 0;
 
   for (const project of projects) {
+    const linkedById = project.agentId ? agentMap.get(project.agentId) : undefined;
+    const existingByPath = agents.find(a => workspacePathsEqual(a.workspacePath, project.path));
+    if (migrateLegacySystemPresetBrand(project, linkedById ?? existingByPath)) {
+      changed = true;
+      rebrandedCount++;
+    }
+
     // Skip if already linked to a valid agent
-    if (project.agentId && agentMap.has(project.agentId)) {
+    if (linkedById) {
       continue;
     }
 
     // Also check by workspacePath (agent exists but project.agentId is stale/missing)
-    const existingByPath = agents.find(a => workspacePathsEqual(a.workspacePath, project.path));
     if (existingByPath) {
       // Fix orphaned reference
       project.agentId = existingByPath.id;
@@ -299,7 +330,7 @@ export function ensureAllProjectsHaveAgent(
 
   if (changed) {
     config.agents = agents;
-    console.log(`[agentConfigService] ensureAllProjectsHaveAgent: created ${createdCount} basicAgent(s), total agents: ${agents.length}`);
+    console.log(`[agentConfigService] ensureAllProjectsHaveAgent: created ${createdCount} basicAgent(s), rebranded ${rebrandedCount} system preset(s), total agents: ${agents.length}`);
   }
 
   return { changed };
@@ -749,7 +780,6 @@ export async function invokeStartAgentChannel(
       name: channel.name,
       enabled: channel.enabled,
       botToken: channel.botToken,
-      telegramUseDraft: channel.telegramUseDraft,
       feishuAppId: channel.feishuAppId,
       feishuAppSecret: channel.feishuAppSecret,
       dingtalkClientId: channel.dingtalkClientId,

@@ -57,8 +57,8 @@ src-tauri/resources/server-dist.js.map
 src-tauri/resources/plugin-bridge-dist.mjs
 src-tauri/resources/plugin-bridge-dist.mjs.map
 src-tauri/resources/claude-agent-sdk
-src-tauri/resources/cli/myagents.js
-src-tauri/resources/cli/myagents.cmd
+src-tauri/resources/cli/blexagent.js
+src-tauri/resources/cli/blexagent.cmd
 src-tauri/resources/agent-browser-cli
 src-tauri/resources/sharp-runtime
 src-tauri/resources/tsx-runtime

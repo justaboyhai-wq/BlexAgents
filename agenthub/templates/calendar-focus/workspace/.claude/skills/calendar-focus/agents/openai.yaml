@@ -1,0 +1,4 @@
+interface:
+  display_name: "Calendar and Focus Planner"
+  short_description: "Balance commitments and focus time"
+  default_prompt: "Help me review this schedule and protect realistic focus time."

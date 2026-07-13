@@ -12,13 +12,56 @@ import {
   __resetModelCapabilityCacheForTests,
 } from './model-capabilities';
 
+let tmpHome: string;
+let prevHome: string | undefined;
+let prevUserProfile: string | undefined;
+
+beforeEach(() => {
+  prevHome = process.env.HOME;
+  prevUserProfile = process.env.USERPROFILE;
+  tmpHome = mkdtempSync(join(tmpdir(), 'blexagent-modelcaps-'));
+  mkdirSync(join(tmpHome, '.blexagent', 'providers'), { recursive: true });
+  process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
+  __resetModelCapabilityCacheForTests();
+});
+
+afterEach(() => {
+  if (prevHome === undefined) delete process.env.HOME;
+  else process.env.HOME = prevHome;
+  if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+  else process.env.USERPROFILE = prevUserProfile;
+  __resetModelCapabilityCacheForTests();
+  rmSync(tmpHome, { recursive: true, force: true });
+});
+
+function writeProviderFixture(
+  filename: string,
+  id: string,
+  models: Array<Record<string, unknown>>,
+): void {
+  writeFileSync(
+    join(tmpHome, '.blexagent', 'providers', filename),
+    JSON.stringify({ id, models }),
+  );
+  __resetModelCapabilityCacheForTests();
+}
+
+function writeLiteLlmFixture(entries: Record<string, unknown>): void {
+  const cacheDir = join(tmpHome, '.blexagent', 'cache');
+  mkdirSync(cacheDir, { recursive: true });
+  writeFileSync(join(cacheDir, 'litellm_model_prices.json'), JSON.stringify(entries));
+  __resetModelCapabilityCacheForTests();
+}
+
 // #1 recurring red line: a >=1M-context model MUST be tagged `[1m]` before it
 // reaches SDK ingress, or the SDK silently falls back to the 200K window
 // (/context shows 200K, auto-compact fires at ~187K, attachments truncate).
 // applyContextWindowSuffix is the single chokepoint. These lock its contract.
 //
-// Threshold cases lean on bundled PRESET_PROVIDERS (always ingested into the
-// registry): claude-opus-4-7 = 1_000_000, claude-sonnet-4-6 = 200_000.
+// Every test redirects both HOME and USERPROFILE. Windows production code
+// intentionally prefers USERPROFILE, so replacing only HOME leaks the
+// developer's real config/cache into the registry.
 describe('applyContextWindowSuffix — registry-independent guards', () => {
   it('returns undefined for empty / null / undefined (never overwrite a model option with "")', () => {
     expect(applyContextWindowSuffix(undefined)).toBeUndefined();
@@ -40,16 +83,30 @@ describe('applyContextWindowSuffix — registry-independent guards', () => {
 
 });
 
-describe('applyContextWindowSuffix — threshold via preset registry', () => {
-  it('tags default-1M preset models with [1m]', () => {
-    expect(applyContextWindowSuffix('claude-opus-4-8')).toBe('claude-opus-4-8[1m]');
-    expect(applyContextWindowSuffix('claude-opus-4-7')).toBe('claude-opus-4-7[1m]');
+describe('applyContextWindowSuffix — threshold via isolated registry fixtures', () => {
+  function installThresholdFixture(): void {
+    writeProviderFixture('threshold.json', 'threshold-fixture', [
+      { model: 'fixture-one-million-a', contextLength: 1_000_000 },
+      { model: 'fixture-one-million-b', contextLength: 1_000_000 },
+      { model: 'fixture-exact-200k-a', contextLength: 200_000 },
+      { model: 'fixture-exact-200k-b', contextLength: 200_000 },
+      { model: 'fixture-exact-200k-c', contextLength: 200_000 },
+      { model: 'fixture-midband-a', contextLength: 262_144 },
+      { model: 'fixture-midband-b', contextLength: 262_144 },
+    ]);
+  }
+
+  it('tags 1M registry models with [1m]', () => {
+    installThresholdFixture();
+    expect(applyContextWindowSuffix('fixture-one-million-a')).toBe('fixture-one-million-a[1m]');
+    expect(applyContextWindowSuffix('fixture-one-million-b')).toBe('fixture-one-million-b[1m]');
   });
 
-  it('does NOT auto-tag 200K wire-default Claude 4.6 models (#392)', () => {
-    expect(applyContextWindowSuffix('claude-opus-4-6')).toBe('claude-opus-4-6');
-    expect(applyContextWindowSuffix('claude-sonnet-4-6')).toBe('claude-sonnet-4-6');
-    expect(applyContextWindowSuffix('claude-haiku-4-5')).toBe('claude-haiku-4-5');
+  it('does NOT auto-tag models at the exact 200K wire-default threshold (#392)', () => {
+    installThresholdFixture();
+    expect(applyContextWindowSuffix('fixture-exact-200k-a')).toBe('fixture-exact-200k-a');
+    expect(applyContextWindowSuffix('fixture-exact-200k-b')).toBe('fixture-exact-200k-b');
+    expect(applyContextWindowSuffix('fixture-exact-200k-c')).toBe('fixture-exact-200k-c');
   });
 
   // #335 — mid-band models (200K < ctx < 1M) MUST be unlocked too. The [1m]
@@ -58,10 +115,10 @@ describe('applyContextWindowSuffix — threshold via preset registry', () => {
   // value) then pulls the effective window back to the real limit. Without
   // the wrap, a 512K model's usable window is min(200K, 512K) − 33K ≈ 167K —
   // most of the model's capacity silently wasted.
-  it('tags mid-band preset models (>200K, <1M) so the env cap can take effect (#335)', () => {
-    // volcengine presets: doubao-seed-2.0-code = 262_144, kimi-k2.5 = 262_144
-    expect(applyContextWindowSuffix('doubao-seed-2.0-code')).toBe('doubao-seed-2.0-code[1m]');
-    expect(applyContextWindowSuffix('kimi-k2.5')).toBe('kimi-k2.5[1m]');
+  it('tags mid-band registry models (>200K, <1M) so the env cap can take effect (#335)', () => {
+    installThresholdFixture();
+    expect(applyContextWindowSuffix('fixture-midband-a')).toBe('fixture-midband-a[1m]');
+    expect(applyContextWindowSuffix('fixture-midband-b')).toBe('fixture-midband-b[1m]');
   });
 });
 
@@ -146,74 +203,65 @@ describe('parseLiteLLMCatalog', () => {
 // #338 — the configured 1M contextLength silently fell back to 200K because the
 // bare-keyed registry was queried with a suffixed/whitespace-cruft model id, OR
 // an incomplete higher-priority entry shadowed the real window. These pin BOTH
-// mechanisms. HOME is redirected to an empty temp dir so only bundled
-// PRESET_PROVIDERS load (deterministic regardless of the dev's ~/.blexagent),
-// then a config.json is written per-case to exercise the disk sources.
+// mechanisms. The file-wide HOME + USERPROFILE sandbox prevents local
+// config/cache from participating, and each case installs only its own source.
 describe('capability-suffix tolerance + per-field merge (#338)', () => {
-  let tmpHome: string;
-  let prevHome: string | undefined;
-
-  beforeEach(() => {
-    prevHome = process.env.HOME;
-    tmpHome = mkdtempSync(join(tmpdir(), 'ma-modelcaps-'));
-    mkdirSync(join(tmpHome, '.blexagent'), { recursive: true });
-    process.env.HOME = tmpHome;
-    __resetModelCapabilityCacheForTests();
-  });
-
-  afterEach(() => {
-    if (prevHome === undefined) delete process.env.HOME;
-    else process.env.HOME = prevHome;
-    __resetModelCapabilityCacheForTests();
-    rmSync(tmpHome, { recursive: true, force: true });
-  });
-
   // Mechanism #1: a [1m] / " 1m" suffixed active model id must resolve to its
   // BARE registry contextLength (pre-fix: lookup missed → undefined → 200K).
-  it('resolves a [1m] / " 1m" suffixed id to the bare preset contextLength', () => {
-    expect(lookupModelContextLength('claude-opus-4-7[1m]')).toBe(1_000_000);
-    expect(lookupModelContextLength('claude-opus-4-7 1m')).toBe(1_000_000);
-    expect(lookupModelContextLength('claude-opus-4-6[1m]')).toBe(200_000);
-    expect(lookupModelContextLength('claude-opus-4-6 1m')).toBe(200_000);
-    expect(lookupModelContextLength('claude-sonnet-4-6[1m]')).toBe(200_000);
-    expect(lookupModelContextLength('claude-sonnet-4-6 1m')).toBe(200_000);
+  it('resolves a [1m] / " 1m" suffixed id to the bare registry contextLength', () => {
+    writeProviderFixture('suffix.json', 'suffix-fixture', [
+      { model: 'fixture-suffix-1m', contextLength: 1_000_000 },
+      { model: 'fixture-suffix-200k-a', contextLength: 200_000 },
+      { model: 'fixture-suffix-200k-b', contextLength: 200_000 },
+    ]);
+    expect(lookupModelContextLength('fixture-suffix-1m[1m]')).toBe(1_000_000);
+    expect(lookupModelContextLength('fixture-suffix-1m 1m')).toBe(1_000_000);
+    expect(lookupModelContextLength('fixture-suffix-200k-a[1m]')).toBe(200_000);
+    expect(lookupModelContextLength('fixture-suffix-200k-a 1m')).toBe(200_000);
+    expect(lookupModelContextLength('fixture-suffix-200k-b[1m]')).toBe(200_000);
+    expect(lookupModelContextLength('fixture-suffix-200k-b 1m')).toBe(200_000);
   });
 
   it('canonicalizes a hand-typed " 1m" id (#338): append [1m] >200K, strip it off otherwise', () => {
-    expect(applyContextWindowSuffix('claude-opus-4-7 1m')).toBe('claude-opus-4-7[1m]');
+    writeProviderFixture('suffix.json', 'suffix-fixture', [
+      { model: 'fixture-suffix-1m', contextLength: 1_000_000 },
+      { model: 'fixture-suffix-200k-a', contextLength: 200_000 },
+      { model: 'fixture-suffix-200k-b', contextLength: 200_000 },
+    ]);
+    expect(applyContextWindowSuffix('fixture-suffix-1m 1m')).toBe('fixture-suffix-1m[1m]');
     // ≤200K: drop the malformed " 1m" so it never leaks to the upstream wire.
-    expect(applyContextWindowSuffix('claude-opus-4-6 1m')).toBe('claude-opus-4-6');
-    expect(applyContextWindowSuffix('claude-sonnet-4-6 1m')).toBe('claude-sonnet-4-6');
+    expect(applyContextWindowSuffix('fixture-suffix-200k-a 1m')).toBe('fixture-suffix-200k-a');
+    expect(applyContextWindowSuffix('fixture-suffix-200k-b 1m')).toBe('fixture-suffix-200k-b');
   });
 
   // Mechanism #2: an incomplete higher-priority entry (modalities, NO
-  // contextLength) must NOT shadow the bundled preset's window. Pre-fix this
+  // contextLength) must NOT shadow a lower-priority catalog window. Pre-fix this
   // exact on-disk shape (observed in a real config) made lookup return
   // undefined for a CLEAN model id → window collapsed to the SDK 200K default.
-  it('an incomplete discovered entry does NOT shadow the preset contextLength', () => {
+  it('an incomplete discovered entry does NOT shadow a lower-priority catalog contextLength', () => {
     writeFileSync(
       join(tmpHome, '.blexagent', 'config.json'),
-      JSON.stringify({ presetCustomModels: { zhipu: [{ model: 'glm-5.1', inputModalities: ['text'] }] } }),
+      JSON.stringify({ presetCustomModels: { fixture: [{ model: 'fixture-merge-model', inputModalities: ['text'] }] } }),
     );
-    __resetModelCapabilityCacheForTests();
-    expect(lookupModelContextLength('glm-5.1')).toBe(204_800); // filled from preset, not shadowed
+    writeLiteLlmFixture({
+      'fixture-merge-model': { max_input_tokens: 204_800, mode: 'chat' },
+    });
+    expect(lookupModelContextLength('fixture-merge-model')).toBe(204_800);
   });
 
-  // A reseller reusing the bundled id claude-sonnet-4-6 at a 1M window, stored
-  // with the suffix baked into the model id. Bare AND suffixed lookups must see
-  // 1M (winning over the 200K bundled preset), and applyContextWindowSuffix
-  // must tag it.
+  // A discovered 1M override stored with the suffix baked into the model id.
+  // Bare AND suffixed lookups must see 1M and applyContextWindowSuffix must tag it.
   it('a 1M override stored under a [1m]-suffixed custom key resolves by the bare id', () => {
     writeFileSync(
       join(tmpHome, '.blexagent', 'config.json'),
       JSON.stringify({
-        presetCustomModels: { 'custom-dragon': [{ model: 'claude-sonnet-4-6[1m]', contextLength: 1_000_000 }] },
+        presetCustomModels: { fixture: [{ model: 'fixture-config-model[1m]', contextLength: 1_000_000 }] },
       }),
     );
     __resetModelCapabilityCacheForTests();
-    expect(lookupModelContextLength('claude-sonnet-4-6')).toBe(1_000_000);
-    expect(lookupModelContextLength('claude-sonnet-4-6[1m]')).toBe(1_000_000);
-    expect(applyContextWindowSuffix('claude-sonnet-4-6')).toBe('claude-sonnet-4-6[1m]');
+    expect(lookupModelContextLength('fixture-config-model')).toBe(1_000_000);
+    expect(lookupModelContextLength('fixture-config-model[1m]')).toBe(1_000_000);
+    expect(applyContextWindowSuffix('fixture-config-model')).toBe('fixture-config-model[1m]');
   });
 
   it('prefers the active provider contextLength when duplicate custom providers reuse a model id', () => {
@@ -223,35 +271,37 @@ describe('capability-suffix tolerance + per-field merge (#338)', () => {
       join(providersDir, 'dragon-a.json'),
       JSON.stringify({
         id: 'dragon-a',
-        models: [{ model: 'claude-sonnet-4-6', contextLength: 1_000_000 }],
+        models: [{ model: 'fixture-duplicate-model', contextLength: 1_000_000 }],
       }),
     );
     writeFileSync(
       join(providersDir, 'dragon-b.json'),
       JSON.stringify({
         id: 'dragon-b',
-        models: [{ model: 'claude-sonnet-4-6', contextLength: 200_000 }],
+        models: [{ model: 'fixture-duplicate-model', contextLength: 200_000 }],
       }),
     );
     __resetModelCapabilityCacheForTests();
 
-    expect(lookupProviderModelContextLength('claude-sonnet-4-6[1m]', 'dragon-b')).toBe(200_000);
-    expect(lookupProviderModelContextLength('claude-sonnet-4-6[1m]', 'dragon-a')).toBe(1_000_000);
+    expect(lookupProviderModelContextLength('fixture-duplicate-model[1m]', 'dragon-b')).toBe(200_000);
+    expect(lookupProviderModelContextLength('fixture-duplicate-model[1m]', 'dragon-a')).toBe(1_000_000);
   });
 
   // Per-field merge interaction with modalities (Codex review note): a higher-
   // priority entry that defines inputModalities but omits contextLength keeps
-  // its explicit modalities AND inherits the preset's contextLength. This is the
+  // its explicit modalities AND inherits a lower source's contextLength. This is the
   // intended "undefined field = defer to lower source" semantics.
-  it('per-field merge: explicit modalities win, missing contextLength fills from preset', () => {
+  it('per-field merge: explicit modalities win, missing contextLength fills from lower-priority catalog', () => {
     writeFileSync(
       join(tmpHome, '.blexagent', 'config.json'),
-      JSON.stringify({ presetCustomModels: { zhipu: [{ model: 'glm-5.1', inputModalities: ['text'] }] } }),
+      JSON.stringify({ presetCustomModels: { fixture: [{ model: 'fixture-merge-model', inputModalities: ['text'] }] } }),
     );
-    __resetModelCapabilityCacheForTests();
-    const cap = lookupModelCapability('glm-5.1');
+    writeLiteLlmFixture({
+      'fixture-merge-model': { max_input_tokens: 204_800, mode: 'chat' },
+    });
+    const cap = lookupModelCapability('fixture-merge-model');
     expect(cap?.inputModalities).toEqual(['text']); // explicit override preserved
-    expect(cap?.contextLength).toBe(204_800);        // gap filled from the bundled preset
+    expect(cap?.contextLength).toBe(204_800);        // gap filled from the lower-priority catalog
   });
 
   // applyContextWindowSuffix must not feed the SDK a garbage model option built

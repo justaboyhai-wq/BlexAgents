@@ -43,10 +43,10 @@ import {
     normalizeClaudeTranscriptCleanupPeriodDays,
     normalizeChatQueueResponseMode,
     getManagedCodexProviderReadiness,
-    isManagedCodexProviderGateEnabled,
     type ChatQueueResponseMode,
     type ProxyProtocol,
 } from '@/config/types';
+import { THEME_PRESETS, DEFAULT_THEME_PRESET } from '@/config/themePresets';
 import {
     getAllMcpServers,
     getEnabledMcpServerIds,
@@ -2537,7 +2537,6 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
 
     // providers from useConfig includes both preset and custom providers
     const allProviders = providers;
-    const managedCodexProviderGateEnabled = isManagedCodexProviderGateEnabled(config);
     const managedCodexReadiness = useMemo(
         () => getManagedCodexProviderReadiness(config),
         [
@@ -2638,13 +2637,11 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
 
     useEffect(() => {
         if (activeSection !== 'providers') return;
-        if (!managedCodexProviderGateEnabled) return;
         void refreshManagedCodexStatus();
-    }, [activeSection, managedCodexProviderGateEnabled, refreshManagedCodexStatus]);
+    }, [activeSection, refreshManagedCodexStatus]);
 
     useEffect(() => {
         if (activeSection !== 'providers') return;
-        if (!managedCodexProviderGateEnabled) return;
         const isDownloading = managedCodexBusy === 'download'
             || config.managedCodexRuntimeInstall?.status === 'downloading';
         if (!isDownloading) return;
@@ -2654,7 +2651,6 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
         return () => window.clearInterval(interval);
     }, [
         activeSection,
-        managedCodexProviderGateEnabled,
         config.managedCodexRuntimeInstall?.status,
         managedCodexBusy,
         refreshConfig,
@@ -4086,6 +4082,48 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Theme Preset Selector */}
+                                <div className="mt-5">
+                                    <p className="text-sm font-medium text-[var(--ink)]">{tSettings('general.presetTitle')}</p>
+                                    <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{tSettings('general.presetDescription')}</p>
+                                    <div className="mt-3 grid grid-cols-3 gap-2">
+                                        {THEME_PRESETS.map((preset) => {
+                                            const isActive = (config.themePreset ?? DEFAULT_THEME_PRESET) === preset.id;
+                                            const colors = preset.preview.light;
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    onClick={() => updateConfig({ themePreset: preset.id })}
+                                                    className={`group relative flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all ${
+                                                        isActive
+                                                            ? 'border-[var(--accent)] bg-[var(--accent-warm-subtle)] ring-1 ring-[var(--accent)]'
+                                                            : 'border-[var(--line)] bg-[var(--paper-elevated)] hover:border-[var(--line-strong)]'
+                                                    }`}
+                                                >
+                                                    {/* Color preview dots */}
+                                                    <div className="flex shrink-0 gap-0.5">
+                                                        <div
+                                                            className="h-4 w-4 rounded-full border border-black/10"
+                                                            style={{ backgroundColor: colors.paper }}
+                                                        />
+                                                        <div
+                                                            className="h-4 w-4 rounded-full border border-black/10"
+                                                            style={{ backgroundColor: colors.accent }}
+                                                        />
+                                                        <div
+                                                            className="h-4 w-4 rounded-full border border-black/10"
+                                                            style={{ backgroundColor: colors.ink }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-[var(--ink)]">
+                                                        {tSettings(preset.nameKey)}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Startup Settings */}
@@ -4883,35 +4921,6 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                                 >
                                                     <span
                                                         className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--toggle-thumb)] shadow transition-transform ${config.floatingBallDevGate !== false ? 'translate-x-5' : 'translate-x-0'
-                                                            }`}
-                                                    />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Managed Codex Provider Gate */}
-                                        <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex-1 pr-4">
-                                                    <h3 className="text-sm font-medium text-[var(--ink)]">{tSettings('about.developer.codexProviderTitle')}</h3>
-                                                    <p className="mt-1 text-xs text-[var(--ink-muted)]">
-                                                        {tSettings('about.developer.codexProviderDescription')}
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const nextEnabled = !managedCodexProviderGateEnabled;
-                                                        console.info(
-                                                            `[managed-codex] developer gate toggle requested runtime=codex runtimeSource=managed-provider enabled=${nextEnabled}`,
-                                                        );
-                                                        updateConfig({ managedCodexProviderDevGate: nextEnabled });
-                                                    }}
-                                                    aria-pressed={managedCodexProviderGateEnabled}
-                                                    className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors ${managedCodexProviderGateEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--line-strong)]'
-                                                        }`}
-                                                >
-                                                    <span
-                                                        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--toggle-thumb)] shadow transition-transform ${managedCodexProviderGateEnabled ? 'translate-x-5' : 'translate-x-0'
                                                             }`}
                                                     />
                                                 </button>

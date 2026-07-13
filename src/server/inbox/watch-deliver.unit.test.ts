@@ -31,10 +31,12 @@ describe('deliverSessionWatchEvents', () => {
     clearPendingSessionWatchesForTest();
     fetchMock.cancellableFetch.mockReset();
     delete process.env.BLEXAGENT_MANAGEMENT_PORT;
+    delete process.env.BLEXAGENT_MANAGEMENT_TOKEN;
   });
 
   it('acks a watch only after confirmed delivery', async () => {
     process.env.BLEXAGENT_MANAGEMENT_PORT = '8123';
+    process.env.BLEXAGENT_MANAGEMENT_TOKEN = 'test-capability-token';
     registerWatch();
     fetchMock.cancellableFetch.mockResolvedValue(new Response(
       JSON.stringify({ ok: true, outcome: { status: 'delivered', message_id: 'msg-1' } }),
@@ -44,6 +46,15 @@ describe('deliverSessionWatchEvents', () => {
     await deliverSessionWatchEvents('target-session', { text: 'done' });
 
     expect(pendingSessionWatchCount()).toBe(0);
+    expect(fetchMock.cancellableFetch).toHaveBeenCalledWith(
+      'http://127.0.0.1:8123/api/inbox/deliver',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-BlexAgent-Management-Token': 'test-capability-token',
+        }),
+      }),
+      expect.anything(),
+    );
   });
 
   it('keeps a watch pending when delivery fails', async () => {

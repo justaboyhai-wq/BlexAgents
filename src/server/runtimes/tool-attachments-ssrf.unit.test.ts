@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isUrlSchemeSafe } from './tool-attachments';
+import { isPublicUnicastAddress, isUrlSchemeSafe } from './tool-attachments';
 
 // SSRF red line: a prompt-injected tool must not be able to make the sidecar
 // fetch internal metadata services or localhost-bound ports. isUrlSchemeSafe is
@@ -39,6 +39,14 @@ describe('isUrlSchemeSafe — private/loopback/link-local hosts', () => {
     expect(check('https://172.31.255.255/x').ok).toBe(false);
   });
 
+  it('rejects every non-public IPv4 range that can host internal services', () => {
+    expect(check('https://100.64.0.1/x').ok).toBe(false); // CGNAT
+    expect(check('https://198.18.0.1/x').ok).toBe(false); // benchmarking
+    expect(check('https://192.0.0.1/x').ok).toBe(false); // IETF special use
+    expect(check('https://224.0.0.1/x').ok).toBe(false); // multicast
+    expect(check('https://240.0.0.1/x').ok).toBe(false); // reserved
+  });
+
   it('rejects IPv6 ULA / link-local (fc00::/fd00::/fe80::)', () => {
     expect(check('https://[fc00::1]/x').ok).toBe(false);
     expect(check('https://[fd12::1]/x').ok).toBe(false);
@@ -68,5 +76,15 @@ describe('isUrlSchemeSafe — private/loopback/link-local hosts', () => {
     expect(check('https://8.8.8.8/a.png').ok).toBe(true);
     // 172.32+ is public (outside the 172.16–172.31 private block).
     expect(check('https://172.32.0.1/x').ok).toBe(true);
+  });
+});
+
+describe('isPublicUnicastAddress', () => {
+  it('accepts only global unicast addresses for DNS results', () => {
+    expect(isPublicUnicastAddress('1.1.1.1')).toBe(true);
+    expect(isPublicUnicastAddress('2606:4700:4700::1111')).toBe(true);
+    expect(isPublicUnicastAddress('100.64.0.1')).toBe(false);
+    expect(isPublicUnicastAddress('::ffff:127.0.0.1')).toBe(false);
+    expect(isPublicUnicastAddress('ff02::1')).toBe(false);
   });
 });

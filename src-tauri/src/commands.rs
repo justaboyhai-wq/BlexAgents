@@ -345,7 +345,7 @@ pub struct InitBundledWorkspaceResult {
     pub is_new: bool,
 }
 
-/// Command: Initialize bundled workspace (mino) on first launch
+/// Command: Initialize the bundled Blex workspace on first launch.
 /// Copies from app resources to ~/.blexagent/projects/mino/
 #[tauri::command]
 pub fn cmd_initialize_bundled_workspace<R: Runtime>(
@@ -377,7 +377,7 @@ pub fn cmd_initialize_bundled_workspace<R: Runtime>(
     let mino_src = resource_dir.join("mino");
     if !mino_src.exists() || !mino_src.join("CLAUDE.md").exists() {
         return Err(format!(
-            "Bundled mino not found or incomplete in resources: {:?}",
+            "Bundled Blex workspace not found or incomplete in resources: {:?}",
             mino_src
         ));
     }
@@ -387,12 +387,12 @@ pub fn cmd_initialize_bundled_workspace<R: Runtime>(
         mino_src
     );
     copy_dir_recursive(&mino_src, &mino_dest)
-        .map_err(|e| format!("Failed to copy mino workspace: {}", e))?;
+        .map_err(|e| format!("Failed to copy Blex workspace: {}", e))?;
 
     // Validate the copy produced a valid workspace
     if !mino_dest.join("CLAUDE.md").exists() {
         let _ = fs::remove_dir_all(&mino_dest);
-        return Err("Bundled mino copy produced incomplete workspace".to_string());
+        return Err("Bundled Blex workspace copy produced an incomplete workspace".to_string());
     }
 
     Ok(InitBundledWorkspaceResult {
@@ -401,9 +401,9 @@ pub fn cmd_initialize_bundled_workspace<R: Runtime>(
     })
 }
 
-/// Command: Create a dedicated workspace for an IM Bot by copying bundled mino template.
+/// Command: Create a dedicated workspace for an IM Bot from the bundled Blex template.
 /// Sanitizes the name for path safety and auto-appends numeric suffix on collision.
-/// Falls back to local mino copy if bundled resources are incomplete.
+/// Falls back to the local Blex workspace at the legacy mino path if bundled resources are incomplete.
 /// Returns the created workspace path.
 #[tauri::command]
 pub fn cmd_create_bot_workspace<R: Runtime>(
@@ -431,7 +431,7 @@ pub fn cmd_create_bot_workspace<R: Runtime>(
 
     if mino_src.exists() && mino_src.join("CLAUDE.md").exists() {
         ulog_info!(
-            "[workspace] Copying bundled mino from {:?} to {:?}",
+            "[workspace] Copying bundled Blex workspace from {:?} to {:?}",
             mino_src,
             dest
         );
@@ -439,24 +439,24 @@ pub fn cmd_create_bot_workspace<R: Runtime>(
             .map_err(|e| format!("Failed to copy workspace template: {}", e))?;
     }
 
-    // Validate: CLAUDE.md must exist in destination (marker file for a valid mino template)
+    // Validate: CLAUDE.md must exist in destination (marker file for a valid Blex template)
     if !dest.join("CLAUDE.md").exists() {
-        // Fallback: copy from the local mino created on first launch
+        // Fallback: copy the local Blex workspace stored at the legacy mino path.
         let local_mino = projects_dir.join("mino");
         if local_mino.exists() && local_mino.join("CLAUDE.md").exists() {
             ulog_warn!(
-                "[workspace] Bundled mino incomplete, falling back to local {:?}",
+                "[workspace] Bundled Blex workspace incomplete, falling back to local {:?}",
                 local_mino
             );
             // Clean up the potentially empty dest before fallback copy
             let _ = fs::remove_dir_all(&dest);
             copy_dir_recursive(&local_mino, &dest)
-                .map_err(|e| format!("Failed to copy from local mino: {}", e))?;
+                .map_err(|e| format!("Failed to copy from local Blex workspace: {}", e))?;
         } else {
             // Clean up the empty dest
             let _ = fs::remove_dir_all(&dest);
             return Err(
-                "Mino template not found: bundled resources incomplete and no local copy available"
+                "Blex template not found: bundled resources incomplete and no local copy available"
                     .to_string(),
             );
         }
@@ -946,7 +946,7 @@ pub fn cmd_copy_folder_to_templates(
 
 // ============= Admin Agent Sync =============
 
-const ADMIN_AGENT_VERSION: &str = "22";
+const ADMIN_AGENT_VERSION: &str = "25";
 
 /// Helper-bundled paths (relative to `~/.blexagent/`) that previous versions
 /// shipped but that have since been retired.

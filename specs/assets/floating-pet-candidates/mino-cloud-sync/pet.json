@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "mino-cloud-sync",
-  "displayName": "Mino Cloud Sync",
+  "displayName": "Blex Cloud Sync",
   "description": "Cloud and Git-branch visual for multi-machine continuity.",
   "author": "BlexAgent / image-gen reference / deterministic hatch-pet repair",
   "license": "Candidate asset - internal review before distribution",

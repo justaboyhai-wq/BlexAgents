@@ -3,9 +3,9 @@
  *
  * The companion is a "mini Tab": it reuses the whole session-sidecar pipeline
  * (ensure → Rust proxy HTTP → SSE) with a channel identity layered on top —
- * a persistent, config-stored session id routed to the Mino (default) work-
+ * a persistent, config-stored session id routed to the Blex (default) work-
  * space, rotated daily (PRD §6.2: rotation over compaction; cross-session
- * continuity is carried by Mino's memory system, not by session history).
+ * continuity is carried by Blex's memory system, not by session history).
  *
  * It reuses the Tab send/SSE/session surfaces, plus a tiny scenario-sync
  * endpoint so sidecar pre-warm receives the floating-window prompt layer.
@@ -21,6 +21,7 @@ import { originAnalyticsFields } from '../../shared/session-origin';
 import { loadAppConfig, atomicModifyConfig } from '@/config/services/appConfigService';
 import { getAllMcpServersFromConfig } from '@/config/services/mcpService';
 import { loadProjects } from '@/config/services/projectService';
+import { DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME } from '@/config/types';
 import type { AppConfig, Project } from '@/config/types';
 import { resolveAttachmentUrl } from '@/utils/attachmentUrl';
 import { listenWithCleanup } from '@/utils/tauriListen';
@@ -433,7 +434,7 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
     const [error, setError] = useState<string | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [workspacePath, setWorkspacePath] = useState<string | null>(null);
-    const [workspaceName, setWorkspaceName] = useState<string>('Mino');
+    const [workspaceName, setWorkspaceName] = useState<string>(DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME);
     const [messages, setMessages] = useState<FbMsg[]>([]);
     const [liveMessage, setLiveMessage] = useState<FbAssistantMsg | null>(null);
     const [busy, setBusy] = useState(false);
@@ -489,7 +490,7 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
     );
     // Gate-aware runtime for analytics: with multiAgentRuntime off (default)
     // every session is builtin by construction; with the gate on the actual
-    // runtime depends on Mino's agent config which the companion deliberately
+    // runtime depends on Blex's agent config which the companion deliberately
     // does not resolve (dev-notes cut #2) → honest 'unknown' bucket.
     const analyticsRuntimeRef = useRef<'builtin' | 'unknown'>('builtin');
 
@@ -1167,7 +1168,7 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
         return () => ac.abort();
     }, [adoptMigratedSession]);
 
-    // ── boot：解析 Mino → session 轮换 → ensure → SSE → 历史 ──
+    // ── boot：解析 Blex → session 轮换 → ensure → SSE → 历史 ──
     useEffect(() => {
         if (bootedRef.current) return;
         bootedRef.current = true;
@@ -1190,7 +1191,10 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
                 analyticsRuntimeRef.current = cfg.multiAgentRuntime ? 'unknown' : 'builtin';
                 setSendShortcut(cfg.chatSendShortcut ?? 'enter');
                 // 设置面板（D17）：工作区选择器的候选 + 当前绑定覆盖。
-                setProjects(projects.map((p) => ({ path: p.path, name: p.name })));
+                setProjects(projects.map((p) => ({
+                    path: p.path,
+                    name: p.displayName || p.name,
+                })));
                 setWorkspaceOverride(cfg.floatingBallWorkspaceOverride ?? null);
 
                 // 渠道路由（D17）：override（钉死）→ 默认工作区 → /mino → 第一个项目。
@@ -1203,7 +1207,10 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
                 if (!boundWs) {
                     throw new Error(fbText('noWorkspace'));
                 }
-                console.info(`[fb-session] boot workspace resolved path=${boundWs.path} name=${boundWs.name ?? 'Mino'}`);
+                const boundWorkspaceName = boundWs.displayName
+                    || boundWs.name
+                    || DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME;
+                console.info(`[fb-session] boot workspace resolved path=${boundWs.path} name=${boundWorkspaceName}`);
                 workspaceRef.current = { path: boundWs.path };
 
                 // Session 轮换（PRD §6.2）：身份三元组 (id, workspace, date)。
@@ -1229,7 +1236,7 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
                 if (cancelled || !sid) return;
 
                 setWorkspacePath(boundWs.path);
-                setWorkspaceName(boundWs.name || 'Mino');
+                setWorkspaceName(boundWorkspaceName);
                 stage = 'connect-session';
                 await connectSession(sid, boundWs.path, cfg, projects);
                 if (cancelled) return;
@@ -1357,7 +1364,10 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
             const today = localDate();
             const [cfg, projects] = await Promise.all([loadAppConfig(), loadProjects()]);
             // 同步设置面板的候选 + 当前绑定（用户可能在别处改了默认工作区 / 加删项目）。
-            setProjects(projects.map((p) => ({ path: p.path, name: p.name })));
+            setProjects(projects.map((p) => ({
+                path: p.path,
+                name: p.displayName || p.name,
+            })));
             setWorkspaceOverride(cfg.floatingBallWorkspaceOverride ?? null);
             const target = resolveBoundWorkspace(
                 cfg.floatingBallWorkspaceOverride,
@@ -1600,7 +1610,7 @@ export function useFloatingSession(modeRef: React.MutableRefObject<'hidden' | 'p
     }, []);
 
     /** Feature off（cmd_fb_disable）→ 释放资源：断 SSE + 释放 sidecar owner。
-     *  没有这步，关掉悬浮球后 Mino sidecar 会常驻到 app 退出（review C2）。 */
+     *  没有这步，关掉悬浮球后 Blex sidecar 会常驻到 app 退出（review C2）。 */
     const suspend = useCallback(async () => {
         const sid = sessionIdRef.current;
         sseRef.current?.disconnect();

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Meal and Shopping Assistant"
+  short_description: "Plan meals and grocery lists"
+  default_prompt: "Help me plan meals from my preferences and build a grocery list."

@@ -1207,7 +1207,7 @@ Launcher 是应用的启动页，采用左右分栏布局。左侧负责品牌�
 ```
 Header:
   - 标题: text-base, font-semibold, tracking-[0.04em], var(--ink-muted)
-  - 右侧: Logs（仅 dev tools）+ AddWorkspaceMenu（仅非空工作区列表）；顶部按钮使用 py-1，避免高于 section 标题过多
+  - 右侧: AgentHub（始终可见）+ AddWorkspaceMenu（仅非空工作区列表）；Launcher 不再提供 Logs 入口，日志仍保留在设置/聊天中的既有位置；顶部按钮使用 py-1，避免高于 section 标题过多
 
 默认态:
   - Grid: 2 columns, gap-3
@@ -1312,12 +1312,21 @@ Hover 操作:
   - 不在 scroll handler 中做重计算，使用 IntersectionObserver
 ```
 
+### 15.7 AgentHub
+
+- Launcher 的 AgentHub 打开官方离线目录并创建新 Agent；`Agent 设置 → 系统提示词 → 从模板库添加` 打开同一目录并应用到当前 Agent。
+- 目录固定展示 12 个审核模板，支持搜索与生活/创作分类；卡片、筛选器、详情面板和确认区优先使用 `var(--radius-xl)` 圆角矩形，不使用圆形大面积容器。
+- 详情必须展示能力、工作区 Skill、示例、开源来源/固定版本、许可证和风险边界；加载或单个模板损坏时显示可恢复错误态，不得渲染空白页。
+- 新建为一键离线安装；应用必须先显示新增、覆盖与冲突列表。执行期间关闭入口禁用，失败后保持原工作区不变并提供重试。
+- AgentHub 不代替 Blex 默认工作区或用户本地模板库，也不要求 GitHub、VPN、CLI、外部 Runtime 或安装后下载。
+
 ---
 
 ## 版本历史
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.5.9 | 2026-07-13 | **AgentHub 官方离线目录**：Launcher 右栏 Logs 替换为始终可见的 AgentHub；同一目录接入 Agent 设置系统提示词，分别支持一键创建新 Agent 与预览后应用当前 Agent；统一 12 个审核模板、圆角卡片、来源/许可证/风险展示和失败非空白规范 |
 | 2.5.8 | 2026-06-20 | **Launcher 历史筛选与收藏规范**：历史标题行筛选器明确为「全部 / 我的收藏 / 工作区」三类历史筛选，不再仅是工作区筛选；历史行更多菜单纳入「收藏对话 / 取消收藏」，收藏状态持久化到 session metadata |
 | 2.5.7 | 2026-06-20 | **Launcher right rail final menu polish**：工作区卡片 hover 操作改为无 tooltip 的「更多」icon，点击打开与右键一致的菜单；工作区菜单新增「打开所在文件夹」；历史行右键在 mouseDown 阶段即时打开同一份更多菜单并禁用文本选中；历史时间列去掉时钟 icon 并扩到 w-16；right rail 底部增加同色渐隐遮罩 |
 | 2.5.6 | 2026-06-20 | **Launcher right rail menu / tooltip / collapsed count 修正**：历史行更多菜单改为列表级互斥状态，避免连续点击多个 row 后重复菜单叠加；工作区卡片 hover 层级提升，保证 Agent 设置 tooltip 不被相邻内容压住；默认折叠展示改为 6 个工作区（3 行 x 2 列），超过 6 个才显示展开按钮；历史 sticky header 不再用横向负 margin 铺到滚动条区域 |

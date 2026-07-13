@@ -1,0 +1,4 @@
+interface:
+  display_name: "Personal Writing Assistant"
+  short_description: "Develop voice and polish writing"
+  default_prompt: "Help me write in my own voice and edit this draft."

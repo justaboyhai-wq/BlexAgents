@@ -22,7 +22,7 @@ import { copyFile, readFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 // Read package.json version once and inject as a compile-time constant.
-// This is the ONLY way `myagents version` can show the real shipped
+// This is the ONLY way `blexagent version` can show the real shipped
 // version in production: the runtime `process.env.npm_package_version`
 // is set by `npm run …` (dev), not by Tauri's sidecar spawn (prod), so
 // without compile-time injection the admin-api falls back to a stale
@@ -101,21 +101,21 @@ const TARGETS = {
     external: ['openclaw'],
   },
   cli: {
-    entryPoints: ['src/cli/myagents.ts'],
-    outfile: 'src-tauri/resources/cli/myagents.js',
+    entryPoints: ['src/cli/blexagent.ts'],
+    outfile: 'src-tauri/resources/cli/blexagent.js',
     format: 'cjs',
     sourcemap: false,
     banner: { js: CLI_SHEBANG_BANNER },
     /** Post-build: drop the Windows launcher next to the bundle. Rust's
-     *  `cmd_sync_cli` reads `resources/cli/myagents.js` AND `myagents.cmd`,
+     *  `cmd_sync_cli` reads `resources/cli/blexagent.js` AND `blexagent.cmd`,
      *  so both have to be present in every release artifact regardless of
      *  the host OS doing the build. Doing the copy here means a single
      *  `npm run build:cli` invocation produces a complete CLI deliverable —
      *  no follow-up shell step in mac/linux/windows builders.
      */
     postBuild: async () => {
-      const src = 'src/cli/myagents.cmd';
-      const dst = 'src-tauri/resources/cli/myagents.cmd';
+      const src = 'src/cli/blexagent.cmd';
+      const dst = 'src-tauri/resources/cli/blexagent.cmd';
       await copyFile(src, dst);
       console.log(`  ↳ copied ${src} → ${dst}`);
     },
@@ -141,9 +141,9 @@ await build({
   target: 'node22',
   define: {
     // Compile-time version constant. Replaces `process.env.npm_package_version`
-    // fallbacks across the codebase so `myagents version` reports the real
+    // fallbacks across the codebase so `blexagent version` reports the real
     // shipped build instead of a stale hardcoded string in production.
-    __MYAGENTS_VERSION__: JSON.stringify(PKG_VERSION),
+    __BLEXAGENT_VERSION__: JSON.stringify(PKG_VERSION),
   },
   // `postBuild` is our own hook — strip it before handing config to esbuild.
   ...(({ postBuild: _strip, ...rest }) => rest)(cfg),

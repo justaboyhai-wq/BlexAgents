@@ -99,7 +99,6 @@ fn has_non_empty(value: Option<&String>) -> bool {
 
 fn im_config_has_start_credentials(config: &ImConfig) -> bool {
     match &config.platform {
-        ImPlatform::Telegram => !config.bot_token.is_empty(),
         ImPlatform::Feishu => {
             has_non_empty(config.feishu_app_id.as_ref())
                 && has_non_empty(config.feishu_app_secret.as_ref())
@@ -110,6 +109,52 @@ fn im_config_has_start_credentials(config: &ImConfig) -> bool {
         }
         ImPlatform::OpenClaw(_) => has_non_empty(config.openclaw_plugin_id.as_ref()),
     }
+}
+
+/// Drop removed native Telegram channels before strict deserialization. This
+/// keeps upgrades from treating a historical Telegram entry as a corrupt agent
+/// configuration and prevents it from being auto-started.
+fn remove_telegram_channels_value(value: &mut serde_json::Value) -> bool {
+    let Some(root) = value.as_object_mut() else {
+        return false;
+    };
+    let mut changed = false;
+    for key in ["imBotConfigs"] {
+        if let Some(entries) = root.get_mut(key).and_then(serde_json::Value::as_array_mut) {
+            let before = entries.len();
+            entries.retain(|entry| {
+                entry.get("platform").and_then(serde_json::Value::as_str) != Some("telegram")
+            });
+            changed |= entries.len() != before;
+        }
+    }
+    if root
+        .get("imBotConfig")
+        .and_then(|entry| entry.get("platform"))
+        .and_then(serde_json::Value::as_str)
+        == Some("telegram")
+    {
+        root.remove("imBotConfig");
+        changed = true;
+    }
+    if let Some(agents) = root
+        .get_mut("agents")
+        .and_then(serde_json::Value::as_array_mut)
+    {
+        for agent in agents {
+            if let Some(channels) = agent
+                .get_mut("channels")
+                .and_then(serde_json::Value::as_array_mut)
+            {
+                let before = channels.len();
+                channels.retain(|channel| {
+                    channel.get("type").and_then(serde_json::Value::as_str) != Some("telegram")
+                });
+                changed |= channels.len() != before;
+            }
+        }
+    }
+    changed
 }
 
 pub(super) fn missing_configured_channel_status(
@@ -364,9 +409,10 @@ mod agent_monitor_tests {
                 "providerId": "siliconflow",
                 "channels": [{
                     "id": "ch-1",
-                    "type": "telegram",
+                    "type": "feishu",
                     "enabled": true,
-                    "botToken": "bot-token",
+                    "feishuAppId": "cli_test",
+                    "feishuAppSecret": "test-secret",
                     "overrides": {
                         "providerId": "zenmux"
                     }
@@ -1512,7 +1558,8 @@ fn persist_agent_config_read_heal(config_path: &Path, reason: &str) {
             .unwrap_or_default();
         let migrated_provider_env = migrate_agent_provider_env_value(&mut healed, &api_keys, false);
         let promoted_mcp = promote_agent_mcp_json_to_global_value(&mut healed);
-        if !(normalized || migrated_provider_env || promoted_mcp) {
+        let removed_telegram = remove_telegram_channels_value(&mut healed);
+        if !(normalized || migrated_provider_env || promoted_mcp || removed_telegram) {
             return Ok(());
         }
 
@@ -1579,6 +1626,7 @@ pub(super) fn read_agent_configs_from_disk() -> Vec<AgentConfigRust> {
             }
         };
         let normalized = normalize_stringified_json_value(&mut value);
+        let removed_telegram = remove_telegram_channels_value(&mut value);
 
         let api_keys: std::collections::HashMap<String, String> = value
             .get("providerApiKeys")
@@ -1589,10 +1637,15 @@ pub(super) fn read_agent_configs_from_disk() -> Vec<AgentConfigRust> {
 
         match salvage_agents_from_value(&value, &api_keys) {
             Some(agents) => {
-                if i == 0 && (normalized || migrated_provider_env || promoted_mcp) {
+                if i == 0
+                    && (normalized || removed_telegram || migrated_provider_env || promoted_mcp)
+                {
                     let mut reasons = Vec::new();
                     if normalized {
                         reasons.push("stringified JSON normalization");
+                    }
+                    if removed_telegram {
+                        reasons.push("removed Telegram channels");
                     }
                     if migrated_provider_env {
                         reasons.push("providerEnvJson migration");

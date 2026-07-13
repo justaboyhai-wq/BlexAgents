@@ -50,6 +50,7 @@ describe('codex command context', () => {
     vi.stubEnv('CODEX_HOME', '/tmp/user-codex-home');
     vi.stubEnv('BLEXAGENT_PORT', '31415');
     vi.stubEnv('BLEXAGENT_MANAGEMENT_PORT', '27182');
+    vi.stubEnv('BLEXAGENT_MANAGEMENT_TOKEN', 'test-management-token');
     vi.stubEnv('BLEXAGENT_VERSION', '9.9.9-test');
 
     const installDir = join(
@@ -74,6 +75,7 @@ describe('codex command context', () => {
     expect(context.env.CODEX_ACCESS_TOKEN).toBeUndefined();
     expect(context.env.BLEXAGENT_PORT).toBe('31415');
     expect(context.env.BLEXAGENT_MANAGEMENT_PORT).toBe('27182');
+    expect(context.env.BLEXAGENT_MANAGEMENT_TOKEN).toBe('test-management-token');
     expect(context.env.BLEXAGENT_VERSION).toBe('9.9.9-test');
     const rules = readFileSync(join(getManagedCodexHome(), 'rules', 'blexagent.rules'), 'utf-8');
     expect(rules).toContain('prefix_rule(pattern=["blexagent"], decision="allow")');

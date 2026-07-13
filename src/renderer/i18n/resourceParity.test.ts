@@ -18,7 +18,7 @@ function interpolationNames(value: string): string[] {
 }
 
 describe('renderer i18n resource parity', () => {
-  it.each(['chat', 'launcher', 'settings', 'task'] as const)('%s keeps zh-CN and en-US keys aligned', (namespace) => {
+  it.each(['agenthub', 'chat', 'launcher', 'settings', 'task'] as const)('%s keeps zh-CN and en-US keys aligned', (namespace) => {
     const zh = flattenResource(resources['zh-CN'][namespace]);
     const en = flattenResource(resources['en-US'][namespace]);
 
@@ -35,5 +35,12 @@ describe('renderer i18n resource parity', () => {
 
     expect(Object.keys(zhItems).sort()).toEqual(expectedIds);
     expect(Object.keys(enItems).sort()).toEqual(expectedIds);
+  });
+
+  it.each(['zh-CN', 'en-US'] as const)('%s does not expose the legacy Mino brand', (locale) => {
+    const legacyEntries = Object.entries(flattenResource(resources[locale]))
+      .filter(([, value]) => /\bMino\b/i.test(value));
+
+    expect(legacyEntries).toEqual([]);
   });
 });

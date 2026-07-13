@@ -5,23 +5,18 @@ import {
   DEFAULT_CLAUDE_TRANSCRIPT_CLEANUP_PERIOD_DAYS,
   DEFAULT_CONFIG,
   CODEX_SUBSCRIPTION_PROVIDER_ID,
-  MANAGED_CODEX_PROVIDER,
   MANAGED_CODEX_REQUIRED_RUNTIME,
   PRESET_PROVIDERS,
   SUBSCRIPTION_PROVIDER_ID,
-  applyManagedCodexProviderReadiness,
   getEffectiveModelAliases,
   getManagedCodexProviderReadiness,
   isManagedCodexRequiredRuntimeInstalled,
-  isManagedCodexProviderGateEnabled,
   isManagedCodexSubscriptionAuthValid,
   mergePresetModelWithCustomEntry,
   normalizeChatQueueResponseMode,
   normalizeClaudeTranscriptCleanupPeriodDays,
   normalizeProviderOrder,
   splitProviderModelInput,
-  withManagedCodexRuntimeModels,
-  withManagedCodexProviderCatalog,
 } from './config-types';
 
 // normalizeProviderOrder reconciles a persisted provider order against the set
@@ -188,66 +183,76 @@ describe('normalizeChatQueueResponseMode', () => {
   });
 });
 
-describe('Zhipu preset models', () => {
-  it('ships GLM-5.2 in both Coding Plan and API presets with official 1M window metadata', () => {
-    for (const providerId of ['zhipu', 'zhipu-ai']) {
-      const provider = PRESET_PROVIDERS.find(p => p.id === providerId);
-      const model = provider?.models.find(m => m.model === 'glm-5.2');
+describe('Volcengine preset models', () => {
+  it('ships doubao-seed-2.0-code in Coding Plan preset with 256K window metadata', () => {
+    const provider = PRESET_PROVIDERS.find(p => p.id === 'volcengine');
+    const model = provider?.models.find(m => m.model === 'doubao-seed-2.0-code');
 
-      expect(model).toMatchObject({
-        modelName: 'GLM 5.2',
-        modelSeries: 'zhipu',
-        contextLength: 1_000_000,
-        maxOutputTokens: 131_072,
-        inputModalities: ['text'],
-      });
-      expect(provider?.modelAliases).toEqual({
-        opus: 'glm-5.2',
-        sonnet: 'glm-5.1',
-        haiku: 'glm-5.1',
-      });
-    }
+    expect(model).toMatchObject({
+      modelName: 'Doubao Seed 2.0 Code',
+      modelSeries: 'volcengine',
+      contextLength: 262_144,
+      maxOutputTokens: 128_000,
+      inputModalities: ['text', 'image', 'video'],
+    });
+    expect(provider?.modelAliases).toEqual({
+      opus: 'doubao-seed-2.0-code',
+      sonnet: 'doubao-seed-2.0-code',
+      haiku: 'doubao-seed-2.0-code',
+    });
+  });
+
+  it('ships Agent Plan on its dedicated Claude Agent SDK endpoint', () => {
+    const provider = PRESET_PROVIDERS.find(p => p.id === 'volcengine-agent-plan');
+
+    expect(provider).toMatchObject({
+      name: '火山引擎 Agent Plan',
+      primaryModel: 'ark-code-latest',
+      authType: 'auth_token',
+      apiProtocol: 'anthropic',
+      config: { baseUrl: 'https://ark.cn-beijing.volces.com/api/plan' },
+    });
+    expect(provider?.models.find(model => model.model === 'ark-code-latest')).toMatchObject({
+      contextLength: 256_000,
+      maxOutputTokens: 32_000,
+      inputModalities: ['text', 'image'],
+    });
   });
 });
 
-describe('Anthropic preset models', () => {
-  it('ships the current Agent SDK model family and pins current default aliases', () => {
-    const provider = PRESET_PROVIDERS.find(p => p.id === SUBSCRIPTION_PROVIDER_ID);
-    expect(provider?.primaryModel).toBe('claude-sonnet-5');
+describe('Aliyun Bailian preset models', () => {
+  it('ships qwen3.7-plus in Coding Plan preset with 1M window metadata', () => {
+    const provider = PRESET_PROVIDERS.find(p => p.id === 'aliyun-bailian-coding');
+    expect(provider?.primaryModel).toBe('qwen3.7-plus');
     expect(provider?.modelAliases).toEqual({
-      fable: 'claude-fable-5',
-      opus: 'claude-opus-4-8',
-      sonnet: 'claude-sonnet-5',
-      haiku: 'claude-haiku-4-5',
+      opus: 'qwen3.7-plus',
+      sonnet: 'qwen3.7-plus',
+      haiku: 'qwen3.7-plus',
     });
 
     const models = new Map(provider?.models.map(model => [model.model, model]));
-    expect(models.get('claude-fable-5')).toMatchObject({
-      contextLength: 1_000_000,
-      maxOutputTokens: 128_000,
-      inputModalities: ['text', 'image'],
+    expect(models.get('qwen3.7-plus')).toMatchObject({
+      contextLength: 1_048_576,
+      maxOutputTokens: 65_536,
+      inputModalities: ['text', 'image', 'video'],
     });
-    expect(models.get('claude-sonnet-5')).toMatchObject({
-      contextLength: 1_000_000,
-      maxOutputTokens: 128_000,
-      inputModalities: ['text', 'image'],
-    });
-    expect(models.get('claude-haiku-4-5')).toMatchObject({
-      contextLength: 200_000,
-      maxOutputTokens: 64_000,
+    expect(models.get('qwen3-coder-plus')).toMatchObject({
+      contextLength: 1_048_576,
+      maxOutputTokens: 65_536,
+      inputModalities: ['text'],
     });
   });
 });
 
 describe('model aliases', () => {
   it('backfills fable from opus for third-party preset aliases', () => {
-    const provider = PRESET_PROVIDERS.find(p => p.id === 'zhipu');
+    const provider = PRESET_PROVIDERS.find(p => p.id === 'volcengine');
     expect(provider).toBeTruthy();
     expect(getEffectiveModelAliases(provider!)).toEqual({
-      fable: 'glm-5.2',
-      opus: 'glm-5.2',
-      sonnet: 'glm-5.1',
-      haiku: 'glm-5.1',
+      fable: 'doubao-seed-2.0-code',
+      opus: 'doubao-seed-2.0-code',
+      sonnet: 'doubao-seed-2.0-code',
+      haiku: 'doubao-seed-2.0-code',
     });
   });
 });
@@ -285,55 +290,10 @@ describe('Managed Codex provider readiness', () => {
     );
   });
 
-  it('defaults the developer gate on but still honors explicit disablement', () => {
-    expect(DEFAULT_CONFIG.managedCodexProviderDevGate).toBe(true);
-    expect(isManagedCodexProviderGateEnabled({})).toBe(false);
-    expect(isManagedCodexProviderGateEnabled({ managedCodexProviderDevGate: true })).toBe(true);
-    expect(isManagedCodexProviderGateEnabled({ managedCodexProviderDevGate: false })).toBe(false);
-  });
-
-  it('keeps the provider out of the catalogue while the developer gate is explicitly off', () => {
-    expect(withManagedCodexProviderCatalog([MANAGED_CODEX_PROVIDER], {
-      managedCodexProviderDevGate: false,
-    }).some(provider => provider.id === CODEX_SUBSCRIPTION_PROVIDER_ID)).toBe(false);
-  });
-
-  it('inserts the provider after Anthropic subscription in the default catalogue', () => {
-    const catalog = withManagedCodexProviderCatalog(PRESET_PROVIDERS, DEFAULT_CONFIG);
-
-    expect(catalog.slice(0, 3).map(provider => provider.id)).toEqual([
-      SUBSCRIPTION_PROVIDER_ID,
-      CODEX_SUBSCRIPTION_PROVIDER_ID,
-      'anthropic-api',
-    ]);
-  });
-
-  it('shows the provider card by default but keeps it unselectable until ready', () => {
-    const catalog = withManagedCodexProviderCatalog([], DEFAULT_CONFIG);
-    const providers = applyManagedCodexProviderReadiness(catalog, DEFAULT_CONFIG);
-
-    expect(catalog.map(provider => provider.id)).toEqual([CODEX_SUBSCRIPTION_PROVIDER_ID]);
-    expect(providers[0].enabled).toBeUndefined();
-    expect(providers[0].runtimeReady).toBe(false);
+  it('does not expose Codex as a preset provider', () => {
+    expect(DEFAULT_CONFIG).not.toHaveProperty('managedCodexProviderDevGate');
+    expect(PRESET_PROVIDERS.some(provider => provider.id === CODEX_SUBSCRIPTION_PROVIDER_ID)).toBe(false);
     expect(getManagedCodexProviderReadiness(DEFAULT_CONFIG).reason).toBe('runtime-not-installed');
-  });
-
-  it('derives Codex subscription models from the managed runtime model list', () => {
-    const provider = withManagedCodexRuntimeModels(MANAGED_CODEX_PROVIDER, [
-      { value: 'gpt-5.1', displayName: 'GPT-5.1' },
-      { value: 'gpt-5', displayName: 'GPT-5', isDefault: true },
-      { value: '', displayName: '默认', isDefault: true },
-      { value: 'gpt-5', displayName: 'duplicate' },
-    ]);
-
-    expect(MANAGED_CODEX_PROVIDER.models).toEqual([]);
-    expect(provider.primaryModel).toBe('gpt-5');
-    expect(provider.models.map(model => model.model)).toEqual(['gpt-5.1', 'gpt-5']);
-    expect(provider.models[0]).toMatchObject({
-      modelName: 'GPT-5.1',
-      modelSeries: 'codex',
-      source: 'discovered',
-    });
   });
 
   it('requires exact runtime version, subscription auth, and no explicit disablement', () => {
@@ -350,7 +310,6 @@ describe('Managed Codex provider readiness', () => {
     expect(isManagedCodexRequiredRuntimeInstalled(runtime)).toBe(true);
     expect(isManagedCodexSubscriptionAuthValid(auth)).toBe(true);
     expect(getManagedCodexProviderReadiness({
-      managedCodexProviderDevGate: true,
       managedCodexRuntimeInstall: runtime,
       managedCodexAuth: auth,
     })).toMatchObject({
@@ -367,23 +326,4 @@ describe('Managed Codex provider readiness', () => {
     })).toBe(false);
   });
 
-  it('preserves explicit provider disablement even after readiness succeeds', () => {
-    const providers = applyManagedCodexProviderReadiness([
-      { ...MANAGED_CODEX_PROVIDER, enabled: false },
-    ], {
-      managedCodexProviderDevGate: true,
-      disabledProviderIds: [CODEX_SUBSCRIPTION_PROVIDER_ID],
-      managedCodexRuntimeInstall: {
-        status: 'installed',
-        installedVersion: MANAGED_CODEX_REQUIRED_RUNTIME.version,
-      },
-      managedCodexAuth: {
-        status: 'valid',
-        authMethod: 'chatgpt',
-      },
-    });
-
-    expect(providers[0].enabled).toBe(false);
-    expect(providers[0].runtimeReady).toBe(true);
-  });
 });

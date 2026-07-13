@@ -982,7 +982,7 @@ mod imp {
             panel.hide();
         }
         // Feature off ⇒ release resources: the companion disconnects SSE and
-        // releases its sidecar owner (the Mino sidecar then stops unless other
+        // releases its sidecar owner (the Blex companion sidecar then stops unless other
         // owners hold it). Review fix C2 — hide-only left the sidecar running
         // for the rest of the app lifetime.
         let _ = app.emit_to(
@@ -2703,8 +2703,8 @@ try {{
         let mut selected: Option<Vec<u8>> = None;
         let mut last_size = 0usize;
         for (idx, (max_dim, quality)) in ATTEMPTS.iter().copied().enumerate() {
-            let jpg =
-                std::env::temp_dir().join(format!("blexagent-fb-shot-{id}-{max_dim}-{quality}.jpg"));
+            let jpg = std::env::temp_dir()
+                .join(format!("blexagent-fb-shot-{id}-{max_dim}-{quality}.jpg"));
             ulog_info!(
                 "[fb] screenshot capture attempt={} max_dim={} quality={} path={}",
                 idx + 1,

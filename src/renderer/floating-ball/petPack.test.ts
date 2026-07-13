@@ -56,6 +56,7 @@ describe('normalizePetManifest', () => {
         const manifests = [minoPetManifest, minoPixelPetManifest, minoRunnerPetManifest]
             .map(normalizePetManifest);
         expect(manifests.map((manifest) => manifest?.id)).toEqual(['mino', 'mino-pixel', 'mino-runner']);
+        expect(manifests.map((manifest) => manifest?.displayName)).toEqual(['Blex', 'Blex Pixel', 'Blex Runner']);
         for (const manifest of manifests) {
             expect(manifest?.spritesheetPath).toBe('spritesheet.webp');
             expect(manifest?.description).toBeTruthy();

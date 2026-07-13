@@ -98,6 +98,13 @@ export default defineConfig({
         test: {
           name: 'dom',
           environment: 'jsdom',
+          environmentOptions: {
+            // A non-opaque origin is required for standards-compliant
+            // localStorage/sessionStorage. Keep it explicit because newer
+            // Node/jsdom combinations no longer provide storage for an
+            // origin-less document.
+            jsdom: { url: 'http://localhost/' },
+          },
           include: ['src/**/*.test.tsx'],
           setupFiles: ['src/test/setup-dom.ts'],
           testTimeout: 10_000,

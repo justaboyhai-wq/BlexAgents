@@ -134,7 +134,14 @@ const noEgress = vi.hoisted(() => {
 
   function patchFunction(obj: ModuleLike | undefined, key: string, guard: (args: unknown[]) => void): void {
     if (!obj || typeof obj[key] !== 'function') return;
-    obj[key] = wrapFunction(obj[key] as UnknownFn, guard);
+    // Native ESM namespace objects (notably node:dns/promises in recent Node)
+    // expose immutable properties. The mock factory still returns a patched copy
+    // below, so a best-effort in-place patch is sufficient for mutable modules.
+    try {
+      obj[key] = wrapFunction(obj[key] as UnknownFn, guard);
+    } catch {
+      // Immutable namespace: leave it for the returned module copy.
+    }
   }
 
   function defaultObject(actual: ModuleLike): ModuleLike {

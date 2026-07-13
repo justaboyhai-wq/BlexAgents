@@ -60,6 +60,37 @@ describe('cuse diagnostics', () => {
     expect(diagnostics.warnings.join('\n')).toContain('workspace .claude skill cache differs from the bundled cuse fingerprint');
   });
 
+  it('fingerprints both portable and Windows skill cache names when both exist', async () => {
+    const root = makeTempDir();
+    const workspaceDir = join(root, 'workspace');
+    const scriptsDir = join(workspaceDir, '.claude', 'skills', 'cuse', 'scripts');
+    const bundledPath = join(root, 'bundled-cuse');
+    mkdirSync(scriptsDir, { recursive: true });
+    writeFileSync(bundledPath, 'bundled-cuse');
+    writeFileSync(join(scriptsDir, 'cuse'), 'portable-cache');
+    writeFileSync(join(scriptsDir, 'cuse.exe'), 'windows-cache');
+
+    const executed: string[] = [];
+    const diagnostics = await getCuseDiagnostics({
+      workspacePath: workspaceDir,
+      homeDir: null,
+      includeR2Latest: false,
+      resolveBundledCusePath: () => bundledPath,
+      execRunner: async (file) => {
+        executed.push(file);
+        return { stdout: 'cuse 0.2.2\n' };
+      },
+    });
+
+    expect(executed).toEqual([bundledPath]);
+    expect(diagnostics.skillCaches.map(cache => cache.path)).toEqual(expect.arrayContaining([
+      join(scriptsDir, 'cuse'),
+      join(scriptsDir, 'cuse.exe'),
+    ]));
+    expect(diagnostics.skillCaches).toHaveLength(2);
+    expect(diagnostics.skillCaches.every(cache => cache.notExecuted)).toBe(true);
+  });
+
   it('reports R2 latest divergence when requested', async () => {
     const root = makeTempDir();
     const bundledPath = join(root, 'cuse');

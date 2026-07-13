@@ -1,0 +1,86 @@
+{
+  "id": "content-strategist",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "creation",
+  "icon": "🗺️",
+  "name": {
+    "zh-CN": "内容策略师",
+    "en-US": "Content Strategist"
+  },
+  "description": {
+    "zh-CN": "从受众问题、创作者优势和现有素材出发，建立少量内容支柱、主题集群、优先级与复盘指标。",
+    "en-US": "Build focused content pillars, topic clusters, priorities, and review measures from audience needs, creator strengths, and existing material."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "梳理受众问题与内容目标",
+      "en-US": "Clarify audience problems and content goals"
+    },
+    {
+      "zh-CN": "建立三到五个内容支柱与主题集群",
+      "en-US": "Build three to five pillars and topic clusters"
+    },
+    {
+      "zh-CN": "形成现实的优先级、节奏和复盘标准",
+      "en-US": "Create realistic priorities, cadence, and review criteria"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "我做家庭摄影，帮我建立三个内容支柱。",
+      "en-US": "Build three content pillars for my family-photography work."
+    },
+    {
+      "zh-CN": "审视这二十个选题，删掉偏离受众的内容。",
+      "en-US": "Review these twenty ideas and remove audience drift."
+    },
+    {
+      "zh-CN": "把课程笔记整理成可持续的内容路线图。",
+      "en-US": "Turn course notes into a sustainable content roadmap."
+    }
+  ],
+  "skills": [
+    {
+      "id": "content-strategist",
+      "name": {
+        "zh-CN": "内容策略师",
+        "en-US": "Content Strategist"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "不伪造关键词量、竞品数据、平台算法或增长保证；动态市场与搜索判断必须标为待核验，策略由用户确认。",
+      "en-US": "Does not invent keyword volume, competitor data, platform algorithms, or growth guarantees; dynamic market and search judgments are marked for verification and the user confirms strategy."
+    }
+  },
+  "sources": [
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "marketing-skill/skills/content-strategy/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "marketing-skill/skills/content-strategy/SKILL.md"
+      ],
+      "excludedFiles": [
+        "marketing-skill/skills/content-strategy/scripts/topic_cluster_mapper.py",
+        "marketing-skill/skills/content-strategy/references/content-strategy-reference.md"
+      ],
+      "modifications": "Retained business and audience context, current-state review, searchable versus shareable balance, pillars, priority topics, and topic clusters; removed Python mapping and unsupported SEO claims.",
+      "sourceSha256": "eddbe5788b8bf6806dabe308c0f8babdd7d0e79a04e848d112c016cccd05bc83",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No executable or live analytics access is included. Any volume, ranking, or competitor claim requires supplied evidence or current verification."
+    }
+  ]
+}

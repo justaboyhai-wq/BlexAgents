@@ -35,7 +35,7 @@
   },
   "rightRail": {
     "workspaceTitle": "Agent 工作区",
-    "logsTitle": "查看 Rust 日志",
+    "agentHubTitle": "AgentHub",
     "loading": "加载中...",
     "emptyWorkspaceTitle": "还没有工作区",
     "emptyWorkspaceDescription": "添加本地项目文件夹，或从模板快速创建",

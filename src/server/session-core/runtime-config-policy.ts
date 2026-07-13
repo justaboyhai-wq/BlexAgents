@@ -70,6 +70,8 @@ export function getDefaultExternalConfigCapabilities(runtimeType: RuntimeType): 
       return { model: 'next_turn_state', permissionMode: 'next_turn_state', reasoningEffort: 'next_turn_state' };
     case 'gemini':
       return { model: 'live_session_rpc', permissionMode: 'live_session_rpc', reasoningEffort: 'unsupported' };
+    case 'hermes':
+      return { model: 'live_session_rpc', permissionMode: 'live_session_rpc', reasoningEffort: 'unsupported' };
     case 'claude-code':
       return { model: 'next_turn_state', permissionMode: 'next_turn_state', reasoningEffort: 'next_turn_state' };
     default:

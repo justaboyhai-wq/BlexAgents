@@ -59,11 +59,13 @@ const MANAGED_SAFE_ENV_KEYS = [
   'SSL_CERT_FILE',
   'SSL_CERT_DIR',
   'NODE_EXTRA_CA_CERTS',
-  // Non-secret BlexAgent control-plane env. Managed Codex still gets an
-  // isolated CODEX_HOME and no provider auth env, but its shell tool must be
-  // able to run the BlexAgent CLI just like builtin/external runtime shells.
+  // BlexAgent control-plane env. Managed Codex still gets an isolated
+  // CODEX_HOME and no provider auth env, but its shell tool must be able to run
+  // the BlexAgent CLI just like builtin/external runtime shells. The management
+  // capability is intentionally preserved by the exact-name exemption below.
   'BLEXAGENT_PORT',
   'BLEXAGENT_MANAGEMENT_PORT',
+  'BLEXAGENT_MANAGEMENT_TOKEN',
   'BLEXAGENT_VERSION',
   'BLEXAGENT_PROXY_INJECTED',
   ...PROXY_ENV_KEYS,
@@ -95,6 +97,13 @@ const AUTH_ENV_NAMES = new Set([
   'REFRESH_TOKEN',
   'BEARER_TOKEN',
   'TOKEN',
+]);
+
+// The managed runtime is an app-launched, trusted child process. It needs this
+// capability to call the local management API, but no other token-shaped env
+// name is exempt from the credential scrub below.
+const MANAGED_CONTROL_PLANE_CAPABILITY_KEYS = new Set([
+  'BLEXAGENT_MANAGEMENT_TOKEN',
 ]);
 
 function managedCodexPlatform(): string | null {
@@ -276,7 +285,12 @@ function buildManagedCodexEnv(
   // but keep an explicit scrub so future safe-key additions cannot accidentally
   // leak credentials into the managed Codex process.
   for (const key of Object.keys(env)) {
-    if (looksLikeAuthEnvName(key)) delete env[key];
+    if (
+      !MANAGED_CONTROL_PLANE_CAPABILITY_KEYS.has(key)
+      && looksLikeAuthEnvName(key)
+    ) {
+      delete env[key];
+    }
   }
   applyProviderProxyPolicyToEnv(env, CODEX_SUBSCRIPTION_PROVIDER_ID);
 

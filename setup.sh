@@ -107,15 +107,17 @@ cd ..
 echo -e "${GREEN}✓ Rust 依赖准备完成${NC}"
 echo ""
 
-# 准备默认工作区 (mino) — 每次拉取最新版本
+# 准备 Blex 默认工作区（内部资源目录保持 mino 以兼容既有安装）— 每次拉取最新版本
 # .git 不保留：避免 Tauri 资源打包权限问题 + rerun-if-changed 性能问题
-echo -e "${BLUE}[6/6] 准备默认工作区 (mino)${NC}"
+echo -e "${BLUE}[6/6] 准备 Blex 默认工作区（内部资源目录: mino）${NC}"
 MINO_DIR="${PROJECT_DIR}/mino"
 rm -rf "$MINO_DIR"
-echo -e "  ${CYAN}克隆 openmino 默认工作区 (最新版本)...${NC}"
+echo -e "  ${CYAN}克隆 OpenMino 上游工作区并应用 Blex 品牌叠加 (最新版本)...${NC}"
 git clone git@github.com:hAcKlyc/openmino.git "$MINO_DIR"
 rm -rf "$MINO_DIR/.git"
-echo -e "${GREEN}✓ mino 默认工作区已就绪${NC}"
+node "${PROJECT_DIR}/scripts/apply-default-workspace-branding.mjs"
+node "${PROJECT_DIR}/scripts/validate-bundled-resources.mjs"
+echo -e "${GREEN}✓ Blex 默认工作区已就绪（内部资源目录: mino）${NC}"
 echo ""
 
 # 完成

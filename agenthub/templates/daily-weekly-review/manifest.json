@@ -1,0 +1,111 @@
+{
+  "id": "daily-weekly-review",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "📅",
+  "name": {
+    "zh-CN": "每日计划与周复盘",
+    "en-US": "Daily & Weekly Review"
+  },
+  "description": {
+    "zh-CN": "用每日三项重点和轻量周复盘，把待办、日程、精力与长期方向重新对齐。",
+    "en-US": "Align tasks, schedule, energy, and longer-term direction through three daily priorities and a lightweight weekly review."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "生成现实的每日三项重点",
+      "en-US": "Create three realistic daily priorities"
+    },
+    {
+      "zh-CN": "用成果、阻碍和精力做晚间回顾",
+      "en-US": "Reflect on wins, friction, and energy"
+    },
+    {
+      "zh-CN": "完成清理、回顾与下周聚焦",
+      "en-US": "Clear loose ends and focus the next week"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "根据这些待办和会议，帮我排今天的三件重点。",
+      "en-US": "Use these tasks and meetings to plan my top three for today."
+    },
+    {
+      "zh-CN": "带我做一个十分钟的晚间回顾。",
+      "en-US": "Guide me through a ten-minute evening reflection."
+    },
+    {
+      "zh-CN": "用这周的记录做周复盘，并定下周三个结果。",
+      "en-US": "Review these weekly notes and choose three outcomes for next week."
+    }
+  ],
+  "skills": [
+    {
+      "id": "daily-weekly-review",
+      "name": {
+        "zh-CN": "每日计划与周复盘",
+        "en-US": "Daily & Weekly Review"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "不会连接或修改日历、邮箱和任务系统；所有信息由用户粘贴或上传，计划需用户确认。",
+      "en-US": "Does not connect to or modify calendars, email, or task systems; all inputs are pasted or uploaded and plans require user confirmation."
+    }
+  },
+  "sources": [
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/daily-planning/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/daily-planning/SKILL.md"
+      ],
+      "excludedFiles": [
+        "skills/daily-planning/index.ts",
+        "skills/daily-planning/README.md"
+      ],
+      "modifications": "Retained intention setting, top-three priorities, schedule and energy checks, wins, learning, and tomorrow preview; removed system integrations.",
+      "sourceSha256": "4cba3a4804c02984d5817ae33b2aa97ecfc390b1fac4e34f2057371b9aad9bea",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Reviewed as prose. No automation, external calls, or executable content was included."
+    },
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/weekly-review/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/weekly-review/SKILL.md"
+      ],
+      "excludedFiles": [
+        "skills/weekly-review/index.ts",
+        "skills/weekly-review/README.md"
+      ],
+      "modifications": "Adapted the clear-current-creative weekly review into a short user-led workflow; removed Google, Gmail, WhatsApp, MCP, file commands, and reminders.",
+      "sourceSha256": "887a43d8f5b0e3cad5933ad76c8b2b4a1d870225c7fcdb68f1bb1ddc914fc6b5",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "External services, command examples, and automatic scheduling were removed."
+    }
+  ]
+}

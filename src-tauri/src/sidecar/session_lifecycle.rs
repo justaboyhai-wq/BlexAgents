@@ -617,6 +617,9 @@ fn create_new_session_sidecar<R: Runtime>(
     let mgmt_port = crate::management_api::get_management_port();
     if mgmt_port > 0 {
         cmd.env("BLEXAGENT_MANAGEMENT_PORT", mgmt_port.to_string());
+        if let Some(mgmt_token) = crate::management_api::get_management_token() {
+            cmd.env("BLEXAGENT_MANAGEMENT_TOKEN", mgmt_token);
+        }
     }
 
     // Inject runtime type for Agent Runtime selection (v0.1.59, v0.1.62, v0.1.66).

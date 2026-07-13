@@ -13,9 +13,10 @@
  * has no sessions.json entry. Appends to an EXISTING unindexed file stay allowed
  * (legacy orphans keep accumulating their data rather than losing it).
  *
- * HOME is redirected to a temp dir BEFORE a fresh (vi.resetModules) dynamic
- * import of SessionStore, so the module-level ~/.blexagent paths bind to the
- * sandbox. A guard test asserts the binding before anything destructive runs.
+ * HOME and USERPROFILE are redirected to a temp dir BEFORE a fresh
+ * (vi.resetModules) dynamic import of SessionStore, so the module-level
+ * ~/.blexagent paths bind to the sandbox on Unix and Windows. A guard test
+ * asserts the binding before anything destructive runs.
  */
 
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, utimesSync } from 'node:fs';
@@ -29,6 +30,7 @@ type SessionMetadata = import('../types/session').SessionMetadata;
 let home: string;
 let store: SessionStoreModule;
 let originalHome: string | undefined;
+let originalUserProfile: string | undefined;
 
 const sessionsDir = () => join(home, '.blexagent', 'sessions');
 const sessionsJson = () => join(home, '.blexagent', 'sessions.json');
@@ -59,13 +61,18 @@ function sessionMeta(id: string, agentDir: string): SessionMetadata {
 beforeAll(async () => {
     home = mkdtempSync(join(tmpdir(), 'blexagent-336-'));
     originalHome = process.env.HOME;
+    originalUserProfile = process.env.USERPROFILE;
     process.env.HOME = home;
+    process.env.USERPROFILE = home;
     vi.resetModules();
     store = await import('../SessionStore');
 });
 
 afterAll(() => {
-    process.env.HOME = originalHome;
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    if (originalUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = originalUserProfile;
     rmSync(home, { recursive: true, force: true });
 });
 

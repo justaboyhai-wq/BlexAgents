@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brand Copywriting Assistant"
+  short_description: "Clarify brand voice and copy"
+  default_prompt: "Help me clarify the brand and write honest audience-focused copy."

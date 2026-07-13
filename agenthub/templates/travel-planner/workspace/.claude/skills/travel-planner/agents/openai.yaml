@@ -1,0 +1,4 @@
+interface:
+  display_name: "Travel Planner"
+  short_description: "Build practical travel itineraries"
+  default_prompt: "Help me plan a flexible trip and flag facts that need current verification."

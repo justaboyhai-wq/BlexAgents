@@ -162,8 +162,6 @@ pub(super) async fn enqueue_to_sidecar(
 ) -> Result<Option<String>, RouteError> {
     let source_owned;
     let source: &str = match (&msg.platform, &msg.source_type) {
-        (ImPlatform::Telegram, ImSourceType::Private) => "telegram_private",
-        (ImPlatform::Telegram, ImSourceType::Group) => "telegram_group",
         (ImPlatform::Feishu, ImSourceType::Private) => "feishu_private",
         (ImPlatform::Feishu, ImSourceType::Group) => "feishu_group",
         (ImPlatform::Dingtalk, ImSourceType::Private) => "dingtalk_private",
@@ -215,7 +213,6 @@ pub(super) async fn enqueue_to_sidecar(
         body["sourceType"] = json!("group");
         body["groupName"] = json!(gc.group_name);
         body["groupPlatform"] = json!(match &gc.platform {
-            ImPlatform::Telegram => "Telegram".to_string(),
             ImPlatform::Feishu => "飞书".to_string(),
             ImPlatform::Dingtalk => "钉钉".to_string(),
             ImPlatform::OpenClaw(id) => id.clone(),
@@ -299,6 +296,5 @@ mod tests {
             "native-card"
         );
         assert_eq!(ask_cap(ImPlatform::OpenClaw("qqbot".to_string())), "none");
-        assert_eq!(ask_cap(ImPlatform::Telegram), "none");
     }
 }

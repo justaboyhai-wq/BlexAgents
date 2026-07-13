@@ -78,7 +78,8 @@ pub fn start_tab_sidecar<R: Runtime>(
         Some(dir.clone())
     } else {
         // Global sidecar: use temp directory
-        let temp_dir = std::env::temp_dir().join(format!("blexagent-global-{}", std::process::id()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("blexagent-global-{}", std::process::id()));
         ulog_info!("[sidecar] Creating temp agent directory: {:?}", temp_dir);
 
         // Create directory and fail early if unable to create
@@ -113,6 +114,9 @@ pub fn start_tab_sidecar<R: Runtime>(
     let mgmt_port = crate::management_api::get_management_port();
     if mgmt_port > 0 {
         cmd.env("BLEXAGENT_MANAGEMENT_PORT", mgmt_port.to_string());
+        if let Some(mgmt_token) = crate::management_api::get_management_token() {
+            cmd.env("BLEXAGENT_MANAGEMENT_TOKEN", mgmt_token);
+        }
     }
 
     // Inject runtime type for Agent Runtime selection (v0.1.59)

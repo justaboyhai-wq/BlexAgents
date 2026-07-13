@@ -25,6 +25,7 @@ import { capTitleAtBoundary } from '../shared/sessionTitle';
 import { ClaudeCodeRuntime } from './runtimes/claude-code';
 import { CodexRuntime } from './runtimes/codex';
 import { GeminiRuntime } from './runtimes/gemini';
+import { HermesRuntime } from './runtimes/hermes';
 import type { AgentRuntime, RuntimeProcess } from './runtimes/types';
 import type { RuntimeType } from '../shared/types/runtime';
 import { ensureDirSync } from './utils/fs-utils';
@@ -290,6 +291,7 @@ function createFreshRuntime(type: RuntimeType): AgentRuntime {
     case 'claude-code': return new ClaudeCodeRuntime();
     case 'codex': return new CodexRuntime();
     case 'gemini': return new GeminiRuntime();
+    case 'hermes': return new HermesRuntime();
     default:
       throw new Error(`Unsupported external runtime for title generation: ${type}`);
   }
@@ -315,6 +317,7 @@ function titlePermissionMode(runtimeType: RuntimeType): string {
     case 'claude-code': return 'fullAgency';  // tools stripped via disallowedTools
     case 'codex': return 'suggest';           // → approval=untrusted + sandbox=read-only
     case 'gemini': return 'default';          // → approval-required (no yolo)
+    case 'hermes': return 'default';          // → approval-required (same as gemini ACP)
     default: return 'auto';
   }
 }

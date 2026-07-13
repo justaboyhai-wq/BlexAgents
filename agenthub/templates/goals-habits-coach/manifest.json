@@ -1,0 +1,108 @@
+{
+  "id": "goals-habits-coach",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "life",
+  "icon": "🎯",
+  "name": {
+    "zh-CN": "目标与习惯教练",
+    "en-US": "Goals & Habits Coach"
+  },
+  "description": {
+    "zh-CN": "把重要目标转成可衡量的阶段结果和小到能开始的习惯，并用事实调整节奏。",
+    "en-US": "Turn a meaningful goal into measurable milestones and tiny sustainable habits, then adjust from real evidence."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "澄清一个真正重要的目标",
+      "en-US": "Clarify one meaningful goal"
+    },
+    {
+      "zh-CN": "拆成阶段结果与本周行动",
+      "en-US": "Break it into milestones and weekly actions"
+    },
+    {
+      "zh-CN": "设计小习惯、触发点和恢复方案",
+      "en-US": "Design tiny habits, cues, and recovery plans"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "我想三个月完成一部长篇初稿，帮我拆目标。",
+      "en-US": "Help me break down a three-month goal to draft a novel."
+    },
+    {
+      "zh-CN": "我总是坚持不了阅读，帮我设计一个小习惯。",
+      "en-US": "I cannot sustain reading; help me design a tiny habit."
+    },
+    {
+      "zh-CN": "根据这两周记录，帮我调整目标和习惯难度。",
+      "en-US": "Use these two weeks of records to adjust my goal and habit difficulty."
+    }
+  ],
+  "skills": [
+    {
+      "id": "goals-habits-coach",
+      "name": {
+        "zh-CN": "目标与习惯教练",
+        "en-US": "Goals & Habits Coach"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "不以羞耻、惩罚或极端要求推动习惯；涉及健康的目标只做一般记录和计划，不提供诊断或治疗建议。",
+      "en-US": "No shame, punishment, or extreme demands; health-related goals are limited to general tracking and planning, not diagnosis or treatment."
+    }
+  },
+  "sources": [
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/goal-setting/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/goal-setting/SKILL.md"
+      ],
+      "excludedFiles": [
+        "skills/goal-setting/index.ts",
+        "skills/goal-setting/README.md"
+      ],
+      "modifications": "Retained vision alignment, SMART checks, measurable results, milestones, weekly actions, and review cadence; removed personality labels and tool integrations.",
+      "sourceSha256": "c406e2031ad6461db35a11736bb87bd4a3199731582d97b40346e24eeb79d57a",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Reviewed as prose. No task-system automation or personality inference was retained."
+    },
+    {
+      "repository": "natea/ExoMind",
+      "repositoryUrl": "https://github.com/natea/ExoMind",
+      "commit": "8794d26d9a334ff386d0fe4b90b4919b95ac201a",
+      "licenseFile": "licenses/exomind-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Nate Aune",
+      "upstreamAuthor": "Nate Aune",
+      "paths": [
+        "skills/tracking-habits/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/tracking-habits/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained tiny starts, cues, habit stacking, simple completion records, pattern review, and restart protocol; removed automated accountability and identity claims.",
+      "sourceSha256": "f8a72ae7f3e960af4a0bc19b283801dd1f5ff6b8385ab49e1ac829f238925cc7",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No monitoring or notification capability is included. Medical and coercive framing was removed."
+    }
+  ]
+}

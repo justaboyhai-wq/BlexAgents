@@ -9,20 +9,18 @@ import { Popover } from '@/components/ui/Popover';
 import { useCloseLayer } from '@/hooks/useCloseLayer';
 import type { RuntimeType, RuntimeDetections } from '../../shared/types/runtime';
 
-// Runtime types that have backend implementations (not just type definitions)
-const IMPLEMENTED_RUNTIMES = new Set<RuntimeType>(['builtin', 'claude-code', 'codex', 'gemini']);
+// The product intentionally exposes only its built-in Claude Agent SDK runtime.
+const IMPLEMENTED_RUNTIMES = new Set<RuntimeType>(['builtin']);
 
 // ─── Runtime icon assets ───
 import blexagentIcon from '@/assets/runtime-icons/blexagent.png';
-import claudeCodeIcon from '@/assets/runtime-icons/claude-code.png';
-import codexIcon from '@/assets/runtime-icons/codex.png';
-import geminiIcon from '@/assets/runtime-icons/gemini.png';
 
 const RUNTIME_ICON_MAP: Record<RuntimeType, string> = {
   builtin: blexagentIcon,
-  'claude-code': claudeCodeIcon,
-  codex: codexIcon,
-  gemini: geminiIcon,
+  'claude-code': blexagentIcon,
+  codex: blexagentIcon,
+  gemini: blexagentIcon,
+  hermes: blexagentIcon,
 };
 
 // ─── Runtime display metadata ───
@@ -31,10 +29,7 @@ const RUNTIME_OPTIONS: {
   type: RuntimeType;
   name: string;
 }[] = [
-    { type: 'builtin', name: 'BlexAgent (Claude Agent SDK)' },
-    { type: 'claude-code', name: 'Claude Code CLI' },
-    { type: 'codex', name: 'Codex CLI' },
-    { type: 'gemini', name: 'Gemini CLI' },
+  { type: 'builtin', name: 'BlexAgent (Claude Agent SDK)' },
   ];
 
 function RuntimeIcon({ type, size = 14 }: { type: RuntimeType; size?: number }) {
@@ -96,11 +91,10 @@ export default memo(function RuntimeSelector({
       setOpen(false);
       return;
     }
-    const detection = detections[type];
-    if (!detection?.installed) return; // Can't select uninstalled runtime
+    if (type !== 'builtin') return;
     setOpen(false);
     onChange(type);
-  }, [value, detections, onChange, disabled]);
+  }, [value, onChange, disabled]);
 
   const currentOption = RUNTIME_OPTIONS.find(o => o.type === value) ?? RUNTIME_OPTIONS[0];
 

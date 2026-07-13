@@ -459,6 +459,8 @@ export interface WorkspaceTemplate {
 
 export const DEFAULT_BUNDLED_WORKSPACE_TEMPLATE_ID = 'mino';
 export const DEFAULT_SYSTEM_PRESET_WORKSPACE_ID: SystemPresetWorkspaceId = 'mino';
+export const DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME = 'Blex';
+export const LEGACY_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME = 'Mino';
 
 export function isSystemPresetProject(
   project: Pick<Project, 'workspaceType' | 'systemPresetId'> | null | undefined,
@@ -493,7 +495,7 @@ export function getSystemPresetProjectMetadata(
         workspaceType: 'system-preset',
         systemPresetId: 'mino',
         icon: 'lightning',
-        displayName: 'Mino',
+        displayName: DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME,
         templateId: DEFAULT_BUNDLED_WORKSPACE_TEMPLATE_ID,
         templateSource: 'builtin',
       };
@@ -512,7 +514,12 @@ export function getSystemPresetProjectMetadataPatch(
   if (metadata.templateId && project.templateId !== metadata.templateId) patch.templateId = metadata.templateId;
   if (metadata.templateSource && project.templateSource !== metadata.templateSource) patch.templateSource = metadata.templateSource;
   if (!project.icon && metadata.icon) patch.icon = metadata.icon;
-  if (!project.displayName && metadata.displayName) patch.displayName = metadata.displayName;
+  const shouldRepairDisplayName = !project.displayName
+    || (
+      presetId === DEFAULT_SYSTEM_PRESET_WORKSPACE_ID
+      && project.displayName === LEGACY_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME
+    );
+  if (shouldRepairDisplayName && metadata.displayName) patch.displayName = metadata.displayName;
 
   return patch;
 }
@@ -523,7 +530,7 @@ export function getSystemPresetProjectMetadataPatch(
 export const PRESET_TEMPLATES: WorkspaceTemplate[] = [
   {
     id: DEFAULT_BUNDLED_WORKSPACE_TEMPLATE_ID,
-    name: 'Mino',
+    name: DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME,
     description: '能记忆、会进化的 AI Agent。从 minimal 开始，长成你想要的样子。',
     icon: 'lightning',
     isBuiltin: true,
@@ -694,6 +701,8 @@ export interface AppConfig {
   backgroundAgentPermissionMode?: BackgroundAgentPermissionMode;
   // UI preferences
   theme: 'light' | 'dark' | 'system';
+  /** Theme color preset. Omitted/undefined ⇒ 'ocean-blue' (default). */
+  themePreset?: string;
   /** Product UI language. Existing pre-i18n configs missing this field migrate
    *  to `zh-CN`; new installs default to `system`. */
   uiLanguage?: UiLanguage;
@@ -733,7 +742,7 @@ export interface AppConfig {
   floatingBallEnabled?: boolean;
   /** 悬浮球本体外观。缺省视同 'pet'（PRD 0.2.34 floating_ball_pet_mode Phase 1）。 */
   floatingBallAppearance?: 'pet' | 'orb';
-  /** 当前选中的桌宠资源包。缺省视同内置 Mino。 */
+  /** 当前选中的桌宠资源包。缺省视同内置 Blex（持久化资源 ID 仍为 mino）。 */
   floatingBallPetId?: string;
   /** 桌面渠道持久 session id（伴侣窗自铸 UUID v4；轮换见下两个字段，PRD §6.2）。 */
   floatingBallSessionId?: string;
@@ -808,10 +817,7 @@ export interface AppConfig {
   // Provider IDs hidden from selectors and runtime resolution without deleting their settings.
   disabledProviderIds?: string[];
 
-  // ===== Managed Codex Provider (PRD 0.2.43) =====
-  // Developer gate controls visibility only; release-grade security remains required.
-  // Only explicit true enables the provider; release defaults persist true.
-  managedCodexProviderDevGate?: boolean;
+  // ===== Managed Codex Runtime =====
   /** @deprecated Use disabledProviderIds / providerOrder like every other provider. */
   managedCodexProviderEnabled?: boolean;
   managedCodexRuntimeInstall?: ManagedCodexRuntimeInstallState;
@@ -920,48 +926,13 @@ export interface ProjectSettings {
  *  contextLength / maxOutputTokens：来源 Anthropic Models overview (2026-07-03)
  *  inputModalities：Anthropic current Claude models all support text+image input.
  *  contextLength > 200K 由 applyContextWindowSuffix 自动加 [1m] 走 SDK 1M 上下文路径。 */
-const ANTHROPIC_MODELS: ModelEntity[] = [
-  { model: 'claude-fable-5', modelName: 'Claude Fable 5', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-  { model: 'claude-opus-4-8', modelName: 'Claude Opus 4.8', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-  { model: 'claude-sonnet-5', modelName: 'Claude Sonnet 5', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-  { model: 'claude-haiku-4-5', modelName: 'Claude Haiku 4.5', modelSeries: 'claude', contextLength: 200_000, maxOutputTokens: 64_000, inputModalities: ['text', 'image'] },
-  // Legacy 4.x options kept selectable for users/accounts that have not moved yet.
-  // contextLength: Anthropic Sonnet 4.6 / Opus 4.6 wire-default is 200K. The 1M
-  // tier requires the `context-1m-2025-08-07` beta header AND either Tier-4 API
-  // spend or a paid "extra usage" toggle on subscription plans. Defaulting to 1M
-  // here forced the SDK's `[1m]` 1M code path for everyone, and subscription users hit
-  // `Extra usage is required for 1M context · enable extra usage at
-  // claude.ai/settings/usage, or use --model to switch to standard context`
-  // on every turn (reproduced 2026-05-07 / #392). Opus 4.7+ stays at 1M because
-  // Anthropic enables those newer Opus variants on the 1M path by default.
-  { model: 'claude-sonnet-4-6', modelName: 'Claude Sonnet 4.6', modelSeries: 'claude', contextLength: 200_000, maxOutputTokens: 64_000, inputModalities: ['text', 'image'] },
-  { model: 'claude-opus-4-7', modelName: 'Claude Opus 4.7', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-  { model: 'claude-opus-4-6', modelName: 'Claude Opus 4.6', modelSeries: 'claude', contextLength: 200_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-];
-
 /** Anthropic 官方默认别名（对齐 SDK 0.3.201 当前模型族：fable5/opus48/sonnet5/haiku45）。
  *  显式 pin 可避免未来 SDK 默认变动时用户体验突变。 */
-const ANTHROPIC_ALIASES = {
-  fable: 'claude-fable-5',
-  opus: 'claude-opus-4-8',
-  sonnet: 'claude-sonnet-5',
-  haiku: 'claude-haiku-4-5',
-} as const;
-
 /** 小米 MiMo 开放平台模型目录（按量付费与 Token Plan 订阅共用，仅端点 / 计费不同）。
  *  规格来源：platform.xiaomimimo.com 模型卡 + Kilo Code 模型页一致（1,048,576 上下文 / 131,072 输出，2026-06）。
  *  contextLength > 200K（SDK 默认窗口）→ applyContextWindowSuffix 自动加 [1m] 走 SDK 1M 上下文路径（#335 起含 200K–1M 中间档）
  *  （MiMo 的 Claude Code 接入文档让手动用户手填 mimo-v2.5-pro[1m]，本产品自动完成；
  *   SDK normalizeModelStringForAPI 在 wire 上再把 [1m] 剥掉，上游收到的是 mimo-v2.5-pro）。 */
-const MIMO_MODELS: ModelEntity[] = [
-  // mimo-v2.5-pro：旗舰推理 / Agent 模型，官方模型卡 input modality = 纯文本。
-  { model: 'mimo-v2.5-pro', modelName: 'MiMo V2.5 Pro', modelSeries: 'xiaomi', contextLength: 1_048_576, maxOutputTokens: 131_072, inputModalities: ['text'] },
-  // mimo-v2.5：为 Agent 场景而生的原生全模态模型，可同时看 / 听 / 读（图像 / 音频 / 视频）。
-  { model: 'mimo-v2.5', modelName: 'MiMo V2.5', modelSeries: 'xiaomi', contextLength: 1_048_576, maxOutputTokens: 131_072, inputModalities: ['text', 'image', 'video', 'audio'] },
-];
-
-const MIMO_ALIASES = { sonnet: 'mimo-v2.5-pro', opus: 'mimo-v2.5-pro', haiku: 'mimo-v2.5' } as const;
-
 export const MANAGED_CODEX_MODELS: ModelEntity[] = [];
 
 export function managedCodexModelsFromRuntime(
@@ -1016,7 +987,6 @@ export const MANAGED_CODEX_PROVIDER: Provider = {
 };
 
 export type ManagedCodexProviderReadinessReason =
-  | 'developer-gate-off'
   | 'runtime-not-installed'
   | 'runtime-downloading'
   | 'runtime-update-required'
@@ -1036,17 +1006,10 @@ export interface ManagedCodexProviderReadiness {
 }
 
 type ManagedCodexConfigLike = Pick<AppConfig,
-  | 'managedCodexProviderDevGate'
   | 'disabledProviderIds'
   | 'managedCodexRuntimeInstall'
   | 'managedCodexAuth'
 >;
-
-export function isManagedCodexProviderGateEnabled(
-  config: Pick<AppConfig, 'managedCodexProviderDevGate'>,
-): boolean {
-  return config.managedCodexProviderDevGate === true;
-}
 
 export function isManagedCodexRequiredRuntimeInstalled(
   state: ManagedCodexRuntimeInstallState | undefined,
@@ -1068,15 +1031,6 @@ export function getManagedCodexProviderReadiness(
   config: ManagedCodexConfigLike,
 ): ManagedCodexProviderReadiness {
   const requiredVersion = MANAGED_CODEX_REQUIRED_RUNTIME.version;
-  if (!isManagedCodexProviderGateEnabled(config)) {
-    return {
-      visible: false,
-      selectable: false,
-      reason: 'developer-gate-off',
-      requiredVersion,
-    };
-  }
-
   const install = config.managedCodexRuntimeInstall;
   if (!isManagedCodexRequiredRuntimeInstalled(install)) {
     let reason: ManagedCodexProviderReadinessReason = 'runtime-not-installed';
@@ -1113,294 +1067,7 @@ export function getManagedCodexProviderReadiness(
   return { visible: true, selectable: true, reason: 'ready', requiredVersion };
 }
 
-export function withManagedCodexProviderCatalog(
-  providers: readonly Provider[],
-  config: Pick<AppConfig, 'managedCodexProviderDevGate'>,
-  runtimeModels?: readonly RuntimeModelInfo[],
-): Provider[] {
-  const withoutManagedCodex = providers.filter(provider => provider.id !== CODEX_SUBSCRIPTION_PROVIDER_ID);
-  if (!isManagedCodexProviderGateEnabled(config)) return withoutManagedCodex;
-  const managedCodexProvider = withManagedCodexRuntimeModels(MANAGED_CODEX_PROVIDER, runtimeModels);
-  const insertAfterIndex = withoutManagedCodex.findIndex(provider => provider.id === SUBSCRIPTION_PROVIDER_ID);
-  if (insertAfterIndex < 0) return [...withoutManagedCodex, managedCodexProvider];
-  return [
-    ...withoutManagedCodex.slice(0, insertAfterIndex + 1),
-    managedCodexProvider,
-    ...withoutManagedCodex.slice(insertAfterIndex + 1),
-  ];
-}
-
-export function applyManagedCodexProviderReadiness(
-  providers: readonly Provider[],
-  config: ManagedCodexConfigLike,
-): Provider[] {
-  const readiness = getManagedCodexProviderReadiness(config);
-  const runtimeReady = readiness.reason === 'ready' || readiness.reason === 'provider-disabled';
-  return providers.map(provider => {
-    if (provider.id !== CODEX_SUBSCRIPTION_PROVIDER_ID) return provider;
-    return {
-      ...provider,
-      runtimeReady,
-    };
-  });
-}
-
 export const PRESET_PROVIDERS: Provider[] = [
-  {
-    id: 'anthropic-sub',
-    name: 'Anthropic (订阅)',
-    vendor: 'Anthropic',
-    cloudProvider: '官方',
-    type: 'subscription',
-    primaryModel: 'claude-sonnet-5',
-    isBuiltin: true,
-    config: {},
-    modelAliases: { ...ANTHROPIC_ALIASES },
-    models: ANTHROPIC_MODELS,
-  },
-  {
-    id: 'anthropic-api',
-    name: 'Anthropic (API)',
-    vendor: 'Anthropic',
-    cloudProvider: '官方',
-    type: 'api',
-    primaryModel: 'claude-sonnet-5',
-    isBuiltin: true,
-    authType: 'both',
-    config: {
-      baseUrl: 'https://api.anthropic.com',
-    },
-    modelAliases: { ...ANTHROPIC_ALIASES },
-    models: ANTHROPIC_MODELS,
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    vendor: 'DeepSeek',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'deepseek-v4-pro',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://platform.deepseek.com',
-    modelListUrl: 'https://api.deepseek.com/v1/models',
-    config: {
-      baseUrl: 'https://api.deepseek.com/anthropic',
-      timeout: 600000,
-      disableNonessential: true,
-    },
-    modelAliases: { sonnet: 'deepseek-v4-pro', opus: 'deepseek-v4-pro', haiku: 'deepseek-v4-flash' },
-    models: [
-      // DeepSeek V4 系纯文本；视觉能力在独立的 DeepSeek-VL2 / Janus 模型族。
-      // deepseek-chat / deepseek-reasoner 已退化为 v4-flash 的别名且 2026-07-24 硬下线，故移除。
-      { model: 'deepseek-v4-pro', modelName: 'DeepSeek V4 Pro', modelSeries: 'deepseek', contextLength: 1_000_000, maxOutputTokens: 384_000, inputModalities: ['text'] },
-      { model: 'deepseek-v4-flash', modelName: 'DeepSeek V4 Flash', modelSeries: 'deepseek', contextLength: 1_000_000, maxOutputTokens: 384_000, inputModalities: ['text'] },
-    ],
-  },
-  {
-    id: 'moonshot',
-    name: 'Moonshot AI',
-    vendor: 'Moonshot',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'kimi-k2.6',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://platform.moonshot.cn/console',
-    modelListUrl: 'https://api.moonshot.cn/v1/models',
-    config: {
-      baseUrl: 'https://api.moonshot.cn/anthropic',
-    },
-    modelAliases: { sonnet: 'kimi-k2.6', opus: 'kimi-k2.6', haiku: 'kimi-k2-thinking-turbo' },
-    models: [
-      // K2.5 引入视觉,K2.6 增加视频;K2-0711(原始 0711 release)在视觉之前,纯文本
-      { model: 'kimi-k2.6', modelName: 'Kimi K2.6', modelSeries: 'moonshot', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image', 'video'] },
-      { model: 'kimi-k2.5', modelName: 'Kimi K2.5', modelSeries: 'moonshot', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image'] },
-      { model: 'kimi-k2-thinking-turbo', modelName: 'Kimi K2 Thinking Turbo', modelSeries: 'moonshot', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image'] },
-      // 官方 API id 必须带 -preview 后缀（kimi-k2-0711 会 model-not-found）
-      { model: 'kimi-k2-0711-preview', modelName: 'Kimi K2', modelSeries: 'moonshot', contextLength: 131_072, maxOutputTokens: 16_384, inputModalities: ['text'] },
-    ],
-  },
-  {
-    id: 'moonshot-coding',
-    name: 'Kimi Code',
-    vendor: 'Moonshot',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'kimi-for-coding',
-    isBuiltin: true,
-    authType: 'api_key',
-    websiteUrl: 'https://www.kimi.com/code',
-    config: {
-      baseUrl: 'https://api.kimi.com/coding/',
-    },
-    modelAliases: { sonnet: 'kimi-for-coding', opus: 'kimi-for-coding', haiku: 'kimi-for-coding' },
-    models: [
-      // Kimi Code 由 K2.5 驱动，256K 上下文，支持 screenshot-to-code 等视觉工作流
-      // (https://www.kimi.com/resources/kimi-code-introduction)
-      { model: 'kimi-for-coding', modelName: 'Kimi for Coding', modelSeries: 'moonshot', contextLength: 262_144, maxOutputTokens: 65_536, inputModalities: ['text', 'image'] },
-    ],
-  },
-  {
-    id: 'zhipu',
-    name: '智谱 Coding Plan',
-    vendor: 'Zhipu',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'glm-4.7',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://bigmodel.cn/console/overview',
-    modelListUrl: 'https://open.bigmodel.cn/api/paas/v4/models',
-    config: {
-      baseUrl: 'https://open.bigmodel.cn/api/anthropic',
-      timeout: 600000,
-      disableNonessential: true,
-    },
-    modelAliases: { sonnet: 'glm-5.1', opus: 'glm-5.2', haiku: 'glm-5.1' },
-    models: [
-      // GLM-5.2 Coding Plan 官方接入文档公布 1M 上下文 / 131072 max tokens；
-      // GLM-5.1 / 5-Turbo 官方公布 200K 上下文（docs.bigmodel.cn / z.ai），其余系列以 LiteLLM 数据为准
-      // GLM-5.x / 4.x chat 端点为纯文本；视觉能力在独立的 GLM-4V / GLM-5V 模型族
-      { model: 'glm-5.2', modelName: 'GLM 5.2', modelSeries: 'zhipu', contextLength: 1_000_000, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'glm-5.1', modelName: 'GLM 5.1', modelSeries: 'zhipu', contextLength: 204_800, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'glm-5-turbo', modelName: 'GLM 5 Turbo', modelSeries: 'zhipu', contextLength: 202_752, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'glm-4.7', modelName: 'GLM 4.7', modelSeries: 'zhipu', contextLength: 200_000, maxOutputTokens: 128_000, inputModalities: ['text'] },
-      { model: 'glm-5', modelName: 'GLM 5', modelSeries: 'zhipu', contextLength: 200_000, maxOutputTokens: 128_000, inputModalities: ['text'] },
-      { model: 'glm-4.5-air', modelName: 'GLM 4.5 Air', modelSeries: 'zhipu', contextLength: 128_000, maxOutputTokens: 32_000, inputModalities: ['text'] },
-    ],
-  },
-  {
-    // Open BigModel API (OpenAI-protocol chat-completions path). Shares the
-    // "Zhipu" vendor + model catalog with the Coding Plan provider above;
-    // the distinction is protocol: Coding Plan uses the `/api/anthropic`
-    // path (Anthropic-native), this one uses `/api/paas/v4/chat/completions`
-    // via the Bridge's OpenAI translator (see src/server/openai-bridge).
-    id: 'zhipu-ai',
-    name: '智谱 AI',
-    vendor: 'Zhipu',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'glm-4.7',
-    isBuiltin: true,
-    authType: 'api_key',
-    apiProtocol: 'openai',
-    websiteUrl: 'https://bigmodel.cn/console/overview',
-    modelListUrl: 'https://open.bigmodel.cn/api/paas/v4/models',
-    config: {
-      baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
-      timeout: 600000,
-    },
-    modelAliases: { sonnet: 'glm-5.1', opus: 'glm-5.2', haiku: 'glm-5.1' },
-    models: [
-      // GLM-5.2 Coding Plan 官方接入文档公布 1M 上下文 / 131072 max tokens；
-      // GLM-5.1 / 5-Turbo 官方公布 200K 上下文（docs.bigmodel.cn / z.ai），其余系列以 LiteLLM 数据为准
-      // GLM-5.x / 4.x chat 端点为纯文本；视觉能力在独立的 GLM-4V / GLM-5V 模型族
-      { model: 'glm-5.2', modelName: 'GLM 5.2', modelSeries: 'zhipu', contextLength: 1_000_000, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'glm-5.1', modelName: 'GLM 5.1', modelSeries: 'zhipu', contextLength: 204_800, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'glm-5-turbo', modelName: 'GLM 5 Turbo', modelSeries: 'zhipu', contextLength: 202_752, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'glm-4.7', modelName: 'GLM 4.7', modelSeries: 'zhipu', contextLength: 200_000, maxOutputTokens: 128_000, inputModalities: ['text'] },
-      { model: 'glm-5', modelName: 'GLM 5', modelSeries: 'zhipu', contextLength: 200_000, maxOutputTokens: 128_000, inputModalities: ['text'] },
-      { model: 'glm-4.5-air', modelName: 'GLM 4.5 Air', modelSeries: 'zhipu', contextLength: 128_000, maxOutputTokens: 32_000, inputModalities: ['text'] },
-    ],
-  },
-  {
-    id: 'minimax',
-    name: 'MiniMax',
-    vendor: 'MiniMax',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'MiniMax-M2.7',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://platform.minimaxi.com/docs/guides/models-intro',
-    config: {
-      baseUrl: 'https://api.minimaxi.com/anthropic',
-    },
-    modelAliases: { sonnet: 'MiniMax-M2.7', opus: 'MiniMax-M2.7', haiku: 'MiniMax-M2.7-highspeed' },
-    models: [
-      // MiniMax-M3（2026-06-01 发布）为新旗舰，原生多模态，官方上下文 1M（≥阈值 → 自动 [1m]）。
-      // M2.x 全系上下文 = 204,800（200K，官方 api-overview；旧 196,608 与 LiteLLM 的 1M 均为错误值）。
-      // 变体 API id 用 -highspeed（"Lightning" 仅营销名，API 不接受）。
-      // max output 官方未逐一公布：M3 暂按 M2 系列 128K（待核），M2.5/M2.1 沿用历史值。
-      { model: 'MiniMax-M3', modelName: 'MiniMax M3', modelSeries: 'minimax', contextLength: 1_000_000, maxOutputTokens: 131_072, inputModalities: ['text', 'image'] },
-      { model: 'MiniMax-M2.7', modelName: 'MiniMax M2.7', modelSeries: 'minimax', contextLength: 204_800, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'MiniMax-M2.7-highspeed', modelName: 'MiniMax M2.7 Highspeed', modelSeries: 'minimax', contextLength: 204_800, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'MiniMax-M2.5', modelName: 'MiniMax M2.5', modelSeries: 'minimax', contextLength: 204_800, maxOutputTokens: 8_192, inputModalities: ['text'] },
-      { model: 'MiniMax-M2.5-highspeed', modelName: 'MiniMax M2.5 Highspeed', modelSeries: 'minimax', contextLength: 204_800, maxOutputTokens: 8_192, inputModalities: ['text'] },
-      { model: 'MiniMax-M2.1', modelName: 'MiniMax M2.1', modelSeries: 'minimax', contextLength: 204_800, maxOutputTokens: 8_192, inputModalities: ['text'] },
-      { model: 'MiniMax-M2.1-highspeed', modelName: 'MiniMax M2.1 Highspeed', modelSeries: 'minimax', contextLength: 204_800, maxOutputTokens: 8_192, inputModalities: ['text'] },
-    ],
-  },
-  {
-    // 小米 MiMo —— 按量付费（pay-as-you-go）。sk- 形式的 ANTHROPIC_AUTH_TOKEN，按 token 计费走账户余额。
-    // 与下方 Token Plan 订阅版拆成两个供应商：端点 / key 前缀 / 计费口径都不同，用户需明确区分。
-    id: 'xiaomi-mimo',
-    name: '小米 MiMo API',
-    vendor: 'Xiaomi',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'mimo-v2.5-pro',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://platform.xiaomimimo.com/console/api-keys',
-    // Anthropic 兼容路径不暴露 /v1/models，模型发现走 OpenAI 兼容路径（同 deepseek/moonshot）
-    modelListUrl: 'https://api.xiaomimimo.com/v1/models',
-    config: {
-      baseUrl: 'https://api.xiaomimimo.com/anthropic',
-      timeout: 600000,
-      disableNonessential: true,
-    },
-    modelAliases: { ...MIMO_ALIASES },
-    models: MIMO_MODELS,
-  },
-  {
-    // 小米 MiMo —— Token Plan 订阅套餐。tp- 形式的专属 key，消耗套餐额度而非账户余额。
-    // 默认中国区端点；海外用户把 Base URL 改成 token-plan-sgp（新加坡）/ token-plan-ams（欧洲）。
-    id: 'xiaomi-mimo-token-plan',
-    name: '小米 MiMo Token Plan (CN)',
-    vendor: 'Xiaomi',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'mimo-v2.5-pro',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://platform.xiaomimimo.com/console',
-    modelListUrl: 'https://token-plan-cn.xiaomimimo.com/v1/models',
-    config: {
-      baseUrl: 'https://token-plan-cn.xiaomimimo.com/anthropic',
-      timeout: 600000,
-      disableNonessential: true,
-    },
-    modelAliases: { ...MIMO_ALIASES },
-    models: MIMO_MODELS,
-  },
-  {
-    id: 'google-gemini',
-    name: 'Google Gemini',
-    vendor: 'Google',
-    cloudProvider: '模型官方',
-    type: 'api',
-    primaryModel: 'gemini-2.5-flash',
-    isBuiltin: true,
-    authType: 'api_key',
-    apiProtocol: 'openai',
-    maxOutputTokens: 8192,
-    websiteUrl: 'https://aistudio.google.com/apikey',
-    config: {
-      baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    },
-    modelAliases: { sonnet: 'gemini-3.1-pro-preview', opus: 'gemini-3.1-pro-preview', haiku: 'gemini-3.5-flash' },
-    models: [
-      // Gemini 全系原生多模态：text + image + video + audio
-      { model: 'gemini-2.5-pro', modelName: 'Gemini 2.5 Pro', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_535, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'gemini-2.5-flash', modelName: 'Gemini 2.5 Flash', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_535, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'gemini-2.5-flash-lite', modelName: 'Gemini 2.5 Flash-Lite', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_535, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'gemini-3.1-pro-preview', modelName: 'Gemini 3.1 Pro Preview', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_536, inputModalities: ['text', 'image', 'video', 'audio'] },
-      // gemini-3.5-flash（2026-05 GA）为当前旗舰 Flash，取代 gemini-3-flash-preview
-      { model: 'gemini-3.5-flash', modelName: 'Gemini 3.5 Flash', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_536, inputModalities: ['text', 'image', 'video', 'audio'] },
-    ],
-  },
   {
     id: 'volcengine',
     name: '火山方舟 Coding Plan',
@@ -1426,98 +1093,28 @@ export const PRESET_PROVIDERS: Provider[] = [
     ],
   },
   {
-    id: 'volcengine-api',
-    name: '火山方舟 API调用',
+    id: 'volcengine-agent-plan',
+    name: '火山引擎 Agent Plan',
     vendor: '字节跳动',
     cloudProvider: '云服务商',
     type: 'api',
-    primaryModel: 'doubao-seed-2-0-pro-260215',
+    primaryModel: 'ark-code-latest',
     isBuiltin: true,
+    // Agent Plan is a Claude Agent SDK endpoint, not an OpenAI-compatible
+    // endpoint. Its dedicated plan base URL accepts ANTHROPIC_AUTH_TOKEN.
     authType: 'auth_token',
-    websiteUrl: 'https://console.volcengine.com/',
+    apiProtocol: 'anthropic',
+    websiteUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?advancedActiveKey=agentPlan',
     config: {
-      baseUrl: 'https://ark.cn-beijing.volces.com/api/compatible',
-      disableNonessential: true,
+      // Agent Plan has its own quota endpoint. Do not use /api/v3, which is
+      // billed as ordinary Ark API usage instead of the subscribed plan.
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/plan',
     },
-    modelAliases: { sonnet: 'doubao-seed-2-0-pro-260215', opus: 'doubao-seed-2-0-pro-260215', haiku: 'doubao-seed-2-0-lite-260428' },
+    modelAliases: { sonnet: 'ark-code-latest', opus: 'ark-code-latest', haiku: 'ark-code-latest' },
     models: [
-      // Doubao Seed 2.0 全系多模态：text + image + video（ByteDance Seed 2.0 公告）
-      { model: 'doubao-seed-2-0-pro-260215', modelName: 'Doubao Seed 2.0 Pro', modelSeries: 'volcengine', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image', 'video'] },
-      { model: 'doubao-seed-2-0-code-preview-260215', modelName: 'Doubao Seed 2.0 Code Preview', modelSeries: 'volcengine', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image', 'video'] },
-      // Lite 升级到 0428（omni-modal 升级版，取代 -260215）
-      { model: 'doubao-seed-2-0-lite-260428', modelName: 'Doubao Seed 2.0 Lite', modelSeries: 'volcengine', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image', 'video'] },
-    ],
-  },
-  {
-    id: 'siliconflow',
-    name: '硅基流动SiliconFlow',
-    vendor: 'SiliconFlow',
-    cloudProvider: '云服务商',
-    type: 'api',
-    primaryModel: 'Pro/zai-org/GLM-5.1',
-    isBuiltin: true,
-    authType: 'api_key',
-    // SiliconFlow 的 Anthropic 兼容层（baseUrl '/'）对 Kimi K2.5 等模型返回非规范的
-    // `thinking` content block，SDK 解析失败抛 'Content block is not a text block'
-    // (issue #216, 报告者一日撞 43 次)。OpenAI 兼容层（baseUrl '/v1'）是
-    // SiliconFlow 的主营路径，质量稳定，reasoning_content / tool_calls 都标准。
-    // 走 OpenAI 协议 → 经 OpenAI Bridge 翻译 → SDK 拿到合法 Anthropic 响应，
-    // 顺带复用 translate/messages.ts:33 已有的 Kimi K2.5 reasoning_content 适配。
-    apiProtocol: 'openai',
-    // 32K 是横跨所有 6 个模型的安全上限（MiniMax M2.5 实际 cap 8K，会被上游
-    // 静默截到 8K；Kimi K2.5/K2.6 用足）。SDK 默认会发 Claude-级 max_tokens
-    // (≥128K)，Bridge 在 handler.ts:218 用这个值覆盖后再发上游——不配会导致
-    // 上游用其默认（≈4K），长输出被截。
-    maxOutputTokens: 32768,
-    websiteUrl: 'https://cloud.siliconflow.cn/me/models',
-    config: {
-      baseUrl: 'https://api.siliconflow.cn/v1',
-      disableNonessential: true,
-    },
-    modelAliases: { sonnet: 'Pro/zai-org/GLM-5.1', opus: 'Pro/moonshotai/Kimi-K2.6', haiku: 'stepfun-ai/Step-3.5-Flash' },
-    models: [
-      // SiliconFlow 转发上游，上下文 + 模态都跟随上游原生
-      // (Step-3.5-Flash 纯文本，Step3 才是多模态，stepfun.ai/research/step3)
-      // 注：`Pro/` 是 SiliconFlow 计费分层前缀，仅部分模型有；上线前最好带 key GET /v1/models 核对 V4/M3 实际 id。
-      { model: 'Pro/moonshotai/Kimi-K2.6', modelName: 'Kimi K2.6', modelSeries: 'siliconflow', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image', 'video'] },
-      { model: 'Pro/moonshotai/Kimi-K2.5', modelName: 'Kimi K2.5', modelSeries: 'siliconflow', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image'] },
-      { model: 'Pro/zai-org/GLM-5.1', modelName: 'GLM 5.1', modelSeries: 'siliconflow', contextLength: 204_800, maxOutputTokens: 131_072, inputModalities: ['text'] },
-      { model: 'Pro/deepseek-ai/DeepSeek-V4-Pro', modelName: 'DeepSeek V4 Pro', modelSeries: 'siliconflow', contextLength: 1_000_000, maxOutputTokens: 384_000, inputModalities: ['text'] },
-      { model: 'Pro/deepseek-ai/DeepSeek-V4-Flash', modelName: 'DeepSeek V4 Flash', modelSeries: 'siliconflow', contextLength: 1_000_000, maxOutputTokens: 384_000, inputModalities: ['text'] },
-      { model: 'Pro/deepseek-ai/DeepSeek-V3.2', modelName: 'DeepSeek V3.2', modelSeries: 'siliconflow', contextLength: 163_840, maxOutputTokens: 163_840, inputModalities: ['text'] },
-      { model: 'Pro/MiniMaxAI/MiniMax-M3', modelName: 'MiniMax M3', modelSeries: 'siliconflow', contextLength: 1_000_000, maxOutputTokens: 131_072, inputModalities: ['text', 'image'] },
-      { model: 'Pro/MiniMaxAI/MiniMax-M2.5', modelName: 'MiniMax M2.5', modelSeries: 'siliconflow', contextLength: 196_608, maxOutputTokens: 8_192, inputModalities: ['text'] },
-      { model: 'stepfun-ai/Step-3.5-Flash', modelName: 'Step 3.5 Flash', modelSeries: 'siliconflow', contextLength: 262_144, maxOutputTokens: 65_536, inputModalities: ['text'] },
-    ],
-  },
-  {
-    id: 'zenmux',
-    name: 'ZenMux',
-    vendor: 'ZenMux',
-    cloudProvider: '云服务商',
-    type: 'api',
-    primaryModel: 'anthropic/claude-sonnet-4.6',
-    isBuiltin: true,
-    authType: 'auth_token',
-    websiteUrl: 'https://zenmux.ai',
-    config: {
-      baseUrl: 'https://zenmux.ai/api/anthropic',
-      disableNonessential: true,
-    },
-    modelAliases: { sonnet: 'anthropic/claude-sonnet-4.6', opus: 'anthropic/claude-opus-4.8', haiku: 'bytedance/doubao-seed-2.0-lite' },
-    models: [
-      // ZenMux 聚合路由，上下文 + 模态跟随上游原生；id 已对齐 zenmux.ai/api/v1/models 实测
-      // （Doubao 在 ZenMux 的 vendor 前缀是 bytedance，不是 volcengine）。
-      { model: 'google/gemini-3.1-pro-preview', modelName: 'Gemini 3.1 Pro', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_536, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'anthropic/claude-sonnet-4.6', modelName: 'Claude Sonnet 4.6', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 64_000, inputModalities: ['text', 'image'] },
-      { model: 'anthropic/claude-opus-4.8', modelName: 'Claude Opus 4.8', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-      { model: 'openai/gpt-5.4', modelName: 'GPT-5.4', modelSeries: 'openai', contextLength: 1_050_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-      { model: 'deepseek/deepseek-v4-pro', modelName: 'DeepSeek V4 Pro', modelSeries: 'deepseek', contextLength: 1_000_000, maxOutputTokens: 384_000, inputModalities: ['text'] },
-      { model: 'bytedance/doubao-seed-2.0-pro', modelName: 'Doubao Seed 2.0 Pro', modelSeries: 'volcengine', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image', 'video'] },
-      { model: 'bytedance/doubao-seed-2.0-lite', modelName: 'Doubao Seed 2.0 Lite', modelSeries: 'volcengine', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image', 'video'] },
-      { model: 'minimax/minimax-m3', modelName: 'MiniMax M3', modelSeries: 'minimax', contextLength: 512_000, maxOutputTokens: 131_072, inputModalities: ['text', 'image'] },
-      { model: 'moonshotai/kimi-k2.6', modelName: 'Kimi K2.6', modelSeries: 'moonshot', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image', 'video'] },
-      { model: 'z-ai/glm-5.1', modelName: 'GLM 5.1', modelSeries: 'zhipu', contextLength: 204_800, maxOutputTokens: 131_072, inputModalities: ['text'] },
+      { model: 'ark-code-latest', modelName: 'Ark Code Latest', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 32_000, inputModalities: ['text', 'image'] },
+      { model: 'doubao-seed-2.0-code', modelName: 'Doubao Seed 2.0 Code', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
+      { model: 'doubao-seed-2.0-pro', modelName: 'Doubao Seed 2.0 Pro', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
     ],
   },
   {
@@ -1543,37 +1140,6 @@ export const PRESET_PROVIDERS: Provider[] = [
       { model: 'kimi-k2.5', modelName: 'Kimi K2.5', modelSeries: 'aliyun', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image'] },
       { model: 'glm-5', modelName: 'GLM 5', modelSeries: 'aliyun', contextLength: 200_000, maxOutputTokens: 128_000, inputModalities: ['text'] },
       { model: 'MiniMax-M2.5', modelName: 'MiniMax M2.5', modelSeries: 'aliyun', contextLength: 196_608, maxOutputTokens: 8_192, inputModalities: ['text'] },
-    ],
-  },
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    vendor: 'OpenRouter',
-    cloudProvider: '云服务商',
-    type: 'api',
-    primaryModel: 'google/gemini-3.1-pro-preview',
-    isBuiltin: true,
-    authType: 'auth_token_clear_api_key',
-    websiteUrl: 'https://openrouter.ai/',
-    config: {
-      baseUrl: 'https://openrouter.ai/api',
-    },
-    modelAliases: { sonnet: 'google/gemini-3.1-pro-preview', opus: 'google/gemini-3.1-pro-preview', haiku: 'google/gemini-3-flash-preview' },
-    models: [
-      // OpenRouter 自身路由，模态直接来自 OpenRouter `architecture.input_modalities`
-      { model: 'google/gemini-3.1-flash-lite-preview', modelName: 'Gemini 3.1 Flash Lite', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_536, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'google/gemini-3-flash-preview', modelName: 'Gemini 3 Flash', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_535, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'google/gemini-3.1-pro-preview', modelName: 'Gemini 3.1 Pro', modelSeries: 'google', contextLength: 1_048_576, maxOutputTokens: 65_536, inputModalities: ['text', 'image', 'video', 'audio'] },
-      { model: 'anthropic/claude-sonnet-4.6', modelName: 'Claude Sonnet 4.6', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 64_000, inputModalities: ['text', 'image'] },
-      // claude-opus-4.6 已落后两代 → 升级到当前旗舰 4.8
-      { model: 'anthropic/claude-opus-4.8', modelName: 'Claude Opus 4.8', modelSeries: 'claude', contextLength: 1_000_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-      { model: 'anthropic/claude-haiku-4.5', modelName: 'Claude Haiku 4.5', modelSeries: 'claude', contextLength: 200_000, maxOutputTokens: 64_000, inputModalities: ['text', 'image'] },
-      { model: 'openai/gpt-5.4', modelName: 'GPT-5.4', modelSeries: 'openai', contextLength: 1_050_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-      { model: 'openai/gpt-5.4-pro', modelName: 'GPT-5.4 Pro', modelSeries: 'openai', contextLength: 1_050_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-      { model: 'openai/gpt-5.3-codex', modelName: 'GPT-5.3 Codex', modelSeries: 'openai', contextLength: 272_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
-      { model: 'openai/gpt-5.3-chat', modelName: 'GPT-5.3 Chat', modelSeries: 'openai', contextLength: 128_000, maxOutputTokens: 16_384, inputModalities: ['text', 'image'] },
-      { model: 'deepseek/deepseek-v4-pro', modelName: 'DeepSeek V4 Pro', modelSeries: 'deepseek', contextLength: 1_000_000, maxOutputTokens: 384_000, inputModalities: ['text'] },
-      { model: 'moonshotai/kimi-k2.6', modelName: 'Kimi K2.6', modelSeries: 'moonshot', contextLength: 262_144, maxOutputTokens: 262_144, inputModalities: ['text', 'image', 'video'] },
     ],
   },
 ];
@@ -1783,6 +1349,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   defaultPermissionMode: 'auto',
   backgroundAgentPermissionMode: 'inherit', // background agents inherit granted perms; nothing wider (#264)
   theme: 'system',
+  themePreset: 'ocean-blue',
   uiLanguage: 'system',
   minimizeToTray: true,   // 默认开启最小化到托盘
   forceWakeLock: false,   // 默认关闭常开阻睡（智能模式仍在跑，覆盖 AI 工作期间）
@@ -1790,7 +1357,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   showDevTools: false,
   cliToolRegistryEnabled: false, // 默认关闭用户注册 CLI 工具注册表（实验室）
   teamSpaceEnabled: false, // 默认隐藏未发布的团队 Space 入口
-  managedCodexProviderDevGate: true, // 默认开放 Codex 订阅 Provider；只有显式 true 才启用
   floatingBallDevGate: true,
   floatingBallEnabled: false,
   floatingBallHoverPeekEnabled: true,

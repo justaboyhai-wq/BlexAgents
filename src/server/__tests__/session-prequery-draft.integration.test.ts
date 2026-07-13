@@ -10,6 +10,7 @@ type SessionMetadata = import('../types/session').SessionMetadata;
 
 let home: string;
 let originalHome: string | undefined;
+let originalUserProfile: string | undefined;
 let store: SessionStoreModule;
 
 const sessionsDir = () => join(home, '.blexagent', 'sessions');
@@ -48,13 +49,18 @@ function managedCodexMeta(id: string, patch: Partial<SessionMetadata> = {}): Ses
 beforeAll(async () => {
     home = mkdtempSync(join(tmpdir(), 'blexagent-prequery-'));
     originalHome = process.env.HOME;
+    originalUserProfile = process.env.USERPROFILE;
     process.env.HOME = home;
+    process.env.USERPROFILE = home;
     vi.resetModules();
     store = await import('../SessionStore');
 });
 
 afterAll(() => {
-    process.env.HOME = originalHome;
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    if (originalUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = originalUserProfile;
     rmSync(home, { recursive: true, force: true });
 });
 

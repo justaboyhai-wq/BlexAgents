@@ -49,6 +49,16 @@
       "light": "Light",
       "dark": "Dark"
     },
+    "presetTitle": "Color Scheme",
+    "presetDescription": "Choose your preferred color scheme",
+    "preset": {
+      "warmBrown": "Warm Brown",
+      "oceanBlue": "Ocean Blue",
+      "forestGreen": "Forest Green",
+      "midnightPurple": "Midnight Purple",
+      "slateGray": "Slate Gray",
+      "sunsetOrange": "Sunset Orange"
+    },
     "queueTitle": "Queued messages",
     "queueModeTitle": "Queue response mode",
     "queueTurnDescription": "Send the next queued message only after AI finishes the current turn",
@@ -509,7 +519,7 @@
       "generateDescriptionPrefix": "Let AI analyze the current project and generate a tailored CLAUDE.md (runs ",
       "generateDescriptionSuffix": ")",
       "templateTitle": "Add from Template Library",
-      "templateDescription": "Choose a built-in or custom Agent template and merge it into this workspace. Matching files are overwritten.",
+      "templateDescription": "Browse reviewed offline AgentHub templates, preview every file change, then apply one to this Agent.",
       "manualTitle": "Create Manually",
       "manualDescription": "Write CLAUDE.md yourself and start from a blank editor.",
       "ruleMissingTitle": "{{filename}} does not exist",

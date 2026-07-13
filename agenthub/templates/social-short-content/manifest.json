@@ -1,0 +1,131 @@
+{
+  "id": "social-short-content",
+  "provenanceLock": "../../provenance-lock.json",
+  "version": "1.0.0",
+  "category": "creation",
+  "icon": "💬",
+  "name": {
+    "zh-CN": "社媒与短内容创作",
+    "en-US": "Social & Short Content Creator"
+  },
+  "description": {
+    "zh-CN": "把一个核心想法转成适合不同平台语境的短内容、钩子、变体与人工发布清单。",
+    "en-US": "Turn one core idea into platform-aware short content, hooks, variants, and a manual publishing checklist."
+  },
+  "capabilities": [
+    {
+      "zh-CN": "建立内容支柱与形式矩阵",
+      "en-US": "Build a pillar-and-format content matrix"
+    },
+    {
+      "zh-CN": "为目标平台写钩子与完整短内容",
+      "en-US": "Write hooks and complete platform-aware posts"
+    },
+    {
+      "zh-CN": "将长内容拆成多个不重复的短内容",
+      "en-US": "Repurpose long-form work into distinct short pieces"
+    }
+  ],
+  "examples": [
+    {
+      "zh-CN": "把这篇文章改成小红书和公众号短帖，各写一版。",
+      "en-US": "Adapt this article into distinct short posts for two platforms."
+    },
+    {
+      "zh-CN": "围绕三个内容支柱做一个选题矩阵。",
+      "en-US": "Build an idea matrix around three content pillars."
+    },
+    {
+      "zh-CN": "给这个观点写五个真实、不夸张的开头。",
+      "en-US": "Write five honest, non-hyped hooks for this idea."
+    }
+  ],
+  "skills": [
+    {
+      "id": "social-short-content",
+      "name": {
+        "zh-CN": "社媒与短内容创作",
+        "en-US": "Social & Short Content Creator"
+      }
+    }
+  ],
+  "risk": {
+    "level": "low",
+    "boundary": {
+      "zh-CN": "不自动发布、私信、抓取或操作平台账户；平台规则与最佳实践会变化，发布前需由用户核验并人工确认。",
+      "en-US": "Never publishes, messages, scrapes, or operates platform accounts; platform rules and best practices change, so users verify and manually approve before posting."
+    }
+  },
+  "sources": [
+    {
+      "repository": "alirezarezvani/claude-skills",
+      "repositoryUrl": "https://github.com/alirezarezvani/claude-skills",
+      "commit": "0241f43765572f15146fcef692defbf96d473f37",
+      "licenseFile": "licenses/alirezarezvani-claude-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2025 Alireza Rezvani",
+      "upstreamAuthor": "Alireza Rezvani",
+      "paths": [
+        "marketing-skill/skills/social-content/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "marketing-skill/skills/social-content/SKILL.md"
+      ],
+      "excludedFiles": [
+        "marketing-skill/skills/social-content/references/reverse-engineering.md",
+        "marketing-skill/skills/social-content/references/post-templates.md",
+        "marketing-skill/skills/social-content/references/platforms.md"
+      ],
+      "modifications": "Retained audience, goal, voice, content pillars, hooks, repurposing, calendar, and review concepts; removed platform automation, engagement quotas, scraping, and claims about fixed algorithms.",
+      "sourceSha256": "02008f95432fd0c9088bccd71a3358b3ead1f06ac6115f3fe3fe5f562fc2da37",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "No account actions or live platform assumptions remain. Format guidance is treated as a hypothesis to verify."
+    },
+    {
+      "repository": "charlie947/social-media-skills",
+      "repositoryUrl": "https://github.com/charlie947/social-media-skills",
+      "commit": "94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1",
+      "licenseFile": "licenses/social-media-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2026 Charlie Hills",
+      "upstreamAuthor": "Charlie Hills",
+      "paths": [
+        "skills/post-writer/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/post-writer/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained input gathering, evidence-aware planning, full-draft writing, and user-led iteration; removed auto-start and tool-specific interaction requirements.",
+      "sourceSha256": "a0c91645648df1cb933489fd3ef0c50fed196661c5374d95dadf637407866c1f",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Posting and research are not automated; unsupported claims require user evidence or current verification."
+    },
+    {
+      "repository": "charlie947/social-media-skills",
+      "repositoryUrl": "https://github.com/charlie947/social-media-skills",
+      "commit": "94f72ea2ece388fa30ef49a26fb2e6fd2109e0b1",
+      "licenseFile": "licenses/social-media-skills-MIT.txt",
+      "copyrightNotice": "Copyright (c) 2026 Charlie Hills",
+      "upstreamAuthor": "Charlie Hills",
+      "paths": [
+        "skills/content-matrix/SKILL.md"
+      ],
+      "licenseSpdx": "MIT",
+      "retrievedAt": "2026-07-13",
+      "includedFiles": [
+        "skills/content-matrix/SKILL.md"
+      ],
+      "excludedFiles": [],
+      "modifications": "Retained pillar-by-format ideation across actionable, motivational, analytical, contrarian, observational, comparison, future, and list formats; removed interactive widgets and filesystem-specific behavior.",
+      "sourceSha256": "dae28fbfc83e66afd2c8f90cb6eb396b0c0aaaddade999820b204dc273161ed6",
+      "licenseReviewStatus": "approved",
+      "securityReviewStatus": "approved",
+      "securityReviewNotes": "Only a plain Markdown planning matrix is produced. No platform action is taken."
+    }
+  ]
+}

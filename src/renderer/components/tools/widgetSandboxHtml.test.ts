@@ -13,7 +13,9 @@ import { describe, expect, it } from 'vitest';
 
 import { buildSandboxHtml } from './widgetSandboxHtml';
 
-const html = buildSandboxHtml(':root{--widget-text:#222}');
+const html = buildSandboxHtml(':root{--widget-text:#222}', {
+  scriptErrorPrefix: "This component's script could not run: ",
+});
 
 describe('widget sandbox failure handling', () => {
   it('captures script errors via a global error listener', () => {

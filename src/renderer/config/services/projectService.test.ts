@@ -58,6 +58,19 @@ describe('system preset workspace helpers', () => {
     expect(patch.icon).toBeUndefined();
     expect(patch.hidden).toBeUndefined();
   });
+
+  it('migrates the exact legacy system preset name without changing stable ids', () => {
+    const patch = getSystemPresetProjectMetadataPatch(project({
+      displayName: 'Mino',
+      icon: 'lightning',
+      workspaceType: 'system-preset',
+      systemPresetId: 'mino',
+      templateId: 'mino',
+      templateSource: 'builtin',
+    }), 'mino');
+
+    expect(patch).toEqual({ displayName: 'Blex' });
+  });
 });
 
 describe('applyProjectRemovalIntent', () => {

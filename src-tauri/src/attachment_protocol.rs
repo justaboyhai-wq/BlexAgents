@@ -281,7 +281,8 @@ mod tests {
 
     #[test]
     fn extract_windows_form() {
-        let r = extract_relative_path("http://blexagent.localhost/attachment/abc/file.png").unwrap();
+        let r =
+            extract_relative_path("http://blexagent.localhost/attachment/abc/file.png").unwrap();
         assert_eq!(r, "abc/file.png");
     }
 

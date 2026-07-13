@@ -33,6 +33,7 @@ function getRuntimeDisplayName(runtime: RuntimeType | undefined): string {
     case 'claude-code': return 'Anthropic Claude Code CLI';
     case 'codex':       return 'OpenAI Codex CLI';
     case 'gemini':      return 'Google Gemini CLI';
+    case 'hermes':      return 'Hermes Agent (Nous Research)';
     case 'builtin':
     default:
       return 'BlexAgent 内置 Claude Agent SDK';

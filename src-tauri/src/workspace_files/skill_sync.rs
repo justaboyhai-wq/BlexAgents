@@ -119,7 +119,7 @@ fn sync_skills_subtree(workspace: &Path, blexagent_root: &Path) {
         {
             // Disabled: remove our symlink if present; never remove real dirs.
             if let Ok(meta) = fs::symlink_metadata(&link_path) {
-                if meta.is_symlink() {
+                if meta.is_symlink() || is_windows_junction(&link_path, &meta) {
                     let _ = remove_symlink_or_dir(&link_path);
                 }
             }
@@ -280,7 +280,7 @@ fn cleanup_dangling_symlinks(project_dir: &Path, user_dir: &Path, keep: &HashSet
             Ok(m) => m,
             Err(_) => continue,
         };
-        if !meta.is_symlink() && !is_windows_junction(&meta) {
+        if !meta.is_symlink() && !is_windows_junction(&link, &meta) {
             continue;
         }
         // Lexical: read the link target without traversing it. Works for
@@ -309,16 +309,20 @@ fn cleanup_dangling_symlinks(project_dir: &Path, user_dir: &Path, keep: &HashSet
 /// the std version. We treat them as "link-like" for cleanup purposes by
 /// also checking via `FileType::is_dir()` + the metadata flag heuristic.
 #[cfg(windows)]
-fn is_windows_junction(meta: &fs::Metadata) -> bool {
+fn is_windows_junction(path: &Path, meta: &fs::Metadata) -> bool {
     use std::os::windows::fs::MetadataExt;
-    // FILE_ATTRIBUTE_REPARSE_POINT = 0x400. Combined with `is_dir()` it
-    // identifies a junction (directory reparse point) reliably across
-    // Windows std variants.
-    meta.is_dir() && (meta.file_attributes() & 0x400) != 0
+    // Ask the same crate that creates junctions first. The raw attribute
+    // fallback covers mount points that `symlink_metadata` reports with an
+    // inconsistent FileType view on some Rust/Windows combinations.
+    if junction::exists(path).unwrap_or(false) {
+        return true;
+    }
+    let attrs = meta.file_attributes();
+    (attrs & 0x400) != 0 && (attrs & 0x10) != 0
 }
 #[cfg(not(windows))]
 #[inline]
-fn is_windows_junction(_meta: &fs::Metadata) -> bool {
+fn is_windows_junction(_path: &Path, _meta: &fs::Metadata) -> bool {
     false
 }
 
@@ -350,6 +354,16 @@ fn create_symlink_file(target: &Path, link: &Path) -> std::io::Result<()> {
 /// Unix symlinks but Windows junctions are dirs and need `remove_dir_all`.
 fn remove_symlink_or_dir(p: &Path) -> std::io::Result<()> {
     let meta = fs::symlink_metadata(p)?;
+    #[cfg(windows)]
+    if is_windows_junction(p, &meta) {
+        // `remove_dir_all` does not reliably unlink NTFS mount-point reparse
+        // points. Use the same junction crate that created the link so the
+        // target directory and all user skill content remain untouched.
+        junction::delete(p)?;
+        // `junction::delete` removes the reparse data but intentionally leaves
+        // the now-empty mount-point directory behind.
+        return fs::remove_dir(p);
+    }
     if meta.is_dir() {
         fs::remove_dir_all(p)
     } else {

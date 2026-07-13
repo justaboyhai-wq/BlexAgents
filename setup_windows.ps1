@@ -553,26 +553,65 @@ try {
     Pop-Location
     Write-Host "OK - Rust 依赖下载完成" -ForegroundColor Green
 
-    # 准备默认工作区 (mino) — 每次拉取最新版本
-    # .git 不保留：避免 Tauri 资源打包权限问题 + rerun-if-changed 性能问题
-    Write-Host "`nStep 8/9: 准备默认工作区 (mino)" -ForegroundColor Blue
+    # 准备 Blex 默认工作区（内部资源目录保持 mino 以兼容既有安装）。先克隆到临时目录，再合并到本地；这样重新运行
+    # setup 不会删除用户已经放入 mino/ 的桌宠素材或其它本地文件。
+    # .git 不保留：避免 Tauri 资源打包权限问题 + rerun-if-changed 性能问题。
+    Write-Host "`nStep 8/9: 准备 Blex 默认工作区 (内部资源目录: mino)" -ForegroundColor Blue
     $MinoDir = Join-Path $ProjectDir "mino"
-    if (Test-Path $MinoDir) {
-        Remove-Item -Recurse -Force $MinoDir
+    $MinoStage = Join-Path ([System.IO.Path]::GetTempPath()) ("blexagent-openmino-" + [guid]::NewGuid().ToString("N"))
+    Write-Host "  克隆 OpenMino 上游工作区并应用 Blex 品牌叠加 (最新版本)..." -ForegroundColor Cyan
+    try {
+        & git clone --depth 1 https://github.com/hAcKlyc/openmino.git $MinoStage
+        if ($LASTEXITCODE -ne 0) {
+            throw "OpenMino 上游克隆失败"
+        }
+        if (-not (Test-Path (Join-Path $MinoStage "CLAUDE.md") -PathType Leaf)) {
+            throw "openmino 上游缺少 CLAUDE.md"
+        }
+
+        $MinoGit = Join-Path $MinoStage ".git"
+        if (Test-Path $MinoGit) {
+            Remove-Item -LiteralPath $MinoGit -Recurse -Force
+        }
+        New-Item -ItemType Directory -Path $MinoDir -Force | Out-Null
+        $MinoStageFull = [System.IO.Path]::GetFullPath($MinoStage)
+        $MinoDirFull = [System.IO.Path]::GetFullPath($MinoDir)
+        $MinoEntries = Get-ChildItem -LiteralPath $MinoStageFull -Force -Recurse
+        foreach ($directory in ($MinoEntries | Where-Object PSIsContainer | Sort-Object { $_.FullName.Length })) {
+            $relativePath = [System.IO.Path]::GetRelativePath($MinoStageFull, $directory.FullName)
+            $destination = [System.IO.Path]::GetFullPath((Join-Path $MinoDirFull $relativePath))
+            if (-not $destination.StartsWith($MinoDirFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "openmino 包含不安全路径: $relativePath"
+            }
+            New-Item -ItemType Directory -Path $destination -Force | Out-Null
+        }
+        foreach ($file in ($MinoEntries | Where-Object { -not $_.PSIsContainer })) {
+            $relativePath = [System.IO.Path]::GetRelativePath($MinoStageFull, $file.FullName)
+            $destination = [System.IO.Path]::GetFullPath((Join-Path $MinoDirFull $relativePath))
+            if (-not $destination.StartsWith($MinoDirFull + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "openmino 包含不安全路径: $relativePath"
+            }
+            if ($relativePath -in @("pet.json", "spritesheet.webp") -and (Test-Path -LiteralPath $destination)) {
+                continue
+            }
+            Copy-Item -LiteralPath $file.FullName -Destination $destination -Force
+        }
+
+        & node (Join-Path $ProjectDir "scripts/apply-default-workspace-branding.mjs")
+        if ($LASTEXITCODE -ne 0) {
+            throw "Blex 默认工作区品牌叠加失败"
+        }
+        & node (Join-Path $ProjectDir "scripts/validate-bundled-resources.mjs")
+        if ($LASTEXITCODE -ne 0) {
+            throw "Blex 默认工作区完整性校验失败（内部目录 mino）"
+        }
     }
-    Write-Host "  克隆 openmino 默认工作区 (最新版本)..." -ForegroundColor Cyan
-    & git clone git@github.com:hAcKlyc/openmino.git $MinoDir
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  mino 克隆失败" -ForegroundColor Red
-        Write-Host "`n按回车键退出..." -ForegroundColor Yellow
-        Read-Host
-        exit 1
+    finally {
+        if (Test-Path -LiteralPath $MinoStage) {
+            Remove-Item -LiteralPath $MinoStage -Recurse -Force
+        }
     }
-    $MinoGit = Join-Path $MinoDir ".git"
-    if (Test-Path $MinoGit) {
-        Remove-Item -Recurse -Force $MinoGit
-    }
-    Write-Host "OK - mino 默认工作区已就绪" -ForegroundColor Green
+    Write-Host "OK - Blex 默认工作区已就绪 (内部资源目录: mino)" -ForegroundColor Green
 
     Write-Host "`nStep 9/9: 初始化完成!" -ForegroundColor Blue
     Write-Host "`n=========================================" -ForegroundColor Green

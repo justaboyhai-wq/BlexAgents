@@ -1,0 +1,65 @@
+{
+  "title": "AgentHub",
+  "subtitle": "面向生活与创作的精选 Agent 模板",
+  "close": "关闭 AgentHub",
+  "searchPlaceholder": "搜索模板、能力或 Skill",
+  "category": {
+    "all": "全部",
+    "life": "生活",
+    "creation": "创作"
+  },
+  "loading": "正在加载离线目录…",
+  "loadFailedTitle": "AgentHub 暂时无法加载",
+  "loadFailedDescription": "应用的其它功能仍可使用。可重试加载随应用内置的模板目录。",
+  "retry": "重试",
+  "emptyTitle": "没有匹配的模板",
+  "emptyDescription": "试试其它关键词或分类。",
+  "reviewed": "已审核",
+  "offline": "离线安装",
+  "templateCount": "精选审核 {{count}} 个模板",
+  "partialCatalogue": "有 {{count}} 个内置模板未能加载，当前可见模板仍可正常使用。",
+  "details": {
+    "capabilities": "主要能力",
+    "skills": "内置 Skills",
+    "examples": "可以这样提问",
+    "sources": "开源来源",
+    "risk": "安全边界",
+    "license": "{{license}} 许可证",
+    "commit": "提交 {{commit}}",
+    "openSource": "打开开源仓库",
+    "selectHint": "选择一个模板，查看经过审核的能力、示例、开源来源和安全边界。"
+  },
+  "create": {
+    "title": "从 AgentHub 创建 Agent",
+    "description": "模板随 BlexAgent 离线内置，无需访问 GitHub、VPN、命令行或额外下载。",
+    "agentName": "Agent 名称",
+    "agentNamePlaceholder": "给这个 Agent 起个名字",
+    "action": "创建 Agent",
+    "creating": "正在创建 Agent…",
+    "finalizeRetry": "Agent 已加入，但安装确认未完成。请重试以安全结束安装。",
+    "retryFinalize": "完成安装",
+    "recoveryRetry": "创建未完成，请先重试恢复后再继续。",
+    "retryRecovery": "恢复并重试",
+    "created": "已从 AgentHub 创建 Agent"
+  },
+  "apply": {
+    "title": "从 AgentHub 添加",
+    "description": "选择精选模板，先预览每一项文件变化，再应用到当前 Agent。",
+    "preview": "预览变更",
+    "previewing": "正在生成预览…",
+    "confirmTitle": "确认工作区变更",
+    "confirmDescription": "只会修改下列文件，工作区中的其它内容保持不变。",
+    "add": "新增 {{count}} 个文件",
+    "overwrite": "覆盖 {{count}} 个文件",
+    "conflicts": "冲突 {{count}} 项",
+    "none": "当前无需写入任何文件。",
+    "back": "返回模板目录",
+    "action": "应用到当前 Agent",
+    "applying": "正在应用模板…",
+    "applied": "AgentHub 模板已应用"
+  },
+  "common": {
+    "cancel": "取消",
+    "unknownError": "操作失败，请重试。"
+  }
+}

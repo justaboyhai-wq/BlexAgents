@@ -1,6 +1,6 @@
 /**
  * Companion chat window (PRD 0.2.35) — the transparent NSPanel that holds the
- * Mino desktop-channel conversation. Visual spec: the sign-off'd playground
+ * Blex desktop-channel conversation. Visual spec: the sign-off'd playground
  * (specs/playground/0.2.35_floating_ball.html) — one glass sheet, no chrome
  * until hover, conversation + hairline input area.
  *
@@ -27,7 +27,11 @@ import { useTauriFileDrop } from '@/hooks/useTauriFileDrop';
 import { track } from '@/analytics';
 import { loadAppConfig, mergePresetCustomModels } from '@/config/services/appConfigService';
 import { getAllProviders, modelSupportsModality } from '@/config/services/providerService';
-import { applyProviderEnablementAndOrder, type Provider } from '@/config/types';
+import {
+    applyProviderEnablementAndOrder,
+    DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME,
+    type Provider,
+} from '@/config/types';
 import { ALLOWED_IMAGE_MIME_TYPES, USER_IMAGE_ATTACHMENT_MAX_BYTES, isChatImageFile, isImageMimeType } from '../../shared/fileTypes';
 import { resolveAttachmentUrl } from '@/utils/attachmentUrl';
 import { renameIfBareClipboardImage } from '@/utils/clipboardImage';
@@ -361,7 +365,7 @@ export default function CompanionWindow() {
         return modelSupportsModality(providerForCapability, modelId, 'image');
     }, [providerForCapability, session.model, session.runtime]);
     const whoLabel = useMemo(() => {
-        if (!whoContext) return 'Mino';
+        if (!whoContext) return DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME;
         return whoContext.windowTitle
             ? t('floatingBall.watchingAppWindow', {
                 appName: whoContext.appName,
