@@ -9,7 +9,7 @@ const OVERLAY_ROOT = join(ROOT, "branding", "default-workspace");
 const WORKSPACE_ROOT = join(ROOT, "mino");
 
 const OVERLAY_FILES = ["INTRODUCTION.md", "pet.json", "OPENMINO_NOTICE.md"];
-const TARGET_FILES = ["README.md", "INTRODUCTION.md", "pet.json"];
+const TARGET_FILES = ["README.md", "INTRODUCTION.md"];
 const cliArgs = new Set(process.argv.slice(2));
 const unknownArgs = [...cliArgs].filter(
   (arg) => arg !== "--if-present" && arg !== "--validate",
@@ -361,7 +361,9 @@ async function main() {
     changed.push("INTRODUCTION.md");
   }
   if (
-    writeIfChanged(join(WORKSPACE_ROOT, "pet.json"), overlays.get("pet.json"))
+    writeIfChanged(join(WORKSPACE_ROOT, "pet.json"), overlays.get("pet.json"), {
+      mayBeMissing: true,
+    })
   ) {
     changed.push("pet.json");
   }

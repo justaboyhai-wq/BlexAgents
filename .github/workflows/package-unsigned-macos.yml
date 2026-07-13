@@ -35,6 +35,7 @@ jobs:
       - name: Prepare bundled Blex workspace
         run: |
           git clone --depth 1 https://github.com/hAcKlyc/openmino.git mino
+          rm -rf mino/.git
           npm run brand:default-workspace
           node scripts/validate-bundled-resources.mjs
       - name: Build complete unsigned DMGs
