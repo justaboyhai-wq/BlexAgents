@@ -6,6 +6,7 @@
 set -e
 
 CI_MODE=false
+UNSIGNED_MODE=false
 ARCH_CHOICE=""
 TAURI_EXTRA_CONFIG_ARGS=()
 UNSIGNED_BUILD_CONFIG=""
@@ -18,6 +19,7 @@ trap cleanup_unsigned_config EXIT
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --ci) CI_MODE=true; shift ;;
+        --unsigned) UNSIGNED_MODE=true; shift ;;
         --arch)
             case "${2:-}" in
                 arm64) ARCH_CHOICE=1 ;;
@@ -96,19 +98,32 @@ else
     fi
 fi
 
-# 验证正式签名与公证环境变量
-for required_var in APPLE_SIGNING_IDENTITY APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH; do
-    if [ -z "${!required_var:-}" ]; then
-        echo -e "${RED}错误: ${required_var} 未设置!${NC}"
+# 验证正式签名与公证环境变量。--unsigned 仅用于无证书的测试分发构建，
+# 会生成完整 DMG，但不具备 Developer ID 签名、公证和自动更新签名。
+if [ "$UNSIGNED_MODE" = true ]; then
+    echo -e "${YELLOW}⚠ 未签名构建模式：跳过 Apple 签名、公证与 Tauri 更新签名${NC}"
+    UNSIGNED_BUILD_CONFIG=$(mktemp "${TMPDIR:-/tmp}/blexagent-tauri-unsigned.XXXXXX.json")
+    printf '%s\n' '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":null}}}' > "$UNSIGNED_BUILD_CONFIG"
+    TAURI_EXTRA_CONFIG_ARGS=(--config "$UNSIGNED_BUILD_CONFIG")
+    unset APPLE_SIGNING_IDENTITY APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH
+
+    # Keep the resource-staging flow identical while making the script-level
+    # pre-signing calls no-ops. Tauri itself receives no signing identity.
+    codesign() { return 0; }
+else
+    for required_var in APPLE_SIGNING_IDENTITY APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH; do
+        if [ -z "${!required_var:-}" ]; then
+            echo -e "${RED}错误: ${required_var} 未设置!${NC}"
+            exit 1
+        fi
+    done
+    if [ ! -f "$APPLE_API_KEY_PATH" ]; then
+        echo -e "${RED}错误: APPLE_API_KEY_PATH 指向的文件不存在${NC}"
         exit 1
     fi
-done
-if [ ! -f "$APPLE_API_KEY_PATH" ]; then
-    echo -e "${RED}错误: APPLE_API_KEY_PATH 指向的文件不存在${NC}"
-    exit 1
 fi
 
-if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+if [ "$UNSIGNED_MODE" != true ] && [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
     echo -e "${YELLOW}╔═══════════════════════════════════════════════════════════╗${NC}"
     echo -e "${YELLOW}║ 警告: TAURI_SIGNING_PRIVATE_KEY 未设置                     ║${NC}"
     echo -e "${YELLOW}║ 自动更新功能将不可用!                                      ║${NC}"
@@ -133,10 +148,16 @@ if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
     TAURI_EXTRA_CONFIG_ARGS=(--config "$UNSIGNED_BUILD_CONFIG")
     echo -e "${YELLOW}本地测试构建将跳过 Tauri 更新包，仅生成 DMG${NC}"
 else
-    echo -e "  ${GREEN}✓ Tauri 签名私钥已配置${NC}"
+    if [ "$UNSIGNED_MODE" != true ]; then
+        echo -e "  ${GREEN}✓ Tauri 签名私钥已配置${NC}"
+    fi
 fi
 
-echo -e "  签名身份: ${CYAN}${APPLE_SIGNING_IDENTITY}${NC}"
+if [ "$UNSIGNED_MODE" = true ]; then
+    echo -e "  构建类型: ${CYAN}Unsigned test distribution${NC}"
+else
+    echo -e "  签名身份: ${CYAN}${APPLE_SIGNING_IDENTITY}${NC}"
+fi
 echo ""
 
 # ========================================
@@ -813,7 +834,10 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
         UPDATER_READY=false
     fi
 
-    if [ -n "$APP_PATH" ]; then
+    if [ -n "$APP_PATH" ] && [ "$UNSIGNED_MODE" = true ]; then
+        echo -e "    ⚠️ Apple 签名: ${YELLOW}未签名构建${NC}"
+        echo -e "    ⚠️ 公证验证: ${YELLOW}未公证构建${NC}"
+    elif [ -n "$APP_PATH" ]; then
         # 验证 Apple 签名
         if codesign --verify --deep --strict "$APP_PATH" 2>/dev/null; then
             echo -e "    ✅ Apple 签名: ${GREEN}通过${NC}"
@@ -840,16 +864,21 @@ else
     echo -e "  ${YELLOW}⚠️  自动更新: 缺少必要文件 (tar.gz 或 .sig)${NC}"
     echo -e "  ${YELLOW}   请确保 .env 中配置了 TAURI_SIGNING_PRIVATE_KEY${NC}"
 fi
-if [ "$CI_MODE" = true ] && { [ "$UPDATER_READY" != true ] || [ "$RELEASE_VALIDATION_FAILED" = true ]; }; then
+if [ "$CI_MODE" = true ] && [ "$UNSIGNED_MODE" != true ] && { [ "$UPDATER_READY" != true ] || [ "$RELEASE_VALIDATION_FAILED" = true ]; }; then
     echo -e "${RED}错误: CI 正式发布产物未通过签名、公证或更新包验证${NC}"
     exit 1
 fi
 echo ""
 
-echo -e "  ${CYAN}正式版特性:${NC}"
-echo -e "    ✅ Developer ID 签名"
-echo -e "    ✅ Apple 公证 (Notarized)"
-echo -e "    ✅ Hardened Runtime"
+if [ "$UNSIGNED_MODE" = true ]; then
+    echo -e "  ${CYAN}测试分发版特性:${NC}"
+    echo -e "    ⚠️ 未签名、未公证（首次打开需手动允许）"
+else
+    echo -e "  ${CYAN}正式版特性:${NC}"
+    echo -e "    ✅ Developer ID 签名"
+    echo -e "    ✅ Apple 公证 (Notarized)"
+    echo -e "    ✅ Hardened Runtime"
+fi
 echo -e "    ✅ CSP 安全策略"
 echo -e "    ✅ Release 优化"
 echo ""
