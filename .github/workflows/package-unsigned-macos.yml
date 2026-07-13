@@ -32,6 +32,11 @@ jobs:
         with:
           workspaces: src-tauri
       - run: npm ci
+      - name: Prepare bundled Blex workspace
+        run: |
+          git clone --depth 1 https://github.com/hAcKlyc/openmino.git mino
+          npm run brand:default-workspace
+          node scripts/validate-bundled-resources.mjs
       - name: Build complete unsigned DMGs
         run: ./build_macos.sh --ci --unsigned --arch all
       - uses: actions/upload-artifact@v4
