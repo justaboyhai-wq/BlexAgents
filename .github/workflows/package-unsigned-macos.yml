@@ -2,6 +2,12 @@ name: Package Unsigned macOS
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/release-0.7.1
+    paths:
+      - build_macos.sh
+      - .github/workflows/package-unsigned-macos.yml
 
 permissions:
   contents: read
