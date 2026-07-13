@@ -51,11 +51,31 @@ if [ -n "$INTEL_DMG" ] && [ -f "$INTEL_DMG" ]; then
     echo -e "  ${GREEN}✓${NC} $(basename "$INTEL_DMG")"
 fi
 
-if [ ${#GH_FILES[@]} -eq 0 ]; then
-    echo -e "${RED}[X] 未找到 DMG 文件${NC}"
-    echo -e "${YELLOW}    请先运行 build_macos.sh 完成构建${NC}"
+if [ -z "$ARM_DMG" ] || [ -z "$INTEL_DMG" ]; then
+    echo -e "${RED}[X] 正式 GitHub Release 必须同时包含 ARM64 与 Intel DMG${NC}"
     exit 1
 fi
+
+for dmg in "$ARM_DMG" "$INTEL_DMG"; do
+    case "$(basename "$dmg")" in
+        INTERNAL-*)
+            echo -e "${RED}[X] 拒绝上传内部测试物料: $(basename "$dmg")${NC}"
+            exit 1
+            ;;
+    esac
+done
+
+ARM_APP=$(find "${ARM_DIR}/macos" -name "*.app" 2>/dev/null | head -1 || true)
+INTEL_APP=$(find "${INTEL_DIR}/macos" -name "*.app" 2>/dev/null | head -1 || true)
+if [ ! -d "$ARM_APP" ] || [ ! -d "$INTEL_APP" ]; then
+    echo -e "${RED}[X] 缺少双架构 .app，无法验证签名与公证${NC}"
+    exit 1
+fi
+
+bash "${PROJECT_DIR}/scripts/verify-macos-distribution.sh" \
+    --mode release --app "$ARM_APP" --dmg "$ARM_DMG" --arch arm64
+bash "${PROJECT_DIR}/scripts/verify-macos-distribution.sh" \
+    --mode release --app "$INTEL_APP" --dmg "$INTEL_DMG" --arch x86_64
 
 echo ""
 

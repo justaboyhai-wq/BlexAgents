@@ -2,7 +2,8 @@
 
 This is the release runbook for the proprietary desktop product. Public release
 artifacts must be signed, notarized where required, updater-signed, checksummed,
-and approved. Unsigned artifacts are internal test material only.
+and approved. Ad-hoc signed, unnotarized artifacts are internal test material
+only and cannot replace a Developer ID release.
 
 ## 1. One-time ownership decisions
 
@@ -75,7 +76,7 @@ key pair is created. Archive the old private key securely while users still run
 versions that trust it; an accidental key loss breaks the trusted update path.
 
 Never publish an update manifest with an empty signature. Never use the internal
-unsigned workflow to populate `download.blexagent.com/update/`.
+ad-hoc workflow to populate `download.blexagent.com/update/`.
 
 ## 5. GitHub protection and secrets
 
@@ -86,9 +87,11 @@ all signing secrets. The formal workflow is fail-closed: missing secrets,
 version mismatches, legal placeholders, signing failures, notarization failures,
 or missing artifacts stop the release.
 
-The manual `Internal Package · Unsigned macOS` workflow has seven-day retention,
-contains `INTERNAL-UNSIGNED` in its artifact name, and must not be linked from a
-public download page.
+The manual `Internal Package · Ad-hoc macOS` workflow has seven-day retention,
+contains `INTERNAL-ADHOC-UNNOTARIZED` in its artifact name, and must not be
+linked from a public download page. It runs the same nested-code and DMG
+integrity checks as the release path, but Gatekeeper approval remains manual
+because the artifact has no Apple notarization ticket.
 
 ## 6. Per-release checklist
 

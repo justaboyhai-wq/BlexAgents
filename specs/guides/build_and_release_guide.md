@@ -64,6 +64,8 @@ blexagent-releases/
 
 签名材料不得提交到仓库。当前没有上述凭据时，可以继续开发和运行普通测试，但正式 Release 会停在预检阶段，不会发布未签名安装包。
 
+无 Apple 凭据的 ARM64 内部测试使用手动工作流 `Internal Package · Ad-hoc macOS`。该流程生成完整 ad-hoc 签名树并验证 DMG 完整性，但没有 Developer ID 和 Apple 公证票据，只能按 `internal-macos-testing.md` 在批准的测试设备上使用。
+
 Windows ARM64 不属于当前发布矩阵；待原生 Node、Claude SDK、sharp 与外部二进制全部具备 ARM64 验证后再单独加入。
 
 ---

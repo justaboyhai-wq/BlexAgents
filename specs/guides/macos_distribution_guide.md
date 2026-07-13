@@ -123,8 +123,8 @@ source ~/.zshrc
 # 确保环境变量已设置
 echo $APPLE_SIGNING_IDENTITY
 
-# 构建 universal binary（同时支持 Intel 和 Apple Silicon）
-npm run tauri build -- --target universal-apple-darwin
+# 正式发布构建（分别产出 ARM64 与 Intel，完成签名、公证和验证）
+./build_macos.sh --ci --arch all
 ```
 
 如果环境变量配置正确，Tauri 会自动：
@@ -148,7 +148,14 @@ spctl --assess --type exec --verbose=2 \
 
 # 查看公证状态
 xcrun stapler validate \
-  src-tauri/target/universal-apple-darwin/release/bundle/macos/BlexAgent.app
+  src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/BlexAgent_*.dmg
+
+# 运行仓库统一的完整分发验证
+bash scripts/verify-macos-distribution.sh \
+  --mode release \
+  --app src-tauri/target/aarch64-apple-darwin/release/bundle/macos/BlexAgent.app \
+  --dmg src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/BlexAgent_*.dmg \
+  --arch arm64
 ```
 
 ---
@@ -159,7 +166,8 @@ xcrun stapler validate \
 
 Tauri 默认会生成 `.dmg` 文件，位于：
 ```
-src-tauri/target/universal-apple-darwin/release/bundle/dmg/
+src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/
+src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/
 ```
 
 ### 方式二：直接分发 .app

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.2] - 2026-07-14
+
+> 本版修复 macOS Apple Silicon 内部测试包被系统报告为“已损坏”的打包根因，并进一步收紧正式发布门禁。
+
+### Changed
+
+- **内部 macOS 包改为完整 ad-hoc 签名**：主应用、Node.js、Claude Agent SDK、esbuild、sharp 与外部二进制使用一致的 ad-hoc 签名，不再生成完全无签名的 Apple Silicon 应用。
+- **内部与正式产物彻底隔离**：测试包统一使用 `INTERNAL-ADHOC-UNNOTARIZED` 标识、七天保留期和独立试装说明，所有正式上传入口拒绝任意 `INTERNAL-*` 文件。
+- **分发验证统一收口**：新增单一验证脚本，检查应用签名树、目标架构、DMG 完整性；正式包额外强制验证 Developer ID、Team ID、Hardened Runtime、Gatekeeper 和 stapled 公证票据。
+
+### Fixed
+
+- **Apple Silicon 下载包不再完全无签名**：修复内部构建将 Tauri `signingIdentity` 设为 `null` 并跳过全部嵌套代码签名的问题。
+- **正式发布不再只检查 DMG 外层**：本地 R2 与 GitHub Release 上传前都会验证双架构 `.app` 的完整签名树和公证状态，防止外层 DMG 正常但内部原生组件签名缺失。
+
+---
+
 ## [0.7.1] - 2026-07-13
 
 > 本版更新聊天机器人添加教程，并为 Windows 与 macOS 的正式桌面分发收敛版本、无终端启动和签名发布流程。

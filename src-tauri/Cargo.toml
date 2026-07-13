@@ -1,6 +1,6 @@
 [package]
 name = "blexagent"
-version = "0.7.1"
+version = "0.7.2"
 description = "BlexAgent - A desktop personal Agent for creators, everyday life, education, and productive work"
 authors = ["BlexAgent Team <team@blexagent.com>"]
 license-file = "../LICENSE"

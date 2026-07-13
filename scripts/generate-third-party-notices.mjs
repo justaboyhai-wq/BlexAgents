@@ -11,6 +11,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const lock = JSON.parse(
   readFileSync(resolve(repoRoot, "package-lock.json"), "utf8"),
 );
+const productVersion = lock.packages?.[""]?.version ?? "unknown";
 
 function markdown(value) {
   return String(value ?? "UNKNOWN")
@@ -210,31 +211,42 @@ async function cargoInventory() {
     (pkg) =>
       pkg.source.startsWith("registry+") && pkg.license.startsWith("UNKNOWN"),
   );
+  const wait = (milliseconds) =>
+    new Promise((resolveWait) => setTimeout(resolveWait, milliseconds));
+
+  async function fetchCratesIoLicense(pkg) {
+    const url = `https://crates.io/api/v1/crates/${encodeURIComponent(pkg.name)}/${encodeURIComponent(pkg.version)}`;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "User-Agent": `BlexAgent-license-audit/${productVersion} (team@blexagent.com)`,
+          },
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (response.ok) {
+          const metadata = await response.json();
+          return metadata?.version?.license ?? metadata?.crate?.license;
+        }
+        if (response.status !== 429 && response.status < 500) return undefined;
+      } catch {
+        // Retry bounded transient network failures; the final UNKNOWN remains fail-visible.
+      }
+      await wait(500 * 2 ** attempt);
+    }
+    return undefined;
+  }
+
   let nextIndex = 0;
   async function resolveFromCratesIo() {
     while (nextIndex < unresolvedRegistry.length) {
       const pkg = unresolvedRegistry[nextIndex++];
-      try {
-        const response = await fetch(
-          `https://crates.io/api/v1/crates/${encodeURIComponent(pkg.name)}/${encodeURIComponent(pkg.version)}`,
-          {
-            headers: {
-              "User-Agent":
-                "BlexAgent-license-audit/0.7.1 (team@blexagent.com)",
-            },
-          },
-        );
-        if (!response.ok) continue;
-        const metadata = await response.json();
-        if (metadata?.version?.license) pkg.license = metadata.version.license;
-        else if (metadata?.crate?.license) pkg.license = metadata.crate.license;
-      } catch {
-        // Network-independent generation is allowed; unresolved records stay fail-visible.
-      }
+      const license = await fetchCratesIoLicense(pkg);
+      if (license) pkg.license = license;
     }
   }
   await Promise.all(
-    Array.from({ length: Math.min(6, unresolvedRegistry.length) }, () =>
+    Array.from({ length: Math.min(3, unresolvedRegistry.length) }, () =>
       resolveFromCratesIo(),
     ),
   );

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "要发布的版本号（例如 0.7.1）"
+        description: "要发布的版本号（例如 0.7.2）"
         required: true
         type: string
 
@@ -124,7 +124,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -189,7 +189,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -229,6 +229,15 @@ jobs:
       - name: 构建、签名、公证并验证 macOS 安装包
         shell: bash
         run: ./build_macos.sh --ci --arch all
+
+      - name: 拒绝内部测试物料进入正式发布
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find src-tauri/target/*-apple-darwin/release/bundle -type f -name 'INTERNAL-*' -print -quit | grep -q .; then
+            echo "正式发布目录包含 INTERNAL 测试物料" >&2
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:

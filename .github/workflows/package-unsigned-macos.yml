@@ -1,4 +1,4 @@
-name: Internal Package · Unsigned macOS
+name: Internal Package · Ad-hoc macOS
 
 on:
   workflow_dispatch:
@@ -8,14 +8,14 @@ permissions:
 
 jobs:
   macos:
-    name: INTERNAL ONLY · macOS unsigned · ARM64
+    name: INTERNAL ONLY · macOS ad-hoc · ARM64
     runs-on: macos-14
     env:
       VITE_ANALYTICS_ENABLED: "false"
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -32,11 +32,13 @@ jobs:
           rm -rf mino/.git
           npm run brand:default-workspace
           node scripts/validate-bundled-resources.mjs
-      - name: Build complete unsigned ARM64 DMG
-        run: ./build_macos.sh --ci --unsigned --arch arm64
+      - name: Build complete ad-hoc ARM64 DMG
+        run: ./build_macos.sh --ci --internal --arch arm64
       - uses: actions/upload-artifact@v4
         with:
-          name: INTERNAL-UNSIGNED-BlexAgent-macOS
+          name: INTERNAL-ADHOC-UNNOTARIZED-BlexAgent-macOS-arm64
           retention-days: 7
           if-no-files-found: error
-          path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            specs/guides/internal-macos-testing.md

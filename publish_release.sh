@@ -133,9 +133,11 @@ echo ""
 
 # 收集所有物料信息
 ARM_DMG=""
+ARM_APP=""
 ARM_TAR=""
 ARM_SIG=""
 INTEL_DMG=""
+INTEL_APP=""
 INTEL_TAR=""
 INTEL_SIG=""
 
@@ -143,6 +145,7 @@ INTEL_SIG=""
 ARM_DIR="${BUNDLE_DIR}/aarch64-apple-darwin/release/bundle"
 if [ -d "$ARM_DIR" ]; then
     ARM_DMG=$(find "${ARM_DIR}/dmg" -name "*.dmg" 2>/dev/null | head -1)
+    ARM_APP=$(find "${ARM_DIR}/macos" -name "*.app" 2>/dev/null | head -1)
     ARM_TAR=$(find "${ARM_DIR}/macos" -name "*.app.tar.gz" ! -name "*.sig" 2>/dev/null | head -1)
     ARM_SIG=$(find "${ARM_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
 fi
@@ -151,6 +154,7 @@ fi
 INTEL_DIR="${BUNDLE_DIR}/x86_64-apple-darwin/release/bundle"
 if [ -d "$INTEL_DIR" ]; then
     INTEL_DMG=$(find "${INTEL_DIR}/dmg" -name "*.dmg" 2>/dev/null | head -1)
+    INTEL_APP=$(find "${INTEL_DIR}/macos" -name "*.app" 2>/dev/null | head -1)
     INTEL_TAR=$(find "${INTEL_DIR}/macos" -name "*.app.tar.gz" ! -name "*.sig" 2>/dev/null | head -1)
     INTEL_SIG=$(find "${INTEL_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
 fi
@@ -162,23 +166,22 @@ for required in "$ARM_DMG" "$ARM_TAR" "$ARM_SIG" "$INTEL_DMG" "$INTEL_TAR" "$INT
         exit 1
     fi
     case "$(basename "$required")" in
-        INTERNAL-UNSIGNED-*)
-            echo -e "${RED}错误: 拒绝发布内部无签名物料: $(basename "$required")${NC}" >&2
+        INTERNAL-*)
+            echo -e "${RED}错误: 拒绝发布内部测试物料: $(basename "$required")${NC}" >&2
             exit 1
             ;;
     esac
 done
 
-for dmg in "$ARM_DMG" "$INTEL_DMG"; do
-    if ! codesign --verify --deep --strict "$dmg"; then
-        echo -e "${RED}错误: DMG 代码签名验证失败: $(basename "$dmg")${NC}" >&2
-        exit 1
-    fi
-    if ! xcrun stapler validate "$dmg"; then
-        echo -e "${RED}错误: DMG 未附加有效 Apple 公证票据: $(basename "$dmg")${NC}" >&2
-        exit 1
-    fi
-done
+if [ ! -d "$ARM_APP" ] || [ ! -d "$INTEL_APP" ]; then
+    echo -e "${RED}错误: 正式发布缺少双架构 .app，无法验证完整签名树${NC}" >&2
+    exit 1
+fi
+
+bash "${PROJECT_DIR}/scripts/verify-macos-distribution.sh" \
+    --mode release --app "$ARM_APP" --dmg "$ARM_DMG" --arch arm64
+bash "${PROJECT_DIR}/scripts/verify-macos-distribution.sh" \
+    --mode release --app "$INTEL_APP" --dmg "$INTEL_DMG" --arch x86_64
 
 for sig in "$ARM_SIG" "$INTEL_SIG"; do
     if [ ! -s "$sig" ]; then
