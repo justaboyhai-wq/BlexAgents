@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   macos:
-    name: INTERNAL ONLY · macOS unsigned · ARM64 + Intel
+    name: INTERNAL ONLY · macOS unsigned · ARM64
     runs-on: macos-14
     env:
       VITE_ANALYTICS_ENABLED: "false"
@@ -21,7 +21,7 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@1.92.0
         with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          targets: aarch64-apple-darwin
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -32,13 +32,11 @@ jobs:
           rm -rf mino/.git
           npm run brand:default-workspace
           node scripts/validate-bundled-resources.mjs
-      - name: Build complete unsigned DMGs
-        run: ./build_macos.sh --ci --unsigned --arch all
+      - name: Build complete unsigned ARM64 DMG
+        run: ./build_macos.sh --ci --unsigned --arch arm64
       - uses: actions/upload-artifact@v4
         with:
           name: INTERNAL-UNSIGNED-BlexAgent-macOS
           retention-days: 7
           if-no-files-found: error
-          path: |
-            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
