@@ -1,16 +1,19 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 # BlexAgent Windows 正式发布构建脚本
 # 构建 NSIS 安装包和便携版 ZIP
 # 支持 Windows x64
 
 param(
     [switch]$SkipTypeCheck,
-    [switch]$SkipPortable
+    [switch]$SkipPortable,
+    [switch]$NonInteractive,
+    [switch]$RequireSigning
 )
 
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $false
 $BuildSuccess = $false
+$UnsignedBuildConfig = $null
 
 try {
     $ProjectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -45,6 +48,9 @@ try {
         Write-Host "  tauri.conf.json: $Version" -ForegroundColor Cyan
         Write-Host "  Cargo.toml:      $CargoVersion" -ForegroundColor Cyan
         Write-Host ""
+        if ($NonInteractive) {
+            throw "非交互构建要求版本号预先同步"
+        }
         $sync = Read-Host "是否同步版本号到 $PkgVersion? (y/N)"
         if ($sync -eq "y" -or $sync -eq "Y") {
             & node "$ProjectDir\scripts\sync-version.js"
@@ -92,14 +98,35 @@ try {
         Write-Host "  自动更新功能将不可用!" -ForegroundColor Yellow
         Write-Host "=========================================" -ForegroundColor Yellow
         Write-Host ""
-        $continue = Read-Host "是否继续构建? (Y/n)"
-        if ($continue -eq "n" -or $continue -eq "N") {
-            Write-Host "构建已取消" -ForegroundColor Red
-            throw "用户取消构建"
+        if ($RequireSigning) {
+            throw "正式发布要求 TAURI_SIGNING_PRIVATE_KEY"
         }
+        if (-not $NonInteractive) {
+            $continue = Read-Host "是否继续构建? (Y/n)"
+            if ($continue -eq "n" -or $continue -eq "N") {
+                Write-Host "构建已取消" -ForegroundColor Red
+                throw "用户取消构建"
+            }
+        }
+        $UnsignedBuildConfig = Join-Path $env:TEMP "blexagent-tauri-unsigned-$PID.json"
+        '{"bundle":{"createUpdaterArtifacts":false}}' | Set-Content -LiteralPath $UnsignedBuildConfig -Encoding utf8NoBOM
+        Write-Host "  本地测试构建将跳过 Tauri 更新包，仅生成安装包" -ForegroundColor Yellow
     }
     else {
         Write-Host "  OK - Tauri 签名私钥已配置" -ForegroundColor Green
+    }
+
+    if ($RequireSigning) {
+        $signingConf = Get-Content $TauriConfPath -Raw | ConvertFrom-Json
+        $thumbprint = $signingConf.bundle.windows.certificateThumbprint
+        if ([string]::IsNullOrWhiteSpace($thumbprint)) {
+            throw "正式发布要求在 Tauri 配置中设置 Windows 证书指纹"
+        }
+        $certificate = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $thumbprint } | Select-Object -First 1
+        if (-not $certificate) {
+            throw "当前用户证书存储中未找到 Windows 代码签名证书: $thumbprint"
+        }
+        Write-Host "  OK - Windows 代码签名证书已就绪 ($thumbprint)" -ForegroundColor Green
     }
     Write-Host ""
 
@@ -136,10 +163,12 @@ try {
         Write-Host "  (Fork / 自建无需上报可忽略本提示。)" -ForegroundColor Yellow
         Write-Host "=========================================" -ForegroundColor Yellow
         Write-Host ""
-        $continueAnalytics = Read-Host "是否继续构建? (Y/n)"
-        if ($continueAnalytics -eq "n" -or $continueAnalytics -eq "N") {
-            Write-Host "构建已取消" -ForegroundColor Red
-            throw "用户取消构建"
+        if (-not $NonInteractive) {
+            $continueAnalytics = Read-Host "是否继续构建? (Y/n)"
+            if ($continueAnalytics -eq "n" -or $continueAnalytics -eq "N") {
+                Write-Host "构建已取消" -ForegroundColor Red
+                throw "用户取消构建"
+            }
         }
     }
     Write-Host ""
@@ -353,11 +382,36 @@ try {
 
     $gitInstallerPath = "src-tauri\nsis\Git-Installer.exe"
     Write-Host "  检查 Git installer... " -NoNewline
-    if (Test-Path $gitInstallerPath) {
-        Write-Host "OK" -ForegroundColor Green
-    } else {
-        Write-Host "MISSING" -ForegroundColor Red
-        Write-Host "    请先运行 .\setup_windows.ps1 下载 Git 安装包" -ForegroundColor Yellow
+    $gitVersion = "2.52.0"
+    $gitInstallerUrl = "https://github.com/git-for-windows/git/releases/download/v$gitVersion.windows.1/Git-$gitVersion-64-bit.exe"
+    $gitInstallerSha256 = "D8DE7A3152266C8BB13577EAB850EA1DF6DCCF8C2AA48BE5B4A1C58B7190D62C"
+    try {
+        if (-not (Test-Path $gitInstallerPath)) {
+            Write-Host "MISSING - downloading..." -ForegroundColor Yellow
+            $gitInstallerDir = Split-Path -Parent $gitInstallerPath
+            New-Item -ItemType Directory -Path $gitInstallerDir -Force | Out-Null
+            $gitInstallerDownload = "$gitInstallerPath.download"
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+                Invoke-WebRequest -Uri $gitInstallerUrl -OutFile $gitInstallerDownload -UseBasicParsing -TimeoutSec 300
+                Move-Item -LiteralPath $gitInstallerDownload -Destination $gitInstallerPath -Force
+            } finally {
+                Remove-Item -LiteralPath $gitInstallerDownload -Force -ErrorAction SilentlyContinue
+            }
+        }
+
+        $actualGitInstallerHash = (Get-FileHash -LiteralPath $gitInstallerPath -Algorithm SHA256).Hash
+        if ($actualGitInstallerHash -ne $gitInstallerSha256) {
+            throw "Git installer SHA-256 不匹配（expected $gitInstallerSha256, got $actualGitInstallerHash）"
+        }
+        $gitInstallerSignature = Get-AuthenticodeSignature -LiteralPath $gitInstallerPath
+        if ($gitInstallerSignature.Status -ne 'Valid') {
+            throw "Git installer Authenticode 签名无效: $($gitInstallerSignature.Status)"
+        }
+        Write-Host "OK (v$gitVersion, hash + signature verified)" -ForegroundColor Green
+    } catch {
+        Write-Host "FAILED" -ForegroundColor Red
+        Write-Host "    Git installer 准备或校验失败: $_" -ForegroundColor Yellow
         $depOk = $false
     }
 
@@ -670,7 +724,15 @@ try {
     Write-Host "[6/7] 构建 Tauri 应用 (Release)..." -ForegroundColor Blue
     Write-Host "  这可能需要几分钟，请耐心等待..." -ForegroundColor Yellow
 
-    & npm run tauri:build -- --target x86_64-pc-windows-msvc --config src-tauri/tauri.windows.conf.json
+    $tauriArgs = @(
+        "run", "tauri:build", "--",
+        "--target", "x86_64-pc-windows-msvc",
+        "--config", "src-tauri/tauri.windows.conf.json"
+    )
+    if ($UnsignedBuildConfig) {
+        $tauriArgs += @("--config", $UnsignedBuildConfig)
+    }
+    & npm @tauriArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Tauri 构建失败"
     }
@@ -758,9 +820,19 @@ try {
     Write-Host "  构建产物:" -ForegroundColor Blue
 
     $nsisFiles = Get-ChildItem -Path $nsisDir -Filter "*.exe" -ErrorAction SilentlyContinue
+    if (-not $nsisFiles) {
+        throw "未生成 Windows NSIS 安装包"
+    }
     foreach ($file in $nsisFiles) {
         $size = "{0:N2} MB" -f ($file.Length / 1MB)
         Write-Host "    NSIS: $($file.Name) ($size)" -ForegroundColor Cyan
+        if ($RequireSigning) {
+            $signature = Get-AuthenticodeSignature -FilePath $file.FullName
+            if ($signature.Status -ne 'Valid') {
+                throw "Windows 安装包签名验证失败: $($file.Name) ($($signature.Status))"
+            }
+            Write-Host "      签名: 有效 ($($signature.SignerCertificate.Subject))" -ForegroundColor Green
+        }
     }
 
     $zipFiles = Get-ChildItem -Path $nsisDir -Filter "*portable*.zip" -ErrorAction SilentlyContinue
@@ -815,15 +887,21 @@ try {
         Move-Item "$TauriConfPath.bak" $TauriConfPath -Force
         Write-Host "已恢复 tauri.conf.json" -ForegroundColor Yellow
     }
+} finally {
+    if ($UnsignedBuildConfig -and (Test-Path $UnsignedBuildConfig)) {
+        Remove-Item -LiteralPath $UnsignedBuildConfig -Force -ErrorAction SilentlyContinue
+    }
 }
 
-Write-Host ""
-if ($BuildSuccess) {
-    Write-Host "按回车键退出..." -ForegroundColor Cyan
-} else {
-    Write-Host "按回车键退出..." -ForegroundColor Yellow
+if (-not $NonInteractive) {
+    Write-Host ""
+    if ($BuildSuccess) {
+        Write-Host "按回车键退出..." -ForegroundColor Cyan
+    } else {
+        Write-Host "按回车键退出..." -ForegroundColor Yellow
+    }
+    Read-Host
 }
-Read-Host
 if (-not $BuildSuccess) {
     exit 1
 }

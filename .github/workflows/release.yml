@@ -1,292 +1,255 @@
-name: Release (Disabled)
-
-# === WORKFLOW DISABLED ===
-# 此 workflow 已禁用，改用本地 build_macos.sh + publish_release.sh 发布
-# 如需重新启用，将 on: 部分改回：
-#   on:
-#     push:
-#       tags:
-#         - 'v*'
-#     workflow_dispatch:
-#       inputs:
-#         version:
-#           description: 'Version to release'
-#           required: true
-#           type: string
-# === WORKFLOW DISABLED ===
+name: Release
 
 on:
-  # 使用永远不会匹配的分支名来禁用所有触发
   push:
-    branches:
-      - 'workflow-disabled-do-not-use'
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "要发布的版本号（例如 0.7.1）"
+        required: true
+        type: string
 
-env:
-  APP_NAME: MyAgents
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-            arch: aarch64
-          - platform: macos-15-large
-            target: x86_64-apple-darwin
-            arch: x64
-
-    runs-on: ${{ matrix.platform }}
-
+  preflight:
+    name: 版本与签名凭据预检
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    env:
+      WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - id: version
+        name: 校验发布版本
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          package_version=$(node -p "require('./package.json').version")
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            requested_version="$REQUESTED_VERSION"
+          else
+            requested_version="${GITHUB_REF_NAME#v}"
+          fi
+          if [[ ! "$requested_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "无效版本号: $requested_version" >&2
+            exit 1
+          fi
+          if [[ "$requested_version" != "$package_version" ]]; then
+            echo "发布版本 $requested_version 与 package.json $package_version 不一致" >&2
+            exit 1
+          fi
+          echo "version=$requested_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$requested_version" >> "$GITHUB_OUTPUT"
+
+      - name: 检查正式签名 Secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            WINDOWS_CERTIFICATE_PFX_BASE64
+            WINDOWS_CERTIFICATE_PASSWORD
+            APPLE_CERTIFICATE_P12_BASE64
+            APPLE_CERTIFICATE_PASSWORD
+            APPLE_SIGNING_IDENTITY
+            APPLE_TEAM_ID
+            APPLE_API_ISSUER
+            APPLE_API_KEY
+            APPLE_API_KEY_P8_BASE64
+            TAURI_SIGNING_PRIVATE_KEY
+            TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          )
+          missing=()
+          for name in "${required[@]}"; do
+            [[ -n "${!name:-}" ]] || missing+=("$name")
+          done
+          if (( ${#missing[@]} )); then
+            printf '正式发布缺少 GitHub Secrets: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+  windows:
+    name: Windows x64 · 签名 NSIS
+    needs: preflight
+    runs-on: windows-2022
+    env:
+      WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      VITE_ANALYTICS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.92.0
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.92.0
         with:
-          components: rustfmt, clippy
-          targets: ${{ matrix.target }}
-
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - run: npm ci
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Download Bun binary for bundling
+      - name: 导入 Windows 代码签名证书
+        shell: pwsh
         run: |
-          # Download the appropriate Bun binary for the target architecture
-          if [ "${{ matrix.arch }}" = "aarch64" ]; then
-            BUN_ARCH="aarch64"
-          else
-            BUN_ARCH="x64"
-          fi
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'blexagent-release.pfx'
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          if (-not $certificate.Thumbprint) { throw 'Windows 代码签名证书导入失败' }
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Remove-Item -LiteralPath $certificatePath -Force
 
-          mkdir -p src-tauri/binaries
-          curl -fsSL "https://github.com/oven-sh/bun/releases/latest/download/bun-darwin-${BUN_ARCH}.zip" -o bun.zip
-          unzip -o bun.zip -d src-tauri/binaries/
-          mv src-tauri/binaries/bun-darwin-${BUN_ARCH}/bun src-tauri/binaries/bun-${{ matrix.target }}
-          rm -rf src-tauri/binaries/bun-darwin-${BUN_ARCH} bun.zip
-          chmod +x src-tauri/binaries/bun-${{ matrix.target }}
-
-      - name: Build server bundle
+      - name: 将证书指纹注入 runner 临时配置
+        shell: pwsh
         run: |
-          bun build src/server/index.ts --outfile src-tauri/resources/server-dist.js --target bun
+          $path = 'src-tauri/tauri.conf.json'
+          $config = Get-Content $path -Raw | ConvertFrom-Json
+          $config.bundle.windows.certificateThumbprint = $env:WINDOWS_CERTIFICATE_THUMBPRINT
+          $config.bundle.windows.timestampUrl = 'http://timestamp.digicert.com'
+          $config | ConvertTo-Json -Depth 100 | Set-Content $path -Encoding utf8
 
-      - name: Copy claude-agent-sdk
-        run: |
-          SDK_SRC="node_modules/@anthropic-ai/claude-agent-sdk"
-          SDK_DEST="src-tauri/resources/claude-agent-sdk"
-          mkdir -p "$SDK_DEST"
-          cp "$SDK_SRC/cli.js" "$SDK_DEST/"
-          cp "$SDK_SRC/sdk.mjs" "$SDK_DEST/"
-          cp "$SDK_SRC"/*.wasm "$SDK_DEST/"
-          cp -R "$SDK_SRC/vendor" "$SDK_DEST/"
+      - name: 构建并验证 Windows 安装包
+        shell: pwsh
+        run: ./build_windows.ps1 -NonInteractive -RequireSigning
 
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
-        env:
-          # Increase Node.js memory limit for Vite build (default ~1.5GB is not enough)
-          NODE_OPTIONS: "--max-old-space-size=4096"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          # macOS code signing (required for distribution)
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - uses: actions/upload-artifact@v4
         with:
-          tagName: v__VERSION__
-          releaseName: 'MyAgents v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false
-          args: --target ${{ matrix.target }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-${{ matrix.target }}
+          name: BlexAgent-${{ needs.preflight.outputs.version }}-windows-x64
+          if-no-files-found: error
           path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
-            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-            src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz
-            src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app.tar.gz.sig
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*portable*.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
 
-  # Upload update manifests to R2
-  publish-update:
-    needs: build
-    runs-on: ubuntu-latest
-
+  macos:
+    name: macOS · 签名与公证 · ARM64 + Intel
+    needs: preflight
+    runs-on: macos-14
+    env:
+      APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      VITE_ANALYTICS_ENABLED: "false"
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          path: artifacts
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.92.0
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
 
-      - name: Get version
-        id: version
+      - name: 导入 Apple Developer ID 证书
+        shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          fi
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/blexagent-signing.keychain-db"
+          certificate="$RUNNER_TEMP/blexagent-release.p12"
+          keychain_password=$(openssl rand -hex 24)
+          printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$certificate"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain" login.keychain-db
+          rm -f "$certificate"
 
-      - name: List artifacts
-        run: find artifacts -type f -name "*.tar.gz*" | head -20
-
-      - name: Setup rclone for R2
-        env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      - name: 准备 App Store Connect 公证密钥
+        shell: bash
         run: |
-          curl -O https://downloads.rclone.org/rclone-current-linux-amd64.deb
-          sudo dpkg -i rclone-current-linux-amd64.deb
+          set -euo pipefail
+          api_key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s' "$APPLE_API_KEY_P8_BASE64" | base64 --decode > "$api_key_path"
+          chmod 600 "$api_key_path"
+          echo "APPLE_API_KEY_PATH=$api_key_path" >> "$GITHUB_ENV"
 
-          mkdir -p ~/.config/rclone
-          printf '%s\n' \
-            "[r2]" \
-            "type = s3" \
-            "provider = Cloudflare" \
-            "access_key_id = ${R2_ACCESS_KEY_ID}" \
-            "secret_access_key = ${R2_SECRET_ACCESS_KEY}" \
-            "endpoint = https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
-            "acl = private" \
-            > ~/.config/rclone/rclone.conf
+      - name: 构建、签名、公证并验证 macOS 安装包
+        shell: bash
+        run: ./build_macos.sh --ci --arch all
 
-      - name: Generate update manifests and upload to R2
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          DOWNLOAD_BASE_URL: https://download.myagents.io
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlexAgent-${{ needs.preflight.outputs.version }}-macos
+          if-no-files-found: error
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.sig
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.sig
+
+  publish:
+    name: 创建 GitHub Release
+    needs: [preflight, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: 生成 SHA-256 校验文件
+        shell: bash
         run: |
-          # Create update directory
-          mkdir -p update-manifests
+          set -euo pipefail
+          cd release-assets
+          find . -type f ! -name 'SHA256SUMS.txt' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > SHA256SUMS.txt
 
-          # Variables for latest.json
-          PUB_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          DMG_ARM64=""
-          DMG_X64=""
+      - name: 发布安装包
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.preflight.outputs.tag }}
+          name: BlexAgent v${{ needs.preflight.outputs.version }}
+          body: |
+            BlexAgent v${{ needs.preflight.outputs.version }} 正式安装包。
 
-          # Process each architecture
-          for target in "aarch64-apple-darwin" "x86_64-apple-darwin"; do
-            echo "Processing $target..."
-
-            # Find the .tar.gz, .sig, and .dmg files
-            TAR_GZ=$(find artifacts -name "*.app.tar.gz" -path "*${target}*" ! -name "*.sig" | head -1)
-            SIG=$(find artifacts -name "*.app.tar.gz.sig" -path "*${target}*" | head -1)
-            DMG=$(find artifacts -name "*.dmg" -path "*${target}*" | head -1)
-
-            if [ -z "$TAR_GZ" ] || [ -z "$SIG" ]; then
-              echo "Warning: Missing update artifacts for $target"
-              continue
-            fi
-
-            echo "Found tar.gz: $TAR_GZ"
-            echo "Found sig: $SIG"
-            echo "Found dmg: $DMG"
-
-            # Get file names
-            FILENAME=$(basename "$TAR_GZ")
-            SIGNATURE=$(cat "$SIG")
-
-            # Upload tar.gz to R2 (for updater)
-            rclone copy "$TAR_GZ" "r2:myagents-releases/releases/v${VERSION}/"
-
-            # Upload DMG to R2 (for website download)
-            if [ -n "$DMG" ]; then
-              DMG_FILENAME=$(basename "$DMG")
-              rclone copy "$DMG" "r2:myagents-releases/releases/v${VERSION}/"
-
-              # Store DMG filename for latest.json
-              if [ "$target" = "aarch64-apple-darwin" ]; then
-                DMG_ARM64="$DMG_FILENAME"
-              else
-                DMG_X64="$DMG_FILENAME"
-              fi
-            fi
-
-            # Determine manifest filename based on target
-            if [ "$target" = "aarch64-apple-darwin" ]; then
-              MANIFEST_NAME="darwin-aarch64"
-            else
-              MANIFEST_NAME="darwin-x86_64"
-            fi
-
-            # Generate update manifest JSON (for Tauri updater)
-            printf '%s\n' \
-              '{' \
-              "  \"version\": \"${VERSION}\"," \
-              "  \"notes\": \"MyAgents v${VERSION}\"," \
-              "  \"pub_date\": \"${PUB_DATE}\"," \
-              '  "platforms": {' \
-              "    \"${MANIFEST_NAME}\": {" \
-              "      \"signature\": \"${SIGNATURE}\"," \
-              "      \"url\": \"${DOWNLOAD_BASE_URL}/releases/v${VERSION}/${FILENAME}\"" \
-              '    }' \
-              '  }' \
-              '}' \
-              > "update-manifests/${MANIFEST_NAME}.json"
-
-            echo "Generated ${MANIFEST_NAME}.json"
-          done
-
-          # Generate latest.json for website
-          printf '%s\n' \
-            '{' \
-            "  \"version\": \"${VERSION}\"," \
-            "  \"pub_date\": \"${PUB_DATE}\"," \
-            "  \"release_notes\": \"MyAgents v${VERSION}\"," \
-            '  "downloads": {' \
-            '    "mac_arm64": {' \
-            '      "name": "Apple Silicon",' \
-            "      \"url\": \"${DOWNLOAD_BASE_URL}/releases/v${VERSION}/${DMG_ARM64}\"" \
-            '    },' \
-            '    "mac_intel": {' \
-            '      "name": "Intel Mac",' \
-            "      \"url\": \"${DOWNLOAD_BASE_URL}/releases/v${VERSION}/${DMG_X64}\"" \
-            '    }' \
-            '  }' \
-            '}' \
-            > "update-manifests/latest.json"
-
-          echo "Generated latest.json"
-
-          # Upload all manifests to R2
-          rclone copy update-manifests/ "r2:myagents-releases/update/"
-
-          echo "Upload complete!"
-          echo "Update endpoints:"
-          echo "  - ${DOWNLOAD_BASE_URL}/update/darwin-aarch64.json (updater)"
-          echo "  - ${DOWNLOAD_BASE_URL}/update/darwin-x86_64.json (updater)"
-          echo "  - ${DOWNLOAD_BASE_URL}/update/latest.json (website)"
-
-      - name: Summary
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          DOWNLOAD_BASE_URL: https://download.myagents.io
-        run: |
-          echo "## Release v${VERSION} Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Updater Manifests" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${DOWNLOAD_BASE_URL}/update/darwin-aarch64.json\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${DOWNLOAD_BASE_URL}/update/darwin-x86_64.json\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Website Download API" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${DOWNLOAD_BASE_URL}/update/latest.json\`" >> $GITHUB_STEP_SUMMARY
+            - Windows：x64 NSIS 安装包
+            - macOS：Apple Silicon 与 Intel DMG
+            - 所有桌面安装包均经过平台代码签名；macOS 已完成公证
+            - `SHA256SUMS.txt` 可用于校验下载文件完整性
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-assets/**

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.1] - 2026-07-13
+
+> 本版更新聊天机器人添加教程，并为 Windows 与 macOS 的正式桌面分发收敛版本、无终端启动和签名发布流程。
+
+### Changed
+
+- **聊天机器人教程与当前界面一致**：使用新版 Blex 蓝白界面截图，明确从工作区菜单进入 Agent 设置、开启主动 Agent 模式并添加 Channel 的完整路径。
+- **桌面版本统一升级至 0.7.1**：npm、Tauri 与 Cargo 的版本来源保持一致，发布标签使用 `v0.7.1`。
+- **Windows GUI 启动不再弹出控制台**：Debug 与 Release 桌面应用均使用 GUI 子系统；显式 CLI 调用仍可在调用者终端输出结果。
+- **跨平台正式发布准备**：发布矩阵覆盖 Windows x64、macOS Apple Silicon 与 Intel，并将代码签名、公证和更新签名设为正式发布前置条件。
+
+---
+
 ## [0.2.49] - 2026-07-07
 
 > 本版扩展 Agent 长期记忆、Team Space 协作和 IM 渠道交互：Agent 可定期整理/进化长期记忆；Space 增加个人资料、成员设置、Skill 发布历史和 Issue 投送体验；飞书等渠道可以用原生卡片向用户追问。OpenAI 兼容桥、会话草稿可见性、后台子 Agent 状态和 Skill 安装安全性也做了稳定性修复。

@@ -1,6 +1,6 @@
 [package]
 name = "blexagent"
-version = "0.2.49"
+version = "0.7.1"
 description = "BlexAgent - Desktop Claude Code for everyone"
 authors = ["BlexAgent Team <team@blexagent.com>"]
 license = "Apache-2.0"
