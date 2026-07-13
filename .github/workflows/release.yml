@@ -22,6 +22,7 @@ jobs:
   preflight:
     name: 版本与签名凭据预检
     runs-on: ubuntu-latest
+    environment: production-release
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
@@ -39,6 +40,25 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
+
+      - name: 检查商业发布法律物料
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p "require('./package.json').private")" = "true"
+          test "$(node -p "require('./package.json').license")" = "UNLICENSED"
+          required=(LICENSE THIRD_PARTY_NOTICES.md specs/legal/EULA.md specs/legal/PRIVACY.md)
+          for path in "${required[@]}"; do
+            [[ -s "$path" ]] || { echo "商业发布法律物料缺失或为空: $path" >&2; exit 1; }
+          done
+          if grep -q 'UNKNOWN — manual review required' THIRD_PARTY_NOTICES.md; then
+            echo "第三方许可清单仍有未识别项目；完成合规复核后才能正式发布。" >&2
+            exit 1
+          fi
+          if grep -Eq 'Release gate:|registered legal entity|注册法律实体' specs/legal/EULA.md specs/legal/PRIVACY.md; then
+            echo "EULA/隐私声明仍含发布门禁占位内容；正式发布前必须由法律主体确认并移除。" >&2
+            exit 1
+          fi
 
       - id: version
         name: 校验发布版本
@@ -94,6 +114,7 @@ jobs:
     name: Windows x64 · 签名 NSIS
     needs: preflight
     runs-on: windows-2022
+    environment: production-release
     env:
       WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
       WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
@@ -132,7 +153,7 @@ jobs:
           $path = 'src-tauri/tauri.conf.json'
           $config = Get-Content $path -Raw | ConvertFrom-Json
           $config.bundle.windows.certificateThumbprint = $env:WINDOWS_CERTIFICATE_THUMBPRINT
-          $config.bundle.windows.timestampUrl = 'http://timestamp.digicert.com'
+          $config.bundle.windows.timestampUrl = 'https://timestamp.digicert.com'
           $config | ConvertTo-Json -Depth 100 | Set-Content $path -Encoding utf8
 
       - name: 构建并验证 Windows 安装包
@@ -153,6 +174,7 @@ jobs:
     name: macOS · 签名与公证 · ARM64 + Intel
     needs: preflight
     runs-on: macos-14
+    environment: production-release
     env:
       APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -224,6 +246,7 @@ jobs:
     name: 创建 GitHub Release
     needs: [preflight, windows, macos]
     runs-on: ubuntu-latest
+    environment: production-release
     steps:
       - uses: actions/download-artifact@v4
         with:

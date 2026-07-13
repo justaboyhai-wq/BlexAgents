@@ -1,20 +1,14 @@
-name: Package Unsigned macOS
+name: Internal Package · Unsigned macOS
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - codex/release-0.7.1
-    paths:
-      - build_macos.sh
-      - .github/workflows/package-unsigned-macos.yml
 
 permissions:
   contents: read
 
 jobs:
   macos:
-    name: macOS unsigned · ARM64 + Intel
+    name: INTERNAL ONLY · macOS unsigned · ARM64 + Intel
     runs-on: macos-14
     env:
       VITE_ANALYTICS_ENABLED: "false"
@@ -42,7 +36,8 @@ jobs:
         run: ./build_macos.sh --ci --unsigned --arch all
       - uses: actions/upload-artifact@v4
         with:
-          name: BlexAgent-unsigned-macos
+          name: INTERNAL-UNSIGNED-BlexAgent-macOS
+          retention-days: 7
           if-no-files-found: error
           path: |
             src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg

@@ -155,6 +155,38 @@ if [ -d "$INTEL_DIR" ]; then
     INTEL_SIG=$(find "${INTEL_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
 fi
 
+# 商业发布必须是双架构、Developer ID 已签名并完成公证的完整物料。
+for required in "$ARM_DMG" "$ARM_TAR" "$ARM_SIG" "$INTEL_DMG" "$INTEL_TAR" "$INTEL_SIG"; do
+    if [ -z "$required" ] || [ ! -f "$required" ]; then
+        echo -e "${RED}错误: 正式发布缺少双架构 DMG、更新包或签名文件${NC}" >&2
+        exit 1
+    fi
+    case "$(basename "$required")" in
+        INTERNAL-UNSIGNED-*)
+            echo -e "${RED}错误: 拒绝发布内部无签名物料: $(basename "$required")${NC}" >&2
+            exit 1
+            ;;
+    esac
+done
+
+for dmg in "$ARM_DMG" "$INTEL_DMG"; do
+    if ! codesign --verify --deep --strict "$dmg"; then
+        echo -e "${RED}错误: DMG 代码签名验证失败: $(basename "$dmg")${NC}" >&2
+        exit 1
+    fi
+    if ! xcrun stapler validate "$dmg"; then
+        echo -e "${RED}错误: DMG 未附加有效 Apple 公证票据: $(basename "$dmg")${NC}" >&2
+        exit 1
+    fi
+done
+
+for sig in "$ARM_SIG" "$INTEL_SIG"; do
+    if [ ! -s "$sig" ]; then
+        echo -e "${RED}错误: Tauri 更新签名为空: $(basename "$sig")${NC}" >&2
+        exit 1
+    fi
+done
+
 # 显示物料清单
 echo -e "  ${CYAN}┌─────────────────────────────────────────────────────────┐${NC}"
 echo -e "  ${CYAN}│${NC}  ${BLUE}物料清单 - v${VERSION}${NC}                                      ${CYAN}│${NC}"

@@ -1,9 +1,10 @@
 [package]
 name = "blexagent"
 version = "0.7.1"
-description = "BlexAgent - Desktop Claude Code for everyone"
+description = "BlexAgent - A desktop personal Agent for creators, everyday life, education, and productive work"
 authors = ["BlexAgent Team <team@blexagent.com>"]
-license = "Apache-2.0"
+license-file = "../LICENSE"
+publish = false
 repository = "https://github.com/justaboyhai-wq/BlexAgents"
 homepage = "https://blexagent.com"
 edition = "2021"

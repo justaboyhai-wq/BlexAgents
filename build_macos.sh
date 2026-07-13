@@ -795,6 +795,18 @@ RELEASE_VALIDATION_FAILED=false
 for TARGET in "${BUILD_TARGETS[@]}"; do
     TARGET_BUNDLE_DIR="${BUNDLE_DIR}/${TARGET}/release/bundle"
     DMG_PATH=$(find "${TARGET_BUNDLE_DIR}/dmg" -name "*.dmg" 2>/dev/null | head -1)
+    if [ -n "$DMG_PATH" ] && [ "$UNSIGNED_MODE" = true ]; then
+        DMG_DIR=$(dirname "$DMG_PATH")
+        DMG_NAME=$(basename "$DMG_PATH")
+        case "$DMG_NAME" in
+            INTERNAL-UNSIGNED-*) ;;
+            *)
+                INTERNAL_DMG_PATH="${DMG_DIR}/INTERNAL-UNSIGNED-${DMG_NAME}"
+                mv "$DMG_PATH" "$INTERNAL_DMG_PATH"
+                DMG_PATH="$INTERNAL_DMG_PATH"
+                ;;
+        esac
+    fi
     APP_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app" 2>/dev/null | head -1)
     TAR_GZ_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app.tar.gz" ! -name "*.sig" 2>/dev/null | head -1)
     SIG_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)

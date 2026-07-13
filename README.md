@@ -4,9 +4,9 @@
 
 **活在你的电脑里，真正能干活的个人 Agent**
 
-[中文](#chinese) · [English](#english) · [官网](https://blexagent.com) · [下载](https://blexagent.com) · [架构文档](specs/ARCHITECTURE.md) · [贡献指南](CONTRIBUTING.md)
+[中文](#chinese) · [English](#english) · [官网](https://blexagent.com) · [下载](https://blexagent.com) · [架构文档](specs/ARCHITECTURE.md) · [内部开发](CONTRIBUTING.md) · [隐私](specs/legal/PRIVACY.md)
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-1d4ed8.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-13.0+-black.svg)](https://www.apple.com/macos/)
 [![Windows](https://img.shields.io/badge/Windows-10+-blue.svg)](https://www.microsoft.com/windows/)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-orange.svg)](https://tauri.app/)
@@ -20,7 +20,7 @@
 
 ## BlexAgent 是什么
 
-BlexAgent 是一款开源桌面端个人 Agent 工作台。它不是另一个聊天窗口，而是把对话、工作区、文件、工具、模型、任务和长期记忆放进同一个桌面系统里，让 AI 真正进入你的日常工作流。
+BlexAgent 是一款闭源商业桌面端个人 Agent 工作台。它不是另一个聊天窗口，而是把对话、工作区、文件、工具、模型、任务和长期记忆放进同一个桌面系统里，让 AI 真正进入你的日常工作流。
 
 你可以把它理解成三件事的组合：
 
@@ -100,11 +100,11 @@ AI 最有价值的地方不是替人多生成几段文字，而是把混乱信�
 
 BlexAgent 的很多设计都来自这个判断：本地工作区是一等公民，Sidecar 按 Session 隔离，所有文件能力走 Tauri/Rust，AI Runtime 可以切换，模型供应商可以替换，工具和 Skills 可以扩展。
 
-### 开放比封闭更适合 Agent 时代
+### 可扩展比生态锁定更适合 Agent 时代
 
 Agent 产品不可能预设所有人的工作流。开发者、创作者、研究者、产品经理、教育工作者和行业专家需要的能力都不一样。与其做一个「什么都内置但什么都固定」的应用，不如提供一个稳定的底座，让用户把自己的工具、模型、技能和自动化流程接进来。
 
-这也是 BlexAgent 坚持开源、支持 MCP、Skills、插件和多供应商的原因。
+这也是 BlexAgent 在保持核心产品闭源的同时，继续支持 MCP、Skills、插件、多供应商和经审核第三方模板的原因。产品源代码的专有许可不改变第三方组件各自的开源许可证。
 
 ## 功能概览
 
@@ -136,7 +136,7 @@ BlexAgent 是一个桌面端 AI Agent 产品，不是单纯的前端项目。改
 | 后端 Sidecar | Node.js v24 + Claude Agent SDK                                             |
 | 通信         | Rust HTTP/SSE Proxy，前端通过 Tauri invoke 代理到 Sidecar                  |
 | Runtime      | 内置 Claude Agent SDK，实验室支持 Claude Code CLI / Codex CLI / Gemini CLI |
-| 工具生态     | MCP、Skills、OpenClaw Plugin Bridge、`blexagent` CLI                        |
+| 工具生态     | MCP、Skills、OpenClaw Plugin Bridge、`blexagent` CLI                       |
 | 搜索         | Tantivy + tantivy-jieba                                                    |
 | 终端         | portable-pty + xterm.js                                                    |
 
@@ -280,7 +280,7 @@ chore: bump ...
 
 ## What Is BlexAgent
 
-BlexAgent is an open-source desktop workspace for personal AI Agents. It is not another chat window. It puts conversations, workspaces, files, tools, models, tasks, and long-term memory into one desktop system, so AI can become part of your real daily workflow.
+BlexAgent is a proprietary commercial desktop workspace for personal AI Agents. It is not another chat window. It puts conversations, workspaces, files, tools, models, tasks, and long-term memory into one desktop system, so AI can become part of your real daily workflow.
 
 You can think of it as three things in one:
 
@@ -360,11 +360,11 @@ A desktop Agent should not merely copy the web chat experience. It should be abl
 
 Many BlexAgent design choices come from this belief: local workspaces are first-class, Sidecars are isolated by Session, file operations go through Tauri/Rust, AI runtimes can be switched, model providers can be replaced, and tools and Skills can be extended.
 
-### Openness Fits The Agent Era Better Than Lock-In
+### Extensibility Fits The Agent Era Better Than Lock-In
 
 No Agent product can predefine every workflow. Developers, creators, researchers, product managers, educators, and domain experts all need different capabilities. Instead of building an app where everything is built in and fixed, BlexAgent provides a stable base that lets users plug in their own tools, models, skills, and automations.
 
-This is why BlexAgent is open source and supports MCP, Skills, plugins, and multiple model providers.
+This is why BlexAgent keeps its core product proprietary while supporting MCP, Skills, plugins, multiple model providers, and reviewed third-party templates. The proprietary product license does not replace the licenses of third-party components.
 
 ## Feature Overview
 
@@ -396,7 +396,7 @@ BlexAgent is a desktop AI Agent product, not a plain frontend project. Before ma
 | Backend Sidecar | Node.js v24 + Claude Agent SDK                                                      |
 | Communication   | Rust HTTP/SSE Proxy, with the frontend reaching Sidecar through Tauri invoke        |
 | Runtime         | Built-in Claude Agent SDK, Lab support for Claude Code CLI / Codex CLI / Gemini CLI |
-| Tool ecosystem  | MCP, Skills, OpenClaw Plugin Bridge, `blexagent` CLI                                 |
+| Tool ecosystem  | MCP, Skills, OpenClaw Plugin Bridge, `blexagent` CLI                                |
 | Search          | Tantivy + tantivy-jieba                                                             |
 | Terminal        | portable-pty + xterm.js                                                             |
 
@@ -534,6 +534,6 @@ test: cover ...
 chore: bump ...
 ```
 
-## 许可证
+## 许可证与隐私
 
-BlexAgent 使用 [Apache License 2.0](LICENSE) 开源。
+BlexAgent 核心产品是闭源商业软件，源代码适用[专有许可证](LICENSE)，发行版适用[最终用户许可协议](specs/legal/EULA.md)。第三方组件继续适用各自许可证，详见[第三方软件声明](THIRD_PARTY_NOTICES.md)。数据处理方式见[隐私声明](specs/legal/PRIVACY.md)。

@@ -1,9 +1,10 @@
 {
   "name": "blexagent",
-  "description": "BlexAgent - Desktop Claude Code for everyone. AI-powered productivity, not just for developers.",
+  "description": "BlexAgent - A desktop personal Agent for creators, everyday life, education, and productive work.",
   "type": "module",
   "version": "0.7.1",
-  "license": "Apache-2.0",
+  "private": true,
+  "license": "UNLICENSED",
   "packageManager": "npm@11.13.0",
   "engines": {
     "node": ">=22.0.0"
@@ -52,6 +53,7 @@
     "brand:default-workspace": "node scripts/apply-default-workspace-branding.mjs",
     "validate:bundled-resources": "npm run brand:default-workspace && node scripts/validate-bundled-resources.mjs",
     "validate:agenthub": "node scripts/validate-agenthub.mjs",
+    "legal:third-party": "node scripts/generate-third-party-notices.mjs",
     "test:watch": "vitest --project unit --project dom --project integration",
     "coverage": "vitest run --coverage --project unit --project dom --project integration",
     "format": "prettier --experimental-cli --write .",
