@@ -21,8 +21,14 @@ import type { ToolAttachmentKind } from './types/tool-attachment';
 export const EDGE_TTS_TOOL = 'mcp__edge-tts__text_to_speech';
 export const GEMINI_GENERATE_TOOL = 'mcp__gemini-image__generate_image';
 export const GEMINI_EDIT_TOOL = 'mcp__gemini-image__edit_image';
+export const AGENT_PLAN_GENERATE_IMAGE_TOOL = 'mcp__agent-plan-media__generate_image';
 
-const MEDIA_TOOLS = new Set<string>([EDGE_TTS_TOOL, GEMINI_GENERATE_TOOL, GEMINI_EDIT_TOOL]);
+const MEDIA_TOOLS = new Set<string>([
+  EDGE_TTS_TOOL,
+  GEMINI_GENERATE_TOOL,
+  GEMINI_EDIT_TOOL,
+  AGENT_PLAN_GENERATE_IMAGE_TOOL,
+]);
 
 const AUDIO_MIME: Record<string, string> = {
   mp3: 'audio/mpeg',
@@ -184,7 +190,8 @@ export function parseGeminiImageResult(result: string | undefined): GeminiImageR
 }
 
 export interface BuiltinMediaSpec {
-  filePath: string;
+  filePath?: string;
+  sourceUrl?: string;
   mimeType: string;
   kind: ToolAttachmentKind;
   caption?: string;
@@ -213,6 +220,21 @@ export function parseBuiltinMediaToolResult(toolName: string, contentStr: string
         producedBy: 'mcp.edge-tts.text_to_speech',
       },
     ];
+  }
+
+  if (toolName === AGENT_PLAN_GENERATE_IMAGE_TOOL) {
+    const text = unwrapMcpResult(contentStr);
+    if (text.startsWith('Error')) return [];
+    const fields = parseFields(text);
+    return Object.entries(fields)
+      .filter(([key, value]) => /^imageUrl\d+$/.test(key) && value.startsWith('https://'))
+      .map(([, sourceUrl]) => ({
+        sourceUrl,
+        mimeType: 'image/jpeg',
+        kind: 'image' as const,
+        caption: fields['prompt'],
+        producedBy: 'mcp.agent-plan-media.generate_image',
+      }));
   }
 
   // gemini-image generate / edit

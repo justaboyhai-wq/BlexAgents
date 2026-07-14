@@ -307,7 +307,7 @@
       "refresh": "刷新",
       "searchPlaceholder": "搜索模型...",
       "needApiKey": "请先配置 API Key",
-      "notSupported": "当前供应商不支持发现模型",
+      "notSupported": "该供应商仅提供上方精选模型，无需在线拉取模型列表",
       "loading": "正在拉取模型列表...",
       "loadFailed": "无法拉取模型列表",
       "retry": "重试",

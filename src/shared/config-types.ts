@@ -355,6 +355,10 @@ export interface Provider {
   // 当供应商的 Anthropic 路径不支持 /v1/models 时，指向其 OpenAI 路径
   modelListUrl?: string;
 
+  // 是否支持通过远端接口发现模型。默认 true；订阅套餐等仅提供固定
+  // 推理端点、没有模型目录接口时显式设为 false，避免错误探测 /v1/models。
+  supportsModelDiscovery?: boolean;
+
   // 模型列表 - 使用新的 ModelEntity 结构
   models: ModelEntity[];
 
@@ -990,6 +994,7 @@ export const PRESET_PROVIDERS: Provider[] = [
     // endpoint. Its dedicated plan base URL accepts ANTHROPIC_AUTH_TOKEN.
     authType: 'auth_token',
     apiProtocol: 'anthropic',
+    supportsModelDiscovery: false,
     websiteUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?advancedActiveKey=agentPlan',
     config: {
       // Agent Plan has its own quota endpoint. Do not use /api/v3, which is
@@ -998,9 +1003,23 @@ export const PRESET_PROVIDERS: Provider[] = [
     },
     modelAliases: { sonnet: 'ark-code-latest', opus: 'ark-code-latest', haiku: 'ark-code-latest' },
     models: [
-      { model: 'ark-code-latest', modelName: 'Ark Code Latest', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 32_000, inputModalities: ['text', 'image'] },
+      // Agent Plan exposes a curated subscription catalogue rather than a
+      // /v1/models endpoint. Keep this list aligned with the plan console.
+      // Dedicated video/image/embedding/speech models are intentionally not
+      // selectable as the Claude Agent SDK's primary conversational model.
+      { model: 'ark-code-latest', modelName: 'Auto（智能调度）', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 32_000, inputModalities: ['text', 'image'] },
       { model: 'doubao-seed-2.0-code', modelName: 'Doubao Seed 2.0 Code', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
       { model: 'doubao-seed-2.0-pro', modelName: 'Doubao Seed 2.0 Pro', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
+      { model: 'doubao-seed-2.0-lite', modelName: 'Doubao Seed 2.0 Lite', modelSeries: 'volcengine-agent-plan', inputModalities: ['text', 'image', 'video', 'audio'] },
+      { model: 'doubao-seed-2.0-mini', modelName: 'Doubao Seed 2.0 Mini', modelSeries: 'volcengine-agent-plan', inputModalities: ['text', 'image'] },
+      { model: 'glm-5.2', modelName: 'GLM 5.2', modelSeries: 'volcengine-agent-plan', contextLength: 1_000_000, inputModalities: ['text'] },
+      { model: 'kimi-k2.7-code', modelName: 'Kimi K2.7 Code', modelSeries: 'volcengine-agent-plan', inputModalities: ['text', 'image', 'video'] },
+      { model: 'deepseek-v4-pro', modelName: 'DeepSeek V4 Pro', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'deepseek-v4-flash', modelName: 'DeepSeek V4 Flash', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'minimax-m3', modelName: 'MiniMax M3', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'minimax-m2.7', modelName: 'MiniMax M2.7', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'kimi-k2.6', modelName: 'Kimi K2.6', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'deepseek-v3.2', modelName: 'DeepSeek V3.2', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
     ],
   },
   {

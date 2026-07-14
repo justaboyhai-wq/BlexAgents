@@ -29,6 +29,7 @@ import { type Project, type Provider, type PermissionMode, type ProviderVerifySt
 import type { RuntimeType, RuntimeModelInfo, RuntimePermissionMode } from '../../../shared/types/runtime';
 import type { Thought } from '../../../shared/types/thought';
 import type { OfficialToolDefinition, OfficialToolId } from '../../../shared/official-tools';
+import type { AgentPlanSpeechControl } from '../../../shared/agent-plan-capabilities';
 
 interface BrandSectionProps {
     // Workspace
@@ -65,6 +66,8 @@ interface BrandSectionProps {
     onPermissionModeChange?: (mode: PermissionMode) => void;
     apiKeys?: Record<string, string>;
     providerVerifyStatus?: Record<string, ProviderVerifyStatus>;
+    agentPlanSpeechControl?: AgentPlanSpeechControl;
+    speechApiPost?: <T>(path: string, body?: unknown, opts?: { signal?: AbortSignal }) => Promise<T>;
     // MCP
     workspaceMcpEnabled?: string[];
     globalMcpEnabled?: string[];
@@ -118,6 +121,8 @@ export default memo(function BrandSection({
     onPermissionModeChange,
     apiKeys,
     providerVerifyStatus,
+    agentPlanSpeechControl,
+    speechApiPost,
     workspaceMcpEnabled,
     globalMcpEnabled,
     mcpServers,
@@ -532,6 +537,8 @@ export default memo(function BrandSection({
                                 onCronCancel={() => setStagedCron(null)}
                                 apiKeys={apiKeys}
                                 providerVerifyStatus={providerVerifyStatus}
+                                agentPlanSpeechControl={agentPlanSpeechControl}
+                                speechApiPost={speechApiPost}
                                 workspaceMcpEnabled={workspaceMcpEnabled}
                                 globalMcpEnabled={globalMcpEnabled}
                                 mcpServers={mcpServers}

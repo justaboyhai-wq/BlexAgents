@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, Bot, Globe, History, Loader2, Plus, PanelRightOpen, RotateCcw, TerminalSquare, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Bot, Globe, History, Loader2, Plus, PanelRightOpen, RotateCcw, TerminalSquare, Volume2, VolumeX, X } from 'lucide-react';
 import { forwardRef, lazy, Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +42,10 @@ import { useFileDropZone } from '@/hooks/useFileDropZone';
 import { useTauriFileDrop } from '@/hooks/useTauriFileDrop';
 import { useCronTask } from '@/hooks/useCronTask';
 import { useWorkspaceFileService } from '@/hooks/useWorkspaceFileService';
+import { useAgentPlanSpeechCapabilities } from '@/hooks/useAgentPlanSpeechCapabilities';
+import { resolveToolAttachmentUrl } from '@/utils/toolAttachment';
+import { playAudioUrl, stopAudio } from '@/utils/audioPlayer';
+import type { ToolAttachment } from '../../shared/types/tool-attachment';
 import { useWorkspaceChangeSignal } from '@/hooks/useWorkspaceChangeSignal';
 import { isIntroductionAbsentError, shouldShowIntroductionOverlay, useIntroductionContent } from '@/hooks/useIntroductionContent';
 import { resolveAdoptedBuiltinProviderId } from '@/utils/sessionConfigAdoption';
@@ -561,6 +565,80 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     && !effectiveSelectedProviderId;
   const currentProviderAvailableForInput = builtinSnapshotProviderSelectionIncomplete
     || (!!currentProvider && availableProviderIdsForInput.includes(currentProvider.id));
+  const agentPlanSpeech = useAgentPlanSpeechCapabilities({
+    currentProviderId: currentProvider?.id,
+    apiKey: apiKeys['volcengine-agent-plan'],
+    verifyStatus: providerVerifyStatus['volcengine-agent-plan'],
+    apiGet,
+  });
+  const agentPlanSpeechControl = agentPlanSpeech.control;
+  const refreshAgentPlanSpeech = agentPlanSpeech.refresh;
+  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(false);
+  const autoSpeakWasLoadingRef = useRef(false);
+  const autoSpokenMessageIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (!agentPlanSpeechControl.enabled) {
+      setAutoSpeakEnabled(false);
+      stopAudio();
+    }
+  }, [agentPlanSpeechControl.enabled]);
+  const handleSpeakMessage = useCallback(async (messageId: string, text: string) => {
+    if (!sessionId || !agentPlanSpeechControl.enabled) return;
+    try {
+      const response = await apiPost<{
+        success: boolean;
+        attachment?: ToolAttachment;
+        error?: string;
+      }>('/api/agent-plan/tts', { text, sessionId, messageId });
+      if (!response.attachment) throw new Error(response.error || 'Agent Plan TTS did not return audio.');
+      const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
+      if (!url || url.startsWith('error://')) throw new Error('Agent Plan TTS audio is unavailable.');
+      // Use the message id as the player identity so the message action can
+      // display progress even when the generated attachment path is opaque.
+      await playAudioUrl(messageId, url);
+    } catch (error) {
+      toast.error(t('input.speech.ttsFailed'));
+      await refreshProviderData().catch(() => undefined);
+      refreshAgentPlanSpeech();
+      throw error;
+    }
+  }, [agentPlanSpeechControl.enabled, apiPost, refreshAgentPlanSpeech, refreshProviderData, sessionId, t, toast]);
+
+  // Auto-speak only on the loading -> complete transition. This deliberately
+  // ignores history hydration and streaming updates, so opening a chat never
+  // unexpectedly calls the TTS model.
+  useEffect(() => {
+    if (isLoading) {
+      autoSpeakWasLoadingRef.current = true;
+      return;
+    }
+    if (!autoSpeakWasLoadingRef.current) return;
+    autoSpeakWasLoadingRef.current = false;
+    if (!autoSpeakEnabled || !agentPlanSpeechControl.enabled || !sessionId) return;
+
+    const latestAssistant = [...messages].reverse().find(message => message.role === 'assistant');
+    if (!latestAssistant || autoSpokenMessageIdsRef.current.has(latestAssistant.id)) return;
+    const text = typeof latestAssistant.content === 'string'
+      ? latestAssistant.content
+      : latestAssistant.content
+        .filter(block => block.type === 'text')
+        .map(block => block.text || '')
+        .join('\n\n');
+    if (!text.trim()) return;
+    autoSpokenMessageIdsRef.current.add(latestAssistant.id);
+    void handleSpeakMessage(latestAssistant.id, text).catch(() => {
+      autoSpokenMessageIdsRef.current.delete(latestAssistant.id);
+    });
+  }, [agentPlanSpeechControl.enabled, autoSpeakEnabled, handleSpeakMessage, isLoading, messages, sessionId]);
+
+  const toggleAutoSpeak = useCallback(() => {
+    if (!agentPlanSpeechControl.enabled) return;
+    setAutoSpeakEnabled(previous => {
+      const next = !previous;
+      if (!next) stopAudio();
+      return next;
+    });
+  }, [agentPlanSpeechControl.enabled]);
 
   // PERFORMANCE: Ref-stabilize object deps used in handleSendMessage
   // Prevents useCallback from creating new references when these objects change,
@@ -4695,20 +4773,23 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
               triggerRef={historyBtnRef}
               sessionNotificationBadgeCounts={sessionNotificationBadgeCounts}
             />
-            {/* Dev-only buttons - controlled by config.showDevTools */}
-            {config.showDevTools && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowLogs((prev) => !prev)}
-                  className={`rounded-lg px-2.5 py-1 text-sm font-medium transition-colors ${showLogs
-                    ? 'bg-[var(--paper-inset)] text-[var(--ink)]'
-                    : 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
-                    }`}
-                >
-                  Logs
-                </button>
-                </>
+            {agentPlanSpeechControl.visibility === 'visible' && (
+              <button
+                type="button"
+                onClick={toggleAutoSpeak}
+                disabled={!agentPlanSpeechControl.enabled}
+                aria-pressed={autoSpeakEnabled}
+                aria-label={autoSpeakEnabled ? t('shell.header.autoSpeakOn') : t('shell.header.autoSpeakOff')}
+                title={agentPlanSpeechControl.enabled
+                  ? (autoSpeakEnabled ? t('shell.header.autoSpeakOn') : t('shell.header.autoSpeakOff'))
+                  : t('shell.header.autoSpeakUnavailable')}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${autoSpeakEnabled
+                  ? 'bg-[var(--paper-inset)] text-[var(--ink)]'
+                  : 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                {autoSpeakEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+              </button>
             )}
             {/* Workspace toggle button - always visible when workspace is hidden */}
             {!showWorkspace && (
@@ -4911,6 +4992,8 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
               onRewind={isExternalRuntime ? undefined : handleRewind}
               onRetry={handleRetry}
               onFork={isExternalRuntime ? undefined : handleFork}
+              onSpeak={handleSpeakMessage}
+              speechControl={agentPlanSpeechControl}
               bottomSpacerPx={inputOverlayHeight}
             />
 
@@ -4981,6 +5064,8 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
             onPermissionModeChange={handleInputPermissionModeChange}
             apiKeys={apiKeys}
             providerVerifyStatus={providerVerifyStatus}
+            agentPlanSpeechControl={agentPlanSpeechControl}
+            speechApiPost={apiPost}
             inputRef={inputRef}
             workspaceMcpEnabled={workspaceMcpEnabled}
             globalMcpEnabled={globalMcpEnabled}

@@ -48,14 +48,6 @@ export default defineConfig({
       // ONLY the bare `pdfjs-dist` specifier is rewritten — subpath imports like
       // `pdfjs-dist/legacy/build/pdf.worker.min.mjs?url` must pass through untouched.
       { find: /^pdfjs-dist$/, replacement: resolve(__dirname, 'node_modules/pdfjs-dist/legacy/build/pdf.mjs') },
-      // chart.js doesn't expose its UMD bundle via package `exports` (only the
-      // ESM `.`/`./auto`/`./helpers`), so a bare `chart.js/dist/chart.umd.js?raw`
-      // import is rejected by Node/Vite resolution. Alias the exact dist file so
-      // it can be `?raw`-imported and inline-injected into widgets (see
-      // widgetLibraries.ts). Lookahead keeps the trailing `?raw` query intact.
-      { find: /^chartjs-umd-source(?=$|\?)/, replacement: resolve(__dirname, 'node_modules/chart.js/dist/chart.umd.js') },
-      { find: /^d3-umd-source(?=$|\?)/, replacement: resolve(__dirname, 'node_modules/d3/dist/d3.min.js') },
-      { find: /^lucide-umd-source(?=$|\?)/, replacement: resolve(__dirname, 'node_modules/lucide/dist/umd/lucide.min.js') },
     ]
   },
   // Define environment variables for client code
@@ -68,8 +60,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // All API endpoints under /api/ (excludes source files like /api/*.ts)
-      '^/api/(?!.*\\.(ts|tsx|js|jsx)$)': {
+      // All API endpoints under /api/. Vite appends cache-busting query strings
+      // to source modules in development (for example apiFetch.ts?t=123). Keep
+      // those requests in Vite instead of proxying them to the backend, or a
+      // hot update turns the renderer into a blank page with an empty HTTP 500.
+      '^/api/(?!.*\\.(?:ts|tsx|js|jsx)(?:\\?|$))': {
         target: 'http://localhost:3000',
         changeOrigin: true,
         rewrite: (path) => path, // Keep path as-is

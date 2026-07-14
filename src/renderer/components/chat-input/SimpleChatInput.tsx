@@ -1,4 +1,4 @@
-import { AlertCircle, ChevronRight, ChevronUp, Gauge, Loader, Paperclip, Plus, Send, Square, X, FileText, AtSign, Wrench, Timer, Settings2 } from 'lucide-react';
+import { AlertCircle, ChevronRight, ChevronUp, Gauge, Loader, Mic, MicOff, Paperclip, Plus, Send, Square, X, FileText, AtSign, Wrench, Timer, Settings2 } from 'lucide-react';
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +41,7 @@ import { imageAttachmentName } from './attachmentNames';
 import { MentionTabButton } from './components/MentionTabButton';
 import { ThoughtPickerRow } from './components/ThoughtPickerRow';
 import { useAttachmentHandling } from './hooks/useAttachmentHandling';
+import { useAgentPlanAsr } from '@/hooks/useAgentPlanAsr';
 
 // ===== Module-level pure helpers (extracted from render body) =====
 
@@ -110,6 +111,8 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
   onPermissionModeChange,
   apiKeys = {},
   providerVerifyStatus = {},
+  agentPlanSpeechControl,
+  speechApiPost,
   inputRef,
   workspaceMcpEnabled = [],
   globalMcpEnabled = [],
@@ -214,6 +217,37 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
   // PERFORMANCE FIX: Use internal state to avoid parent re-renders on every keystroke
   // This prevents MessageList from re-rendering when typing in long conversations
   const [inputValue, setInputValue] = useState(externalValue ?? '');
+  const speechInputValueRef = useRef(inputValue);
+  speechInputValueRef.current = inputValue;
+  const setSpeechComposerText = useCallback((value: string) => setInputValue(value), []);
+  const getSpeechComposerText = useCallback(() => speechInputValueRef.current, []);
+  const asr = useAgentPlanAsr({
+    enabled: (mode === 'chat' || mode === 'launcher') && agentPlanSpeechControl?.enabled === true && Boolean(speechApiPost),
+    scopeKey: `${sessionId ?? ''}:${provider?.id ?? ''}`,
+    apiPost: speechApiPost ?? (async () => { throw new Error('Speech API is unavailable.'); }),
+    getComposerText: getSpeechComposerText,
+    setComposerText: setSpeechComposerText,
+  });
+  // Keep the rendered control in lockstep with the hook. A verified provider
+  // is not enough if the speech transport is unavailable in this runtime.
+  const asrEnabled = agentPlanSpeechControl?.enabled === true && Boolean(speechApiPost);
+  const { state: asrState, error: asrError, toggle: toggleAsr, cancel: cancelAsr } = asr;
+
+  useEffect(() => {
+    if (!asrError) return;
+    toastRef.current.error(t('input.speech.asrFailed'));
+  }, [asrError, t]);
+
+  useEffect(() => {
+    if (asrState === 'idle') return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      void cancelAsr();
+    };
+    document.addEventListener('keydown', handleEscape, true);
+    return () => document.removeEventListener('keydown', handleEscape, true);
+  }, [asrState, cancelAsr]);
 
   // Sync with external value when it changes (e.g., after send clears input)
   // NOTE: Intentionally only depend on externalValue - we only want to sync when
@@ -1572,6 +1606,36 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
             <div className="flex items-center gap-1 min-w-0 flex-nowrap">
               {/* Optional prefix (e.g., workspace selector in launcher mode) */}
               {toolbarPrefix}
+
+              {/* Agent Plan ASR follows the input actions; it uses the same
+                  capability gate as message TTS. */}
+              {(mode === 'chat' || mode === 'launcher') && agentPlanSpeechControl?.visibility === 'visible' && (
+                <button
+                  type="button"
+                  disabled={!asrEnabled || asrState === 'starting' || asrState === 'stopping'}
+                  onClick={() => void toggleAsr()}
+                  aria-label={asrEnabled
+                    ? (asrState === 'recording' ? t('input.speech.stopRecording') : t('input.speech.startRecording'))
+                    : t(`input.speech.reasons.${agentPlanSpeechControl.reason ?? 'service-unavailable'}`)}
+                  className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                    asrState === 'recording'
+                      ? 'bg-[var(--error)]/12 text-[var(--error)] hover:bg-[var(--error)]/18'
+                      : asrEnabled
+                        ? 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
+                        : 'cursor-not-allowed bg-[var(--ink-muted)]/10 text-[var(--ink-muted)]/45'
+                  }`}
+                  title={asrEnabled
+                    ? (asrState === 'recording' ? t('input.speech.stopRecording') : t('input.speech.startRecording'))
+                    : t(`input.speech.reasons.${agentPlanSpeechControl.reason ?? 'service-unavailable'}`)}
+                >
+                  {asrState === 'starting' || asrState === 'stopping'
+                    ? <Loader className="h-3.5 w-3.5 animate-spin" />
+                    : asrState === 'recording'
+                      ? <MicOff className="h-3.5 w-3.5" />
+                      : <Mic className="h-3.5 w-3.5" />}
+                  {asrState === 'recording' && <span>{t('input.speech.recording')}</span>}
+                </button>
+              )}
 
               {/* Plus menu */}
               <button

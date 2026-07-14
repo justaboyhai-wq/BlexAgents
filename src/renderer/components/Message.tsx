@@ -1,5 +1,5 @@
 import { Fragment, memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, Copy, Check, Undo2, RotateCcw, GitBranch, Download } from 'lucide-react';
+import { ChevronDown, Copy, Check, Undo2, RotateCcw, GitBranch, Download, Loader, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { track } from '@/analytics';
@@ -13,6 +13,7 @@ import Tip from '@/components/Tip';
 import ToolAttachmentGallery from '@/components/tools/ToolAttachmentGallery';
 import { useNotifyRowLayoutChanged } from '@/context/ChatRowLayoutContext';
 import { buildReplyMarkdown, downloadMarkdown, localDateStr } from '@/utils/markdownExport';
+import { formatPlaybackTime, subscribeAudio, type AudioState } from '@/utils/audioPlayer';
 import { formatDuration, formatTokens } from '@/utils/formatTokens';
 import { groupContentBlocksForDisplay } from '@/utils/contentBlockDisplay';
 import { parseBackgroundTaskNotificationContent } from '@/utils/backgroundTaskStatus';
@@ -20,6 +21,7 @@ import { useImagePreview } from '@/context/ImagePreviewContext';
 import type { ContentBlock, Message as MessageType } from '@/types/chat';
 import { SOURCE_LABELS, type MessageSource } from '../../shared/types/im';
 import { FLOATING_BALL_CONTEXT_TAG, SPACE_ISSUE_CONTEXT_TAG, parseLeadingSystemReminder } from '../../shared/systemReminder';
+import type { AgentPlanSpeechControl } from '../../shared/agent-plan-capabilities';
 
 interface MessageProps {
   message: MessageType;
@@ -27,6 +29,8 @@ interface MessageProps {
   onRewind?: (messageId: string) => void;
   onRetry?: (assistantMessageId: string) => void;
   onFork?: (assistantMessageId: string) => void;
+  onSpeak?: (assistantMessageId: string, text: string) => Promise<void>;
+  speechControl?: AgentPlanSpeechControl;
   /** Slot rendered after the BlockGroup containing ExitPlanMode tool */
   exitPlanModeSlot?: ReactNode;
   initialUserCollapsed?: boolean;
@@ -81,6 +85,8 @@ function areMessagesEqual(prev: MessageProps, next: MessageProps): boolean {
   // state changes (~30px × N ≈ 1500+px layout-recalc in long sessions).
   // exitPlanModeSlot — useMemo in MessageList keeps reference stable during streaming
   if (prev.exitPlanModeSlot !== next.exitPlanModeSlot) return false;
+  if (prev.onSpeak !== next.onSpeak) return false;
+  if (prev.speechControl !== next.speechControl) return false;
   // initialUserCollapsed is consumed only by the initial state of a user row.
   // Once mounted, DOM measurement and explicit user expansion own the state.
   // onRewind/onRetry 不比较 — 通过 Chat.tsx useCallback([]) + ref 保证稳定
@@ -158,14 +164,18 @@ function extractAssistantText(content: MessageType['content']): string {
  * Action bar for assistant messages: copy + retry.
  * Always visible (not hover), left-aligned icon buttons.
  */
-function AssistantActions({ message, onRetry, onFork, className = '' }: {
+function AssistantActions({ message, onRetry, onFork, onSpeak, speechControl, className = '' }: {
   message: MessageType;
   onRetry?: (id: string) => void;
   onFork?: (id: string) => void;
+  onSpeak?: (id: string, text: string) => Promise<void>;
+  speechControl?: AgentPlanSpeechControl;
   className?: string;
 }) {
   const { t } = useTranslation('app');
   const [copied, setCopied] = useState(false);
+  const [ttsPending, setTtsPending] = useState(false);
+  const [audioState, setAudioState] = useState<AudioState | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const exportingRef = useRef(false);
   const toast = useToastOptional();
@@ -174,8 +184,15 @@ function AssistantActions({ message, onRetry, onFork, className = '' }: {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
 
+  useEffect(() => subscribeAudio(setAudioState), []);
+
   const text = extractAssistantText(message.content);
   const turnMetaLabel = getTurnMetaLabel(message, t);
+  const isCurrentAudio = audioState?.currentPath === message.id;
+  const isPlaying = isCurrentAudio && audioState?.playing === true;
+  const remainingSeconds = isCurrentAudio && audioState && audioState.duration > 0
+    ? Math.max(0, Math.ceil(audioState.duration - audioState.progress))
+    : null;
 
   const handleExport = async () => {
     // In-flight guard against double-click → duplicate download + toast.
@@ -234,6 +251,31 @@ function AssistantActions({ message, onRetry, onFork, className = '' }: {
           </button>
         </Tip>
       )}
+      {onSpeak && speechControl?.visibility === 'visible' && (
+        <Tip label={speechControl.enabled ? t('message.actions.speak') : t('message.actions.speechUnavailable')}>
+          <button type="button"
+            aria-label={t('message.actions.speak')}
+            disabled={!speechControl.enabled || ttsPending || isCurrentAudio || !text.trim()}
+            onClick={() => {
+              if (!speechControl.enabled || ttsPending || isCurrentAudio || !text.trim()) return;
+              setTtsPending(true);
+              void onSpeak(message.id, text).finally(() => setTtsPending(false));
+            }}
+            className="rounded-lg p-1 text-[var(--ink-muted)] transition-all hover:bg-[var(--paper-inset)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-40">
+            <span className="inline-flex items-center gap-1" aria-live="polite">
+              {ttsPending ? <Loader className="size-3.5 animate-spin" /> : <Volume2 className={`size-3.5 ${isPlaying ? 'text-[var(--accent)]' : ''}`} />}
+              {isPlaying && (
+                <span className="inline-flex items-end gap-px" aria-hidden="true">
+                  <span className="h-2 w-0.5 animate-bounce rounded-full bg-current [animation-delay:-180ms]" />
+                  <span className="h-3 w-0.5 animate-bounce rounded-full bg-current [animation-delay:-90ms]" />
+                  <span className="h-2.5 w-0.5 animate-bounce rounded-full bg-current" />
+                </span>
+              )}
+              {remainingSeconds !== null && <span className="min-w-[1.25rem] text-xs tabular-nums">{formatPlaybackTime(remainingSeconds)}</span>}
+            </span>
+          </button>
+        </Tip>
+      )}
       {turnMetaLabel && (
         <span
           className="ml-2 min-w-0 flex-1 truncate text-xs text-[var(--ink-muted)]/60 opacity-0 transition-opacity duration-150 group-hover/actions:opacity-100 group-focus-within/actions:opacity-100"
@@ -284,7 +326,7 @@ function renderWidgetSegments(text: string, isLoading: boolean): ReactNode {
  * Message component with memo optimization.
  * History messages won't re-render when streaming message updates.
  */
-const Message = memo(function Message({ message, isLoading = false, onRewind, onRetry, onFork, exitPlanModeSlot, initialUserCollapsed = false }: MessageProps) {
+const Message = memo(function Message({ message, isLoading = false, onRewind, onRetry, onFork, onSpeak, speechControl, exitPlanModeSlot, initialUserCollapsed = false }: MessageProps) {
   const { t } = useTranslation('app');
   const { openPreview } = useImagePreview();
   const notifyRowLayoutChanged = useNotifyRowLayoutChanged();
@@ -519,7 +561,7 @@ const Message = memo(function Message({ message, isLoading = false, onRewind, on
               <Markdown streaming={isLoading && !!message.streamingTextActive}>{message.content}</Markdown>
             </div>
           )}
-          {actionsReady && !isLoading && <AssistantActions message={message} onRetry={onRetry} onFork={onFork} />}
+          {actionsReady && !isLoading && <AssistantActions message={message} onRetry={onRetry} onFork={onFork} onSpeak={onSpeak} speechControl={speechControl} />}
         </div>
       </div>
     );
@@ -634,7 +676,7 @@ const Message = memo(function Message({ message, isLoading = false, onRewind, on
             })}
           </div>
         </article>
-        {actionsReady && !isLoading && <AssistantActions className="px-4" message={message} onRetry={onRetry} onFork={onFork} />}
+        {actionsReady && !isLoading && <AssistantActions className="px-4" message={message} onRetry={onRetry} onFork={onFork} onSpeak={onSpeak} speechControl={speechControl} />}
       </div>
     </div>
   );

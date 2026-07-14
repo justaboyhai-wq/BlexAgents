@@ -211,6 +211,8 @@
       "exportMarkdown": "Export markdown",
       "retry": "Retry",
       "fork": "Fork",
+      "speak": "Read this reply aloud",
+      "speechUnavailable": "Set up Agent Plan speech first",
       "rewind": "Rewind"
     },
     "systemTags": {

@@ -15,6 +15,7 @@ import type {
   RuntimePermissionMode,
   RuntimeType,
 } from '../../../shared/types/runtime';
+import type { AgentPlanSpeechControl } from '../../../shared/agent-plan-capabilities';
 
 export interface ImageAttachment {
   id: string;
@@ -58,6 +59,8 @@ export interface SimpleChatInputProps {
   onPermissionModeChange?: (mode: PermissionMode) => void;
   apiKeys?: Record<string, string>;
   providerVerifyStatus?: Record<string, ProviderVerifyStatus>;
+  agentPlanSpeechControl?: AgentPlanSpeechControl;
+  speechApiPost?: <T>(path: string, body?: unknown, opts?: { signal?: AbortSignal }) => Promise<T>;
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   workspaceMcpEnabled?: string[];
   globalMcpEnabled?: string[];

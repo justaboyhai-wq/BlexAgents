@@ -42,20 +42,21 @@ const LIBRARIES: WidgetLibrary[] = [
     // jsdelivr `…/npm/chart.js[@x]`. Anchor on `/`|`@` before `chart` so an
     // unrelated `barchart.js` isn't matched.
     test: (src) => /[/@]chart(?:\.umd|\.min)?\.js|chart\.js@|\/Chart\.js\//i.test(src),
-    // `chartjs-umd-source` is a Vite alias to chart.js's UMD dist file (its
-    // package `exports` don't expose the UMD); `?raw` yields the source text,
-    // lazy-loaded as its own chunk and module-cached.
-    load: () => import('chartjs-umd-source?raw').then((m) => m.default),
+    // Use a relative file import instead of a synthetic package alias. Vite's
+    // dev dependency optimizer can otherwise classify the `?raw` alias as a JS
+    // dependency and leave the Tauri webview requesting a missing optimized
+    // entry. `?raw` still yields a lazy, module-cached source-text chunk.
+    load: () => import('../../../../node_modules/chart.js/dist/chart.umd.js?raw').then((m) => m.default),
   },
   {
     name: 'd3',
     test: (src) => /(?:\/d3\/|[/@]d3@|\/d3(?:\.v\d+)?(?:\.min)?\.js(?:[?#]|$))/i.test(src),
-    load: () => import('d3-umd-source?raw').then((m) => m.default),
+    load: () => import('../../../../node_modules/d3/dist/d3.min.js?raw').then((m) => m.default),
   },
   {
     name: 'lucide',
     test: (src) => /(?:\/lucide\/|[/@]lucide@|\/lucide(?:\.min)?\.js(?:[?#]|$))/i.test(src),
-    load: () => import('lucide-umd-source?raw').then((m) => m.default),
+    load: () => import('../../../../node_modules/lucide/dist/umd/lucide.min.js?raw').then((m) => m.default),
   },
 ];
 

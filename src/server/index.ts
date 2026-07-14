@@ -2,7 +2,7 @@ import { appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, 
 import { copyFile as copyFileAsync, readdir as readdirAsync, rm, stat } from 'fs/promises';
 import { spawn as subprocessSpawn } from './utils/subprocess';
 import { fileResponse, sniffMime } from './utils/file-response';
-import { lookupExternalAttachment } from './runtimes/tool-attachments';
+import { lookupExternalAttachment, saveToolAttachment } from './runtimes/tool-attachments';
 import { getToolAttachmentRoot, validateExternalReadPathNode } from './utils/path-safety';
 import { serve as honoServe } from '@hono/node-server';
 import { createWriteStream } from 'node:fs';
@@ -174,6 +174,7 @@ import { parseAgentFrontmatter, parseFullAgentContent, serializeAgentContent } f
 import { scanAgents, readWorkspaceConfig, writeWorkspaceConfig, loadEnabledAgents, readAgentMeta, writeAgentMeta, findAgent } from './agents/agent-loader';
 import type { AgentFrontmatter, AgentMeta, AgentWorkspaceConfig } from '../shared/agentTypes';
 import { CODEX_SUBSCRIPTION_PROVIDER_ID, SUBSCRIPTION_PROVIDER_ID, type McpServerDefinition, type BackgroundAgentPermissionMode } from '../shared/config-types';
+import { AGENT_PLAN_PROVIDER_ID, deriveAgentPlanCapabilityStatus } from '../shared/agent-plan-capabilities';
 import { ensureDirSync, ensureDir, isDirEntry } from './utils/fs-utils';
 import {
   setCronTaskContext,
@@ -4539,6 +4540,136 @@ async function main() {
       }
 
       // ============= PROVIDER VERIFICATION API =============
+
+      // Renderer-safe Agent Plan capability snapshot. The API key never crosses
+      // this boundary; callers only learn whether the paired speech controls may
+      // be enabled. Current-session provider identity remains a renderer concern.
+      if (pathname === '/api/agent-plan/capabilities' && request.method === 'GET') {
+        const config = loadConfig();
+        return jsonResponse({
+          success: true,
+          ...deriveAgentPlanCapabilityStatus({
+            apiKey: config.providerApiKeys?.[AGENT_PLAN_PROVIDER_ID],
+            verifyStatus: config.providerVerifyStatus?.[AGENT_PLAN_PROVIDER_ID],
+          }),
+        });
+      }
+
+      if (pathname === '/api/agent-plan/tts' && request.method === 'POST') {
+        try {
+          const body = await request.json() as {
+            text?: string;
+            sessionId?: string;
+            messageId?: string;
+            speaker?: string;
+          };
+          const text = body.text?.trim();
+          const sessionId = body.sessionId?.trim();
+          const messageId = body.messageId?.trim();
+          if (!text || !sessionId || !messageId) {
+            return jsonResponse({ success: false, error: 'text, sessionId and messageId are required.' }, 400);
+          }
+          if (sessionId.length > 160 || messageId.length > 160) {
+            return jsonResponse({ success: false, error: 'Invalid session or message id.' }, 400);
+          }
+
+          const { synthesizeAgentPlanTts } = await import('./agent-plan/tts');
+          const result = await synthesizeAgentPlanTts({ text, speaker: body.speaker, signal: request.signal });
+          const attachment = await saveToolAttachment(
+            { kind: 'externalPath', sourcePath: result.filePath },
+            {
+              sessionId,
+              turnId: `tts-${messageId}`,
+              toolUseId: `tts-${messageId}`,
+              mimeType: result.mimeType,
+              kind: 'audio',
+              producedBy: 'doubao-seed-tts-2.0',
+            },
+            { signal: request.signal },
+          );
+          return jsonResponse({
+            success: true,
+            attachment,
+            cached: result.cached,
+            requestId: result.requestId,
+          });
+        } catch (error) {
+          const { AgentPlanTtsError, invalidateAgentPlanVerification } = await import('./agent-plan/tts');
+          if (error instanceof AgentPlanTtsError) {
+            if (error.code === 'unauthorized') {
+              await invalidateAgentPlanVerification().catch(err => {
+                console.error('[agent-plan/tts] Failed to persist credential invalidation:', err);
+              });
+            }
+            return jsonResponse({ success: false, code: error.code, error: error.message }, error.status);
+          }
+          console.error('[agent-plan/tts] Synthesis failed:', error);
+          return jsonResponse({ success: false, code: 'upstream', error: 'Agent Plan TTS failed.' }, 502);
+        }
+      }
+
+      if (pathname === '/api/agent-plan/asr/start' && request.method === 'POST') {
+        try {
+          const { startAgentPlanAsr } = await import('./agent-plan/asr');
+          return jsonResponse({ success: true, ...(await startAgentPlanAsr()) });
+        } catch (error) {
+          const { AgentPlanAsrError } = await import('./agent-plan/asr');
+          if (error instanceof AgentPlanAsrError) {
+            return jsonResponse({ success: false, code: error.code, error: error.message }, error.status);
+          }
+          console.error('[agent-plan/asr] Start failed:', error);
+          return jsonResponse({ success: false, code: 'upstream', error: 'Agent Plan ASR failed to start.' }, 502);
+        }
+      }
+
+      if (pathname === '/api/agent-plan/asr/chunk' && request.method === 'POST') {
+        try {
+          const body = await request.json() as { sessionId?: string; audioBase64?: string };
+          if (!body.sessionId || !body.audioBase64 || body.audioBase64.length > 100_000) {
+            return jsonResponse({ success: false, code: 'invalid-audio', error: 'Invalid ASR audio chunk.' }, 400);
+          }
+          const audio = Buffer.from(body.audioBase64, 'base64');
+          if (audio.length === 0 || audio.length > 64 * 1024) {
+            return jsonResponse({ success: false, code: 'invalid-audio', error: 'Invalid ASR audio chunk.' }, 400);
+          }
+          const { pushAgentPlanAsrAudio } = await import('./agent-plan/asr');
+          return jsonResponse({ success: true, update: pushAgentPlanAsrAudio(body.sessionId, audio) });
+        } catch (error) {
+          const { AgentPlanAsrError } = await import('./agent-plan/asr');
+          if (error instanceof AgentPlanAsrError) {
+            return jsonResponse({ success: false, code: error.code, error: error.message }, error.status);
+          }
+          console.error('[agent-plan/asr] Audio chunk failed:', error);
+          return jsonResponse({ success: false, code: 'upstream', error: 'Agent Plan ASR audio failed.' }, 502);
+        }
+      }
+
+      if (pathname === '/api/agent-plan/asr/stop' && request.method === 'POST') {
+        try {
+          const body = await request.json() as { sessionId?: string };
+          if (!body.sessionId) {
+            return jsonResponse({ success: false, code: 'session-not-found', error: 'ASR session id is required.' }, 400);
+          }
+          const { finishAgentPlanAsr } = await import('./agent-plan/asr');
+          return jsonResponse({ success: true, update: await finishAgentPlanAsr(body.sessionId) });
+        } catch (error) {
+          const { AgentPlanAsrError } = await import('./agent-plan/asr');
+          if (error instanceof AgentPlanAsrError) {
+            return jsonResponse({ success: false, code: error.code, error: error.message }, error.status);
+          }
+          console.error('[agent-plan/asr] Stop failed:', error);
+          return jsonResponse({ success: false, code: 'upstream', error: 'Agent Plan ASR failed to stop.' }, 502);
+        }
+      }
+
+      if (pathname === '/api/agent-plan/asr/cancel' && request.method === 'POST') {
+        const body = await request.json().catch(() => null) as { sessionId?: string } | null;
+        if (body?.sessionId) {
+          const { cancelAgentPlanAsr } = await import('./agent-plan/asr');
+          cancelAgentPlanAsr(body.sessionId);
+        }
+        return jsonResponse({ success: true });
+      }
 
       // POST /api/feishu/one-click-app/start — create a short-lived Feishu
       // device-authorisation session and return its QR destination. Credentials

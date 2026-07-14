@@ -20,6 +20,21 @@
     "systemBusy": "正在执行系统任务，请稍等",
     "stopping": "正在停止...",
     "providerUnavailableDefault": "请前往设置页面设置模型供应商",
+    "speech": {
+      "startRecording": "开始实时语音输入",
+      "stopRecording": "停止录音并保留识别文字",
+      "recording": "录音中",
+      "asrFailed": "实时语音识别失败，请检查麦克风权限或 Agent Plan 配置",
+      "ttsFailed": "语音生成或播放失败，请稍后重试",
+      "reasons": {
+        "missing-api-key": "请先配置火山引擎 Agent Plan",
+        "verification-required": "请先验证火山引擎 Agent Plan",
+        "verification-failed": "Agent Plan 验证失败，请重新配置",
+        "verification-expired": "Agent Plan 验证已过期，请重新验证",
+        "checking": "正在检查 Agent Plan 语音能力",
+        "service-unavailable": "暂时无法检查 Agent Plan 语音能力"
+      }
+    },
     "deleteImage": "删除图片",
     "addContext": "添加上下文",
     "referenceFile": "引用文件",
@@ -737,7 +752,10 @@
       "newChat": "新建对话",
       "newChatShort": "新对话",
       "history": "历史",
-      "expandWorkspace": "展开工作区"
+      "expandWorkspace": "展开工作区",
+      "autoSpeakOn": "自动朗读已开启",
+      "autoSpeakOff": "开启自动朗读",
+      "autoSpeakUnavailable": "请先完成 Agent Plan 语音能力配置"
     },
     "currentChatFallback": "此对话",
     "dropZone": {

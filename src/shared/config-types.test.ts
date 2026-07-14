@@ -180,13 +180,30 @@ describe('Volcengine preset models', () => {
       primaryModel: 'ark-code-latest',
       authType: 'auth_token',
       apiProtocol: 'anthropic',
+      supportsModelDiscovery: false,
       config: { baseUrl: 'https://ark.cn-beijing.volces.com/api/plan' },
     });
     expect(provider?.models.find(model => model.model === 'ark-code-latest')).toMatchObject({
+      modelName: 'Auto（智能调度）',
       contextLength: 256_000,
       maxOutputTokens: 32_000,
       inputModalities: ['text', 'image'],
     });
+    expect(provider?.models.map(model => model.model)).toEqual([
+      'ark-code-latest',
+      'doubao-seed-2.0-code',
+      'doubao-seed-2.0-pro',
+      'doubao-seed-2.0-lite',
+      'doubao-seed-2.0-mini',
+      'glm-5.2',
+      'kimi-k2.7-code',
+      'deepseek-v4-pro',
+      'deepseek-v4-flash',
+      'minimax-m3',
+      'minimax-m2.7',
+      'kimi-k2.6',
+      'deepseek-v3.2',
+    ]);
   });
 });
 

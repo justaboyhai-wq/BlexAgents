@@ -307,7 +307,7 @@
       "refresh": "Refresh",
       "searchPlaceholder": "Search models...",
       "needApiKey": "Configure an API Key first",
-      "notSupported": "This provider does not support model discovery",
+      "notSupported": "This provider uses the curated models above and does not expose an online model catalog",
       "loading": "Fetching model list...",
       "loadFailed": "Unable to fetch model list",
       "retry": "Retry",

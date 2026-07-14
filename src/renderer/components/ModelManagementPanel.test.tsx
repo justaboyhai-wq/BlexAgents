@@ -33,6 +33,7 @@ function customProvider(models: Provider['models'] = []): Provider {
 
 function renderPanel(overrides: Partial<{
   provider: Provider;
+  apiKey: string;
   onUpdateCustomProvider: (provider: Provider) => Promise<void>;
   onRefresh: () => Promise<void>;
 }> = {}) {
@@ -42,7 +43,7 @@ function renderPanel(overrides: Partial<{
   render(
     <ModelManagementPanel
       provider={overrides.provider ?? customProvider()}
-      apiKey={undefined}
+      apiKey={overrides.apiKey}
       config={baseConfig}
       onClose={vi.fn()}
       onSaveCustomModels={vi.fn(async () => undefined)}
@@ -127,5 +128,21 @@ describe('ModelManagementPanel custom model add flow', () => {
       })],
     }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not probe a remote model catalog when the provider opts out', () => {
+    renderPanel({
+      provider: {
+        ...customProvider(),
+        name: 'Volcengine Agent Plan',
+        supportsModelDiscovery: false,
+      },
+      apiKey: 'configured-key',
+    });
+
+    expect(screen.getByText(
+      'This provider uses the curated models above and does not expose an online model catalog',
+    )).toBeInTheDocument();
+    expect(screen.queryByText('Unable to fetch model list')).not.toBeInTheDocument();
   });
 });

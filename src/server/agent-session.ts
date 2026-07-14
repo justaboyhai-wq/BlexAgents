@@ -139,6 +139,7 @@ import {
   type ExtractedToolResultAttachment,
 } from './utils/tool-result-attachments';
 import type { ToolAttachment } from '../shared/types/tool-attachment';
+import { AGENT_PLAN_PROVIDER_ID } from '../shared/agent-plan-capabilities';
 import { imEventBus, type ImEventType } from './utils/im-event-bus';
 import { imRequestRegistry } from './utils/im-request-registry';
 import { mirrorIfChannelBound, type MirrorImage } from './utils/im-mirror';
@@ -391,6 +392,7 @@ export const SDK_RESERVED_MCP_NAMES = ['claude-in-chrome', 'computer-use'];
  */
 export const BLEXAGENT_CONTEXT_INJECTED_MCP_IDS = [
   'im-bridge-tools',
+  'agent-plan-media',
 ] as const;
 
 // ===== OAuth Token Change Listener =====
@@ -3043,6 +3045,8 @@ const CONTEXT_INJECTED_BUILTIN_PREDICATES: Record<
   () => boolean
 > = {
   'im-bridge-tools': () => Boolean(getImBridgeToolsContext()) && Boolean(getImBridgeToolServer()),
+  'agent-plan-media': () => configState.currentProviderEnv?.providerId === AGENT_PLAN_PROVIDER_ID
+    && Boolean(configState.currentProviderEnv.apiKey),
 };
 
 function getActiveContextInjectedBuiltinIds(): Set<string> {
@@ -3091,6 +3095,9 @@ function checkMcpToolPermission(toolName: string): { allowed: true } | { allowed
   // claim those names.
   if (serverId === 'im-bridge-tools') {
     return { allowed: false, reason: 'IM Bridge 工具仅在 IM Bridge 插件会话中可用' };
+  }
+  if (serverId === 'agent-plan-media') {
+    return { allowed: false, reason: 'Agent Plan 媒体工具仅在已绑定火山引擎 Agent Plan 的会话中可用' };
   }
 
   // Case 1: MCP not set (null) - allow all (backward compatible)
@@ -3230,6 +3237,15 @@ async function buildSdkMcpServers(): Promise<Record<string, McpServerEntry>> {
   if (bridgeToolsCtx && bridgeServer) {
     result['im-bridge-tools'] = bridgeServer;
     console.log(`[agent] Added im-bridge-tools MCP server for plugin ${bridgeToolsCtx.pluginId}`);
+  }
+
+  // Agent Plan exposes Seedream/Seedance through dedicated media endpoints,
+  // not through the conversational model endpoint. Inject the media tools only
+  // for a session actually bound to the verified Agent Plan provider.
+  if (CONTEXT_INJECTED_BUILTIN_PREDICATES['agent-plan-media']()) {
+    const { createAgentPlanMediaServer } = await import('./tools/agent-plan-media-tool');
+    result['agent-plan-media'] = await createAgentPlanMediaServer() as McpSdkServerConfigWithInstance;
+    console.log('[agent] Added Agent Plan media MCP server');
   }
 
   // --- Pattern 2: Builtin registry MCPs (in-process, user-toggled) ---

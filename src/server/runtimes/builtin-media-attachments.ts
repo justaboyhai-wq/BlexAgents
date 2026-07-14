@@ -103,6 +103,22 @@ export async function buildBuiltinMediaAttachments(
   const out: ToolAttachment[] = [];
   for (const spec of specs) {
     try {
+      if (spec.sourceUrl) {
+        out.push(await saveToolAttachment(
+          { kind: 'url', url: spec.sourceUrl },
+          {
+            sessionId: ctxBase.sessionId,
+            turnId: ctxBase.toolUseId,
+            toolUseId: ctxBase.toolUseId,
+            mimeType: spec.mimeType,
+            kind: spec.kind,
+            caption: spec.caption,
+            producedBy: spec.producedBy,
+          },
+        ));
+        continue;
+      }
+      if (!spec.filePath) continue;
       if (!path.isAbsolute(spec.filePath)) {
         console.warn(`[builtin-media] non-absolute path, skip: ${spec.filePath}`);
         continue;

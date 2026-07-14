@@ -156,6 +156,32 @@ export async function playAudio(filePath: string): Promise<void> {
   }
 }
 
+/** Play an already-authorized attachment URL while retaining singleton semantics. */
+export async function playAudioUrl(identity: string, url: string): Promise<void> {
+  stopAudio();
+  const gen = ++playGeneration;
+  currentPath = identity;
+  notify();
+
+  try {
+    if (gen !== playGeneration) return;
+    audio = new Audio(url);
+    audio.addEventListener('play', notify);
+    audio.addEventListener('pause', notify);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('timeupdate', notifyProgress);
+    audio.addEventListener('error', onError);
+    await audio.play();
+  } catch (err) {
+    if (gen === playGeneration) {
+      console.error('[audioPlayer] URL playback failed:', err);
+      currentPath = null;
+      notify();
+    }
+    throw err;
+  }
+}
+
 /** Stop currently playing audio (also cancels any pending async play). */
 export function stopAudio(): void {
   ++playGeneration; // invalidate any in-flight playAudio
