@@ -44,6 +44,15 @@ jobs:
 
       - run: npm ci
 
+      - name: 准备内置 Blex 默认工作区
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/hAcKlyc/openmino.git mino
+          rm -rf mino/.git
+          npm run brand:default-workspace
+          node scripts/validate-bundled-resources.mjs
+
       - name: 校验开源许可、文档与签名 Secrets
         shell: bash
         run: |
