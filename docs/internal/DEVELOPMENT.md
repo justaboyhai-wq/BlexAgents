@@ -1,6 +1,6 @@
-# BlexAgent Internal Development Guide
+# BlexAgent Development Guide
 
-This guide is for employees, contractors, and other contributors explicitly authorized by 杭州波粒二象文化科技有限公司. BlexAgent is proprietary software; this document does not invite public source contributions.
+This guide is for BlexAgent maintainers and contributors. BlexAgent is open source under Apache License 2.0; official signing identities, release credentials, private incident data, and Company-operated services remain restricted to authorized maintainers.
 
 Start with the repository `CLAUDE.md`, `AGENTS.md`, [CONTRIBUTING.md](../../CONTRIBUTING.md), and the architecture document matching the changed subsystem.
 
@@ -34,7 +34,7 @@ specs/                        architecture, design, legal, and release documents
 
 ## Setup
 
-This repository is private. Clone it only through a Company-authorized account and device. Do not copy the repository URL or source into public support material.
+Clone the repository from its official GitHub location. Forks and source redistribution are permitted by Apache-2.0, subject to preserved notices; do not represent a fork as a Company-signed official release.
 
 Requirements:
 
@@ -63,6 +63,6 @@ Credentialed provider tests are explicit local checks and must never use custome
 
 ## Releases
 
-Preview, internal, and formal releases are different channels. Only the protected formal workflow may produce a generally available commercial release. Follow [commercial-release.md](../../specs/guides/commercial-release.md) for Windows signing, Apple Developer ID signing and notarization, updater signing, provenance, approval, and artifact verification.
+Preview, community, internal, and official releases are different channels. Only the protected formal workflow may produce a Company-signed official release. Follow [commercial-release.md](../../specs/guides/commercial-release.md) for Windows signing, Apple Developer ID signing and notarization, updater signing, provenance, approval, and artifact verification.
 
 Never commit signing keys, certificates, passwords, API credentials, production environment files, or unredacted release logs.

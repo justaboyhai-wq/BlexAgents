@@ -5,7 +5,7 @@
 
 ## 1. 产品边界
 
-BlexAgent 是杭州波粒二象文化科技有限公司开发的闭源桌面个人 Agent，主要面向内容创作、生活、教育和知识工作场景。
+BlexAgent 是杭州波粒二象文化科技有限公司开发的 Apache-2.0 开源桌面个人 Agent，主要面向内容创作、生活、教育和知识工作场景。
 
 当前产品边界：
 
@@ -166,7 +166,7 @@ Web、server、bridge 和内部 CLI 分别构建，Tauri 将所需资源打入�
 
 ## 12. 相关文档
 
-- [内部开发说明](../docs/internal/DEVELOPMENT.md)
+- [开发说明](../docs/internal/DEVELOPMENT.md)
 - [Agent Runtime](./tech_docs/multi_agent_runtime.md)
 - [IM 集成](./tech_docs/im_integration_architecture.md)
 - [Plugin Bridge](./tech_docs/plugin_bridge_architecture.md)

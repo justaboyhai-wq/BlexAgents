@@ -27,7 +27,7 @@ Do not submit security vulnerabilities or sensitive information through public i
 
 ## Preview builds
 
-The `0.7.x` line is currently a preview line. Preview builds may change, be replaced, or require a clean reinstall. Unsigned, ad-hoc-signed, unnotarized, and internal artifacts are provided only for approved testing and are not generally available commercial releases.
+The `0.7.x` line is currently a preview line. Preview builds may change, be replaced, or require a clean reinstall. Unsigned, ad-hoc-signed, unnotarized, community, and internal artifacts are test builds and are not supported official releases.
 
 ## Self-service checks
 

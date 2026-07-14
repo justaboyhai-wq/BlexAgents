@@ -10,11 +10,11 @@
 
 ## About BlexAgent
 
-BlexAgent is proprietary commercial desktop software developed by 杭州波粒二象文化科技有限公司 (the “Company”). It brings conversations, local workspaces, files, models, tools, tasks, long-term memory, and messaging Channels into one application.
+BlexAgent is an Apache-2.0 open-source desktop Agent developed by 杭州波粒二象文化科技有限公司 (the “Company”). It brings conversations, local workspaces, files, models, tools, tasks, long-term memory, and messaging Channels into one application.
 
 BlexAgent is designed for creators, educators, students, families, knowledge workers, and people who want practical help with everyday work. Users do not need to install or learn command-line AI runtimes. Agent execution is provided through the built-in Claude Agent SDK and controlled through the desktop interface.
 
-The `0.7.x` line is a preview release. Preview builds are for validation and do not represent a generally available commercial release. A formal release must complete platform code signing, macOS notarization, and update signing.
+The `0.7.x` line is a preview release. Official distribution builds must complete platform code signing, macOS notarization, and update signing. The open-source license does not make every third-party build an official BlexAgent release; verify its source, signature, and checksum.
 
 ## Main capabilities
 
@@ -39,7 +39,7 @@ Review permissions and third-party privacy terms before enabling an integration.
 - macOS 13 or later. Apple Silicon is the primary preview target.
 - Windows 10 or later.
 
-Only install packages obtained from [blexagent.com](https://blexagent.com) or another location explicitly identified by the Company as official. Unsigned, unnotarized, internal, and preview packages are not generally available commercial releases.
+Only install packages obtained from [blexagent.com](https://blexagent.com) or another location explicitly identified by the Company as official. Unsigned, unnotarized, community, internal, and preview packages are not supported official releases.
 
 ## Contact
 
@@ -50,8 +50,8 @@ Only install packages obtained from [blexagent.com](https://blexagent.com) or an
 
 Do not submit vulnerabilities, credentials, conversations, user data, or other sensitive information through public issues.
 
-## License
+## Open-source license and brand
 
-BlexAgent is proprietary software. Source code is governed by the [Proprietary Source License](LICENSE), distributed builds by the [End User License Agreement](specs/legal/EULA.md), and third-party components by their respective terms listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+BlexAgent-owned source and object code is licensed under the [Apache License 2.0](LICENSE). Attribution information is provided in [NOTICE](NOTICE), and third-party components remain under the licenses listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Terms accompanying an official build do not restrict rights already granted by Apache-2.0.
 
-This repository is private and does not accept public source contributions. Authorized contributors should read [CONTRIBUTING.md](CONTRIBUTING.md) and the [internal development guide](docs/internal/DEVELOPMENT.md).
+The BlexAgent name and logo belong to the Company. Apache-2.0 does not grant trademark rights, and community builds must not imply that they are Company-signed official releases. See the [Trademark Policy](TRADEMARKS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).

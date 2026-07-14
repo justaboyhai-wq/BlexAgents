@@ -1,0 +1,123 @@
+name: Official Preview · Notarized macOS ARM64
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notarized-macos-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: 公司签名与 Apple 公证 · ARM64 预览包
+    runs-on: macos-14
+    environment: production-release
+    env:
+      APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      VITE_ANALYTICS_ENABLED: "false"
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@1.92.0
+        with:
+          targets: aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: 校验开源许可、文档与签名 Secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run validate:docs
+          test "$(node -p "require('./package.json').license")" = "Apache-2.0"
+          required=(
+            APPLE_CERTIFICATE_P12_BASE64
+            APPLE_CERTIFICATE_PASSWORD
+            APPLE_SIGNING_IDENTITY
+            APPLE_TEAM_ID
+            APPLE_API_ISSUER
+            APPLE_API_KEY
+            APPLE_API_KEY_P8_BASE64
+            TAURI_SIGNING_PRIVATE_KEY
+            TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          )
+          missing=()
+          for name in "${required[@]}"; do
+            [[ -n "${!name:-}" ]] || missing+=("$name")
+          done
+          if (( ${#missing[@]} )); then
+            printf 'ARM64 公证预览包缺少 GitHub Secrets: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: 导入 Apple Developer ID 证书
+        shell: bash
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/blexagent-preview-signing.keychain-db"
+          certificate="$RUNNER_TEMP/blexagent-preview.p12"
+          keychain_password=$(openssl rand -hex 24)
+          printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$certificate"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -k "$keychain" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain" login.keychain-db
+          security find-identity -v -p codesigning "$keychain" | grep -F "$APPLE_SIGNING_IDENTITY"
+          rm -f "$certificate"
+
+      - name: 准备 App Store Connect 公证密钥
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s' "$APPLE_API_KEY_P8_BASE64" | base64 --decode > "$api_key_path"
+          chmod 600 "$api_key_path"
+          echo "APPLE_API_KEY_PATH=$api_key_path" >> "$GITHUB_ENV"
+
+      - name: 构建、签名、公证并验证 ARM64 安装包
+        shell: bash
+        run: ./build_macos.sh --ci --arch arm64
+
+      - name: 验证预览包不是 ad-hoc 内部构建
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle=src-tauri/target/aarch64-apple-darwin/release/bundle
+          if find "$bundle" -type f -name 'INTERNAL-*' -print -quit | grep -q .; then
+            echo "公证预览包目录包含 INTERNAL ad-hoc 物料" >&2
+            exit 1
+          fi
+          test -n "$(find "$bundle/dmg" -type f -name '*.dmg' -print -quit)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlexAgent-notarized-preview-macos-arm64
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.sig

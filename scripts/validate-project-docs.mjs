@@ -8,6 +8,8 @@ const required = [
   'README.md',
   'README.en.md',
   'LICENSE',
+  'NOTICE',
+  'TRADEMARKS.md',
   'CODE_OF_CONDUCT.md',
   'CONTRIBUTING.md',
   'SECURITY.md',
@@ -18,7 +20,7 @@ const required = [
   'specs/ARCHITECTURE.md',
   'specs/tech_docs/multi_agent_runtime.md',
   'specs/tech_docs/im_integration_architecture.md',
-  'specs/legal/EULA.md',
+  'specs/legal/OFFICIAL_DISTRIBUTION_TERMS.md',
   'specs/legal/PRIVACY.md',
   'docs/internal/DEVELOPMENT.md',
 ];
@@ -36,7 +38,7 @@ for (const relative of required) {
   contents.set(relative, content);
 }
 
-for (const relative of ['LICENSE', 'SECURITY.md', 'specs/legal/EULA.md', 'specs/legal/PRIVACY.md']) {
+for (const relative of ['NOTICE', 'SECURITY.md', 'specs/legal/OFFICIAL_DISTRIBUTION_TERMS.md', 'specs/legal/PRIVACY.md']) {
   const content = contents.get(relative) ?? '';
   if (!content.includes(company)) errors.push(`${relative} 未声明公司主体`);
 }
@@ -69,7 +71,7 @@ for (const [relative, content] of contents) {
 
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 if (packageJson.private !== true) errors.push('package.json 必须保持 private=true');
-if (packageJson.license !== 'UNLICENSED') errors.push('package.json 必须保持 license=UNLICENSED');
+if (packageJson.license !== 'Apache-2.0') errors.push('package.json 必须声明 license=Apache-2.0');
 if (!String(packageJson.author ?? '').includes(company)) errors.push('package.json author 与公司主体不一致');
 
 if (errors.length) {

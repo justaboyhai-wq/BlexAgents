@@ -1,6 +1,6 @@
 # BlexAgent — Desktop AI Agent
 
-基于 Claude Agent SDK 的桌面端通用 Agent 产品。闭源商业软件（专有许可），Conventional Commits，不提交敏感信息、签名证书或发布密钥。
+基于 Claude Agent SDK 的桌面端通用 Agent 产品。开源（Apache-2.0），BlexAgent 品牌权利保留，Conventional Commits，不提交敏感信息、签名证书或发布密钥。
 
 ## 技术栈
 

@@ -6,7 +6,7 @@
 
 [官网](https://blexagent.com) · [下载](https://blexagent.com) · [使用支持](SUPPORT.md) · [安全](SECURITY.md) · [隐私](specs/legal/PRIVACY.md) · [许可](LICENSE) · [English](README.en.md)
 
-[![License](https://img.shields.io/badge/License-Proprietary-1d4ed8.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-13.0+-black.svg)](https://www.apple.com/macos/)
 [![Windows](https://img.shields.io/badge/Windows-10+-blue.svg)](https://www.microsoft.com/windows/)
 
@@ -16,11 +16,11 @@
 
 ## BlexAgent 是什么
 
-BlexAgent 是杭州波粒二象文化科技有限公司开发的闭源商业桌面 Agent。它把对话、工作区、文件、模型、工具、任务、长期记忆和聊天机器人连接在同一个应用中，让 AI 不只回答问题，还能围绕真实资料持续完成工作。
+BlexAgent 是杭州波粒二象文化科技有限公司开发的 Apache-2.0 开源桌面 Agent。它把对话、工作区、文件、模型、工具、任务、长期记忆和聊天机器人连接在同一个应用中，让 AI 不只回答问题，还能围绕真实资料持续完成工作。
 
 BlexAgent 面向内容创作者、教育工作者、学生、家庭用户、知识工作者和希望改善日常效率的人。你不需要安装或学习命令行 AI 工具；应用使用内置的 Claude Agent SDK 运行 Agent，并通过图形界面提供配置、执行和审查能力。
 
-当前 `0.7.x` 属于预览版本。预览版用于功能验证，不代表正式商业发行承诺；正式发行包将完成平台代码签名、macOS 公证和更新签名。
+当前 `0.7.x` 属于预览版本。预览版用于功能验证；官方发行包将完成平台代码签名、macOS 公证和更新签名。开源许可不代表任意构建都是官方发行版，安装包请核对发布来源、签名和校验值。
 
 ## 你可以用它做什么
 
@@ -95,8 +95,8 @@ BlexAgent 采用本地优先设计：应用配置、对话、任务、日志和�
 
 请不要通过公开 Issue 提交漏洞、API Key、聊天记录、用户数据或其他敏感信息。详细流程见 [SECURITY.md](SECURITY.md) 和 [SUPPORT.md](SUPPORT.md)。
 
-## 许可与公司信息
+## 开源许可与品牌
 
-BlexAgent 核心产品为闭源商业软件，版权所有者为杭州波粒二象文化科技有限公司。源代码适用[专有源码许可](LICENSE)，发行版适用随产品提供的[最终用户许可协议](specs/legal/EULA.md)。第三方组件继续适用各自许可证，详见[第三方软件声明](THIRD_PARTY_NOTICES.md)。
+BlexAgent 源代码及官方构建中属于本项目的材料采用 [Apache License 2.0](LICENSE)；归属声明见 [NOTICE](NOTICE)，第三方组件继续适用各自许可证，详见[第三方软件声明](THIRD_PARTY_NOTICES.md)。官方发行版的使用说明不会限制 Apache-2.0 已授予的源代码和目标代码权利。
 
-本仓库为私有内部开发仓库，不接受公开源码贡献。内部开发者和书面授权合作方请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [内部开发说明](docs/internal/DEVELOPMENT.md)。
+“BlexAgent”名称和标识归杭州波粒二象文化科技有限公司所有。Apache-2.0 不授予商标使用许可；社区构建和衍生版本不得冒充公司签名的官方安装包。详见[品牌政策](TRADEMARKS.md)，欢迎阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 参与贡献。
