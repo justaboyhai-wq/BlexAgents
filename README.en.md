@@ -21,12 +21,12 @@ The `0.7.x` line is a preview release. Preview builds are for validation and do 
 - Local workspaces with file preview, search, references, and reusable Skills.
 - Ideas, tasks, recurring schedules, execution history, and review workflows.
 - A curated AgentHub for reviewed Agent templates and Skills.
-- Multiple model providers selected and configured by the user.
+- Curated model selection through Volcengine Agent Plan.
 - MCP integrations for authorized tools and data sources.
 - Feishu, DingTalk, and reviewed OpenClaw Channel plugins.
 - Main-window, helper, floating-window, messaging, and scheduled-task entry points.
 
-Actual model and integration availability is shown inside the application and may differ between preview releases.
+BlexAgent works with Volcengine Agent Plan to provide a focused, convenient model experience for creators, educators, and everyday users. The application offers selected models such as Ark Code Latest, Doubao Seed 2.0 Code, and Doubao Seed 2.0 Pro; actual availability is shown inside the application and may differ between preview releases.
 
 ## Data and privacy
 
