@@ -1,17 +1,11 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_CLAUDE_TRANSCRIPT_CLEANUP_PERIOD_DAYS,
   DEFAULT_CONFIG,
   CODEX_SUBSCRIPTION_PROVIDER_ID,
-  MANAGED_CODEX_REQUIRED_RUNTIME,
   PRESET_PROVIDERS,
-  SUBSCRIPTION_PROVIDER_ID,
   getEffectiveModelAliases,
-  getManagedCodexProviderReadiness,
-  isManagedCodexRequiredRuntimeInstalled,
-  isManagedCodexSubscriptionAuthValid,
   mergePresetModelWithCustomEntry,
   normalizeChatQueueResponseMode,
   normalizeClaudeTranscriptCleanupPeriodDays,
@@ -26,30 +20,6 @@ import {
 describe('normalizeProviderOrder', () => {
   it('honors the saved order, then appends known providers missing from it', () => {
     expect(normalizeProviderOrder(['a', 'b', 'c'], ['c', 'a'])).toEqual(['c', 'a', 'b']);
-  });
-
-  it('places newly introduced Codex subscription after Anthropic subscription when the saved order is missing it', () => {
-    expect(normalizeProviderOrder(
-      [SUBSCRIPTION_PROVIDER_ID, CODEX_SUBSCRIPTION_PROVIDER_ID, 'anthropic-api', 'deepseek'],
-      [SUBSCRIPTION_PROVIDER_ID, 'anthropic-api', 'deepseek'],
-    )).toEqual([
-      SUBSCRIPTION_PROVIDER_ID,
-      CODEX_SUBSCRIPTION_PROVIDER_ID,
-      'anthropic-api',
-      'deepseek',
-    ]);
-  });
-
-  it('honors an explicit saved Codex subscription position', () => {
-    expect(normalizeProviderOrder(
-      [SUBSCRIPTION_PROVIDER_ID, CODEX_SUBSCRIPTION_PROVIDER_ID, 'anthropic-api', 'deepseek'],
-      ['deepseek', CODEX_SUBSCRIPTION_PROVIDER_ID, SUBSCRIPTION_PROVIDER_ID],
-    )).toEqual([
-      'deepseek',
-      CODEX_SUBSCRIPTION_PROVIDER_ID,
-      SUBSCRIPTION_PROVIDER_ID,
-      'anthropic-api',
-    ]);
   });
 
   it('drops ids in the order that are no longer known', () => {
@@ -268,62 +238,13 @@ describe('desktop pet defaults', () => {
   });
 });
 
-describe('CLI tool registry defaults', () => {
-  it('keeps the experimental registry off by default', () => {
-    expect(DEFAULT_CONFIG.cliToolRegistryEnabled).toBe(false);
-  });
-});
-
-describe('Managed Codex provider readiness', () => {
-  function readManagedCodexRustConst(name: string): string {
-    const source = readFileSync('src-tauri/src/managed_codex.rs', 'utf8');
-    const match = source.match(new RegExp(`^const ${name}:.*= "([^"]+)";`, 'm'));
-    if (!match) throw new Error(`Missing Rust Managed Codex constant: ${name}`);
-    return match[1];
-  }
-
-  it('keeps the shared runtime lock aligned with the Rust downloader lock', () => {
-    expect(MANAGED_CODEX_REQUIRED_RUNTIME.version).toBe(readManagedCodexRustConst('REQUIRED_VERSION'));
-    expect(MANAGED_CODEX_REQUIRED_RUNTIME.runtimeSet).toBe(readManagedCodexRustConst('REQUIRED_RUNTIME_SET'));
-    expect(MANAGED_CODEX_REQUIRED_RUNTIME.manifestBaseUrl).toBe(
-      `${readManagedCodexRustConst('RUNTIME_SETS_BASE_URL')}/${readManagedCodexRustConst('REQUIRED_RUNTIME_SET')}`,
-    );
-  });
-
-  it('does not expose Codex as a preset provider', () => {
-    expect(DEFAULT_CONFIG).not.toHaveProperty('managedCodexProviderDevGate');
+describe('retired runtime catalogue', () => {
+  it('does not expose Codex or retired runtime gates in defaults', () => {
     expect(PRESET_PROVIDERS.some(provider => provider.id === CODEX_SUBSCRIPTION_PROVIDER_ID)).toBe(false);
-    expect(getManagedCodexProviderReadiness(DEFAULT_CONFIG).reason).toBe('runtime-not-installed');
+    expect(DEFAULT_CONFIG).not.toHaveProperty('managedCodexProviderDevGate');
+    expect(DEFAULT_CONFIG).not.toHaveProperty('managedCodexRuntimeInstall');
+    expect(DEFAULT_CONFIG).not.toHaveProperty('managedCodexAuth');
+    expect(DEFAULT_CONFIG).not.toHaveProperty('multiAgentRuntime');
+    expect(DEFAULT_CONFIG).not.toHaveProperty('cliToolRegistryEnabled');
   });
-
-  it('requires exact runtime version, subscription auth, and no explicit disablement', () => {
-    const runtime = {
-      status: 'installed' as const,
-      installedVersion: MANAGED_CODEX_REQUIRED_RUNTIME.version,
-      requiredVersion: MANAGED_CODEX_REQUIRED_RUNTIME.version,
-    };
-    const auth = {
-      status: 'valid' as const,
-      authMethod: 'chatgpt' as const,
-    };
-
-    expect(isManagedCodexRequiredRuntimeInstalled(runtime)).toBe(true);
-    expect(isManagedCodexSubscriptionAuthValid(auth)).toBe(true);
-    expect(getManagedCodexProviderReadiness({
-      managedCodexRuntimeInstall: runtime,
-      managedCodexAuth: auth,
-    })).toMatchObject({
-      visible: true,
-      selectable: true,
-      reason: 'ready',
-    });
-  });
-
-  it('does not treat Codex API-key auth as subscription readiness', () => {
-    expect(isManagedCodexSubscriptionAuthValid({
-      status: 'valid',
-      authMethod: 'api-key',
-    })).toBe(false);
-  });
-
 });

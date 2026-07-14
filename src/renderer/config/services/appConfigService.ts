@@ -138,6 +138,38 @@ export function removeTelegramChannels(config: AppConfig): AppConfig {
     return config;
 }
 
+/** Remove persisted state for retired external runtimes and CLI tooling. */
+export function removeRetiredRuntimeConfig(config: AppConfig): AppConfig {
+    const raw = config as unknown as Record<string, unknown>;
+    for (const key of [
+        'multiAgentRuntime',
+        'cliToolRegistryEnabled',
+        'managedCodexProviderEnabled',
+        'managedCodexProviderDevGate',
+        'managedCodexRuntimeInstall',
+        'managedCodexAuth',
+    ]) {
+        delete raw[key];
+    }
+    const removeCodex = (value: unknown) => Array.isArray(value)
+        ? value.filter(id => id !== 'codex-sub')
+        : value;
+    raw.providerOrder = removeCodex(raw.providerOrder);
+    raw.disabledProviderIds = removeCodex(raw.disabledProviderIds);
+    if (raw.defaultProviderId === 'codex-sub') delete raw.defaultProviderId;
+    if (Array.isArray(raw.agents)) {
+        raw.agents = raw.agents.map(entry => {
+            if (!entry || typeof entry !== 'object') return entry;
+            const agent = { ...(entry as Record<string, unknown>) };
+            agent.runtime = 'builtin';
+            delete agent.runtimeConfig;
+            if (agent.providerId === 'codex-sub') delete agent.providerId;
+            return agent;
+        });
+    }
+    return config;
+}
+
 function normalizeDeveloperSettings(config: AppConfig): AppConfig {
     config.uiLanguage = normalizeUiLanguage(config.uiLanguage);
     config.claudeTranscriptCleanupPeriodDays = normalizeClaudeTranscriptCleanupPeriodDays(
@@ -158,6 +190,7 @@ export function migrateUiLanguageField(config: AppConfig): AppConfig {
 
 function normalizeLoadedConfig(config: AppConfig): AppConfig {
     removeTelegramChannels(config);
+    removeRetiredRuntimeConfig(config);
     normalizeStringifiedJsonFields(config);
     promoteAgentMcpJsonToGlobal(config);
     return normalizeDeveloperSettings(config);

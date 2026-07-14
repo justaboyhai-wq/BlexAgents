@@ -1,30 +1,50 @@
-BLEXAGENT PROPRIETARY SOFTWARE LICENSE
+BLEXAGENT PROPRIETARY SOURCE CODE LICENSE
 
-Copyright (c) 2026 BlexAgent. All rights reserved.
+Copyright (c) 2026 杭州波粒二象文化科技有限公司.
+All rights reserved.
 
-This repository, including its source code, documentation, artwork, product
-assets, build configuration, and other original materials (collectively, the
-"Software"), is proprietary and confidential.
+1. Ownership
+
+This repository, including its source code, documentation, artwork, Agent and
+Skill templates, product assets, build configuration, and other original
+materials (collectively, the "Software"), is proprietary and confidential
+property of 杭州波粒二象文化科技有限公司 (the "Company"). BlexAgent is a
+product and brand of the Company. No trademark right is granted by this license.
+
+2. No public license
 
 No permission is granted to use, copy, modify, merge, publish, distribute,
-sublicense, sell, reverse engineer, decompile, disclose, or create derivative
-works of the Software except under a separate written agreement issued by the
-copyright owner or as expressly permitted by mandatory applicable law.
+sublicense, sell, disclose, reverse engineer, decompile, disassemble, or create
+derivative works of the Software, except under a separate written agreement
+issued by the Company or as expressly required by mandatory applicable law.
+Access to this repository does not transfer ownership and does not make the
+Software open source or source available to the public.
 
-Access to this repository does not transfer ownership or grant a public-source
-license. Authorized employees and contractors may use the Software only for
-the internal purpose, period, and scope approved by BlexAgent. They must keep
-the Software confidential and must return or destroy copies when authorization
-ends.
+3. Authorized access
 
-Distributed executable versions of BlexAgent are licensed under the End User
-License Agreement shipped with the product and published with the applicable
-release. Third-party components are not relicensed by this file. They remain
-subject to their respective licenses and notices, identified in
-THIRD_PARTY_NOTICES.md and in the component files shipped with the product.
+Employees, contractors, auditors, and other authorized collaborators may use
+the Software only for the purpose, period, systems, and scope approved in
+writing by the Company. They must protect the Software and related credentials,
+customer information, unreleased product information, and signing material as
+confidential. When authorization ends, they must stop using the Software and
+return or securely destroy copies as directed by the Company.
 
-THE SOFTWARE IS PROVIDED "AS IS" TO THE MAXIMUM EXTENT PERMITTED BY LAW. NO
-WARRANTY OR LIABILITY IS CREATED BY ACCESS TO THIS REPOSITORY.
+Employment, contractor, confidentiality, intellectual-property assignment, and
+content-contribution agreements remain controlling and are not replaced by this
+file.
 
-For commercial licensing or written authorization, contact:
-team@blexagent.com
+4. Distributed software
+
+Executable versions of BlexAgent are licensed under the End User License
+Agreement supplied with the applicable release. Third-party components are not
+relicensed by this file and remain subject to their respective licenses and
+notices, including those identified in THIRD_PARTY_NOTICES.md and component
+files shipped with the product.
+
+5. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS" TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE
+LAW. ACCESS TO THIS REPOSITORY CREATES NO WARRANTY, SUPPORT COMMITMENT, OR
+LIABILITY BEYOND A SEPARATE WRITTEN AGREEMENT WITH THE COMPANY.
+
+Licensing and legal contact: legal@blexagent.com

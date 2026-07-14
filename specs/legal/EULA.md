@@ -1,95 +1,70 @@
-# BlexAgent End User License Agreement
+# BlexAgent 最终用户许可协议
 
-Effective date: 2026-07-13
+生效日期：2026-07-14
 
-This End User License Agreement ("Agreement") is between the person or
-organization using BlexAgent ("you") and BlexAgent ("Licensor"). By installing,
-copying, or using BlexAgent, you agree to this Agreement. If you do not agree,
-do not install or use the software.
+本《最终用户许可协议》（“本协议”）由杭州波粒二象文化科技有限公司（注册地址：浙江省杭州市临平区南苑街道余之城1幢1223室，以下简称“许可方”或“公司”）与你（使用 BlexAgent 的个人或组织，以下简称“你”）订立。
 
-## 1. License grant
+安装、复制或使用 BlexAgent，即表示你同意本协议。不同意本协议时，请不要安装或使用软件。依法必须另行取得监护人、组织或其他权利人授权的，你应在使用前取得授权。
 
-Subject to this Agreement and any applicable order or subscription terms,
-Licensor grants you a limited, non-exclusive, non-transferable, revocable
-license to install and use the released executable version of BlexAgent on
-devices you control for your own lawful purposes.
+## 1. 许可范围
 
-This license does not grant access to source code and does not transfer any
-ownership, trademark, patent, or other intellectual-property right.
+在遵守本协议、适用订单或订阅条款的前提下，许可方授予你一项有限的、非独占的、不可转让的、可撤销的软件使用许可，允许你在自己拥有或合法控制的设备上安装和使用已正式发布的 BlexAgent 可执行版本，用于合法的个人或内部业务目的。
 
-## 2. Restrictions
+该许可不授予源代码访问权，也不转让软件、商标、专利、模板、文档或其他知识产权。预览版、测试版和内部构建可能不稳定、发生重大变化或被停止支持。
 
-Except where mandatory law expressly permits it, you may not:
+## 2. 使用限制
 
-- copy, sell, rent, lease, sublicense, redistribute, or commercially host the
-  software for third parties;
-- reverse engineer, decompile, disassemble, bypass technical restrictions, or
-  derive source code from the software;
-- remove product identification, copyright, license, or attribution notices;
-- use the software to violate law, rights, provider terms, or security controls;
-- use credentials, workspaces, tools, or Channels without authorization.
+除非强制适用法律明确允许，你不得：
 
-## 3. Your content, accounts, and third-party services
+- 出售、出租、转许可、重新分发软件，或以软件为第三方提供未经许可的托管服务；
+- 反向工程、反编译、反汇编、绕过技术保护，或尝试获得软件源代码；
+- 删除或修改产品标识、版权、许可、签名或归属声明；
+- 使用软件侵犯法律、他人权利、供应商条款或安全控制；
+- 在未获授权的情况下使用账号、凭据、工作区、工具、MCP、Skill、插件或聊天 Channel；
+- 利用软件传播恶意代码、干扰系统、访问无权访问的数据，或从事其他违法活动。
 
-You retain rights in content you provide. You are responsible for your content,
-instructions, API keys, provider accounts, connected Channels, generated output,
-and for deciding whether output is accurate and suitable before relying on it.
+## 3. 用户内容与输出
 
-BlexAgent can connect to model providers, websites, messaging platforms, MCP
-servers, plugins, and other third-party services. Those services are governed
-by their own terms and privacy practices. Licensor does not control their
-availability, output, pricing, or data handling.
+你保留对自己提供内容依法享有的权利。你应对提示词、文件、指令、API Key、供应商账号、聊天平台账号、连接的工具及生成输出负责，并在依赖、发布或执行输出前进行适当检查。
 
-## 4. Updates
+AI 输出可能不准确、不完整或不适合特定用途。BlexAgent 不是医疗、法律、财务或其他受监管专业服务的替代品。涉及重要权益、儿童、教育、健康、安全或其他敏感场景时，应由具备相应资格或责任的人审查。
 
-The software may check for and install cryptographically signed updates from
-the configured BlexAgent update service. Features may change, be discontinued,
-or require different third-party services. Security updates may be required for
-continued use.
+你应确保上传、处理或发送的内容具有合法来源和必要授权，不侵犯他人隐私、知识产权或其他权利。
 
-## 5. Privacy and security
+## 4. 第三方服务
 
-Use of the software is also governed by the BlexAgent Privacy Notice published
-with the applicable release. You must protect local devices, workspaces,
-credentials, and connected accounts. Do not submit secrets or sensitive data to
-a model or integration unless you are authorized and have reviewed that
-provider's data terms.
+BlexAgent 可以连接模型供应商、飞书、钉钉、网站、MCP Server、插件及其他第三方服务。启用第三方服务即可能将完成操作所需的提示词、上下文、文件、消息、凭据或元数据发送给该服务。
 
-## 6. Third-party software
+第三方服务适用其自身价格、服务条款和隐私规则。许可方不控制其可用性、输出、数据处理或价格，但会对 BlexAgent 官方集成和打包范围内的问题承担适用法律及本协议要求的责任。
 
-BlexAgent includes third-party software under separate open-source or commercial
-licenses. Those licenses apply to the relevant components and are listed in
-`THIRD_PARTY_NOTICES.md`. Nothing in this Agreement reduces rights granted by a
-third-party license.
+## 5. 更新与发行渠道
 
-## 7. Termination
+软件可以从 BlexAgent 官方更新服务检查并安装经过签名的更新。功能可能改变、停止或需要不同的第三方服务。安全更新可能是继续使用受支持版本的必要条件。
 
-This Agreement ends automatically if you materially breach it. On termination,
-you must stop using and delete the software, except for copies that applicable
-law requires you to retain. Sections intended by their nature to survive will
-survive termination.
+无签名、未公证、临时签名或明确标记为 internal、preview、test 的构建不是正式商业发行版。你应仅从公司确认的官方位置获取安装包。
 
-## 8. Warranty and liability
+## 6. 隐私与安全
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE AND AI-GENERATED
-OUTPUT ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, ACCURACY,
-OR UNINTERRUPTED OPERATION.
+数据处理同时适用随相应版本发布的《BlexAgent 隐私声明》。你应保护设备、操作系统账号、工作区、API Key、机器人凭据、模型账号和连接服务。除非具有授权并理解第三方数据条款，不应向模型、工具或插件提交秘密、个人信息或受限制资料。
 
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, LICENSOR WILL NOT BE LIABLE FOR INDIRECT,
-INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR FOR LOSS OF DATA,
-PROFITS, BUSINESS, OR GOODWILL. NOTHING IN THIS AGREEMENT EXCLUDES LIABILITY THAT
-CANNOT LAWFULLY BE EXCLUDED.
+## 7. 第三方软件
 
-## 9. Consumer rights and complete terms
+BlexAgent 包含适用独立开源或商业许可证的第三方组件。相关许可证和声明见随软件提供的 `THIRD_PARTY_NOTICES.md` 及组件文件。本协议不限制第三方许可证已经授予你的权利。
 
-Mandatory consumer rights in your jurisdiction continue to apply. If a clause
-is unenforceable, it will be limited to the minimum extent necessary and the
-remaining clauses remain effective. An order form or separately signed
-agreement controls if it expressly conflicts with this Agreement.
+## 8. 终止
 
-Questions about licensing: team@blexagent.com
+你严重违反本协议时，许可可以依法终止。终止后，你应停止使用并删除软件，但适用法律要求保留的副本除外。按照性质应持续有效的知识产权、限制、责任和争议条款在终止后继续有效。
 
-> Release gate: before the first paid or public commercial release, replace
-> "BlexAgent" in the contracting-party field with the registered legal entity
-> name, address, governing law, and dispute venue approved by counsel.
+## 9. 保证与责任限制
+
+在适用法律允许的最大范围内，软件及 AI 输出按“现状”和“可用状态”提供。许可方不保证软件始终不中断、无错误，也不保证 AI 输出准确、完整、不侵权或适合特定目的。
+
+在适用法律允许的最大范围内，许可方不对间接、附带、特殊、后果性或惩罚性损失，以及数据、利润、业务或商誉损失承担责任。本条不排除或限制依法不得排除或限制的责任，也不影响消费者依法享有的强制性权利。
+
+## 10. 适用法律与争议解决
+
+本协议适用中华人民共和国大陆地区法律，但不排除依法必须适用的消费者保护规定。因本协议或软件产生的争议，应先通过善意协商解决；协商不成的，任何一方可向许可方住所地有管辖权的人民法院提起诉讼。
+
+如果某一条款不可执行，应在必要的最小范围内调整，不影响其他条款。订单、订阅条款或双方另行签署的协议与本协议明确冲突时，以该特别约定为准。
+
+许可与法律联系：legal@blexagent.com

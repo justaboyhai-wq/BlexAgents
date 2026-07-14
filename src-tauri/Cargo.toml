@@ -2,7 +2,7 @@
 name = "blexagent"
 version = "0.7.2"
 description = "BlexAgent - A desktop personal Agent for creators, everyday life, education, and productive work"
-authors = ["BlexAgent Team <team@blexagent.com>"]
+authors = ["杭州波粒二象文化科技有限公司 <team@blexagent.com>"]
 license-file = "../LICENSE"
 publish = false
 repository = "https://github.com/justaboyhai-wq/BlexAgents"

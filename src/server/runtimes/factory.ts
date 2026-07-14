@@ -2,45 +2,12 @@
 
 import type { RuntimeSource, RuntimeType } from '../../shared/types/runtime';
 import type { AgentRuntime } from './types';
-import { ClaudeCodeRuntime } from './claude-code';
-import { CodexRuntime } from './codex';
-import { GeminiRuntime } from './gemini';
-import { HermesRuntime } from './hermes';
-
-// ─── Runtime registry ───
-
-const runtimes: Partial<Record<RuntimeType, AgentRuntime>> = {};
-
-// Runtime types that have actual implementations
-const SUPPORTED_EXTERNAL_RUNTIMES = new Set<RuntimeType>(['claude-code', 'codex', 'gemini', 'hermes']);
-
-function ensureRuntime(type: RuntimeType): AgentRuntime {
-  if (!runtimes[type]) {
-    switch (type) {
-      case 'claude-code':
-        runtimes[type] = new ClaudeCodeRuntime();
-        break;
-      case 'codex':
-        runtimes[type] = new CodexRuntime();
-        break;
-      case 'gemini':
-        runtimes[type] = new GeminiRuntime();
-        break;
-      case 'hermes':
-        runtimes[type] = new HermesRuntime();
-        break;
-      default:
-        throw new Error(`Runtime "${type}" is not yet supported. Available: ${[...SUPPORTED_EXTERNAL_RUNTIMES].join(', ')}`);
-    }
-  }
-  return runtimes[type]!;
-}
 
 /**
  * Check if a runtime type has an actual implementation (not just type definition)
  */
 export function isRuntimeSupported(type: RuntimeType): boolean {
-  return type === 'builtin' || SUPPORTED_EXTERNAL_RUNTIMES.has(type);
+  return type === 'builtin';
 }
 
 /**
@@ -48,25 +15,20 @@ export function isRuntimeSupported(type: RuntimeType): boolean {
  * 'builtin' is not handled here — it uses the existing agent-session.ts path.
  */
 export function getExternalRuntime(type: RuntimeType): AgentRuntime {
-  if (type === 'builtin') {
-    throw new Error('builtin runtime does not use AgentRuntime interface — use existing agent-session.ts path');
-  }
-  return ensureRuntime(type);
+  throw new Error(`Runtime "${type}" is retired. BlexAgent uses the built-in Claude Agent SDK.`);
 }
 
 /**
  * Check if a runtime type is external (not builtin)
  */
-export function isExternalRuntime(type: RuntimeType | undefined): boolean {
-  return type !== undefined && type !== 'builtin';
+export function isExternalRuntime(_type: RuntimeType | undefined): boolean {
+  return false;
 }
 
 /**
  * Get the current runtime type from environment or default to 'builtin'
  */
 export function getCurrentRuntimeType(): RuntimeType {
-  const env = process.env.BLEXAGENT_RUNTIME;
-  if (env === 'claude-code' || env === 'codex' || env === 'gemini' || env === 'hermes') return env;
   return 'builtin';
 }
 
@@ -77,8 +39,5 @@ export function getCurrentRuntimeType(): RuntimeType {
  * interpreted as system-cli for backward compatibility.
  */
 export function getCurrentRuntimeSource(): RuntimeSource | undefined {
-  if (!isExternalRuntime(getCurrentRuntimeType())) return undefined;
-  return process.env.BLEXAGENT_RUNTIME_SOURCE === 'managed-provider'
-    ? 'managed-provider'
-    : 'system-cli';
+  return undefined;
 }

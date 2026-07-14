@@ -1,86 +1,80 @@
-# BlexAgent Privacy Notice
+# BlexAgent 隐私声明
 
-Effective date: 2026-07-13
+生效日期：2026-07-14
 
-This notice explains the data flows of the BlexAgent desktop application. It is
-written for the default official build; a distributor that changes build-time
-configuration or connects another service must publish its own accurate notice.
+本声明说明 BlexAgent 桌面应用如何处理信息。个人信息处理者为杭州波粒二象文化科技有限公司，注册地址为浙江省杭州市临平区南苑街道余之城1幢1223室。
 
-## 1. Local data
+本声明适用于公司提供的官方 BlexAgent 构建。自行修改构建配置、连接第三方服务或再次分发软件的主体，应就其独立处理活动提供真实、完整的隐私说明。
 
-BlexAgent is local-first. It stores application configuration, workspace
-references, conversations, task state, logs, cached resources, and credentials
-needed by enabled integrations on your device, primarily under the BlexAgent
-application-data directory (including `~/.blexagent/`). Workspace files remain
-where you place them unless a feature or an instruction sends them elsewhere.
+## 1. 本地保存的信息
 
-Protect your operating-system account and disk. Removing the application may
-not automatically remove user-created workspaces or all application data.
+BlexAgent 采用本地优先设计。应用配置、工作区引用、对话、任务状态、日志、缓存资源以及已启用集成所需的凭据主要保存在你的设备上，包括 BlexAgent 应用数据目录（通常包含 `~/.blexagent/`）。工作区文件保留在你选择的位置，除非你主动使用某项功能或发出指令将其发送到其他服务。
 
-## 2. Data sent when you use AI and integrations
+请保护操作系统账号、设备和磁盘。卸载应用不一定删除用户创建的工作区或全部应用数据；如需彻底清理，应同时删除不再需要的 BlexAgent 应用数据和工作区副本。
 
-When you submit a request, BlexAgent sends the prompt and the context required
-for that request to the model provider you selected. Context can include files,
-images, tool results, conversation history, and system instructions. Provider
-API keys or subscription credentials are sent only as required to authenticate
-that provider.
+## 2. 使用模型和集成时发送的信息
 
-If you enable a Channel, plugin, MCP server, browser action, download, update,
-or other integration, the necessary messages and metadata are exchanged with
-that third party. Examples include Feishu or DingTalk bots, model providers,
-websites, and tool services. Their privacy terms apply independently.
+当你提交请求时，BlexAgent 会向你选择的模型供应商发送完成请求所需的提示词和上下文，可能包括文件、图片、工具结果、对话历史和系统指令。API Key 或订阅凭据仅在认证相应供应商所需时使用。
 
-## 3. Product analytics
+启用飞书、钉钉、插件、MCP Server、网页操作、下载、更新或其他集成时，完成操作所需的消息和元数据会与相应第三方交换。第三方依据其自身条款和隐私规则处理数据。启用前请检查接收方、权限、发送范围和保留规则。
 
-Analytics is disabled by default. It operates only when an official build sets
-all three build-time values: `VITE_ANALYTICS_ENABLED=true`, a non-empty analytics
-API key, and an HTTPS analytics endpoint. When enabled, BlexAgent may send
-product-event names, coarse platform/app/runtime dimensions, pseudonymous local
-identifiers, feature entry points, outcomes, duration, and token/usage totals.
+## 3. 处理目的和必要性
 
-The analytics implementation is not intended to send prompt text, conversation
-content, file content, API keys, or integration secrets. A release must not
-enable analytics until its event registry and receiving service have completed
-privacy review. The official release workflow currently forces analytics off.
+公司及 BlexAgent 在适用范围内为以下目的处理信息：
 
-## 4. Updates and downloads
+- 保存和恢复用户配置、对话、任务及工作区状态；
+- 执行用户请求、工具调用、定时任务和聊天 Channel 消息；
+- 验证许可证、更新、安装包完整性和安全状态；
+- 排查故障、防止滥用并响应安全事件；
+- 在用户主动联系时提供支持、隐私和安全响应。
 
-The application can contact `download.blexagent.com` to check for updates and to
-download signed application or managed-runtime packages. Normal network metadata
-such as IP address, user agent, requested file, time, and status may be processed
-by the hosting and CDN providers.
+本地处理通常由用户在设备上直接控制；向第三方发送信息取决于用户选择的供应商、工具或集成。依法需要单独同意或其他处理基础时，应在相关功能启用前取得。
 
-## 5. Retention and deletion
+## 4. 产品分析
 
-Local data remains until you remove it, clear the relevant feature, or uninstall
-and delete the application-data directory. Third-party providers retain data
-under their own policies. If an official BlexAgent online service is introduced,
-its service-specific retention and deletion controls must be documented before
-launch.
+产品分析默认关闭。只有官方构建同时配置启用标志、分析 API Key 和 HTTPS 接收端点时才能运行。启用后，可能处理事件名称、粗粒度平台和版本信息、匿名或假名化设备标识、功能入口、结果、耗时和用量汇总。
 
-## 6. Security
+分析设计不应发送提示词、对话正文、文件内容、API Key 或集成秘密。在完成事件清单、必要性、保留期限、接收方和用户控制审查前，正式发行版不得启用分析。当前正式发行工作流强制关闭分析。
 
-BlexAgent uses local process boundaries, restricted management APIs, and signed
-release/update mechanisms, but no system is perfectly secure. Keep the app and
-operating system updated, use trusted workspaces and tools, and revoke exposed
-credentials immediately.
+## 5. 更新、下载与网络元数据
 
-## 7. Children and sensitive uses
+应用可以访问 `download.blexagent.com` 检查和下载签名更新。托管与 CDN 服务可能处理正常网络元数据，例如 IP 地址、User-Agent、请求文件、时间和状态。
 
-BlexAgent is a general-purpose productivity tool and is not designed to collect
-children's personal data. Education, health, financial, legal, or other sensitive
-uses require appropriate adult or professional review and must follow applicable
-law and provider terms. AI output is not professional advice.
+使用模型、飞书、钉钉、网站、插件或 MCP 时，相关服务也会收到建立网络连接所必需的信息。
 
-## 8. Contact and changes
+## 6. 保存期限和删除
 
-Questions or privacy requests: team@blexagent.com
+本地数据通常保留到你删除相关内容、清理相应功能、卸载应用并删除应用数据目录。第三方服务按照其自身政策保存信息。
 
-Material changes to this notice should be dated and shipped with the applicable
-release. Mandatory rights under applicable privacy law are not limited by this
-notice.
+公司收到支持、安全或隐私请求后，仅在处理请求、履行法律义务、解决争议和保护安全所需期间保存相关通信。未来上线第一方账号、云同步或在线存储服务前，公司将补充具体数据类别、保存期限、接收方、删除方式和跨境处理安排，并在需要时另行征得同意。
 
-> Release gate: before enabling any first-party online account, analytics, or
-> cloud-sync service, add the controller's registered legal name, address,
-> supported request process, retention periods, subprocessors, and regional
-> transfer terms approved by counsel.
+## 7. 共享、委托和跨境处理
+
+公司不会因为提供本地桌面功能而出售个人信息。你主动选择的模型供应商、聊天平台、插件、MCP、网站、下载或托管服务可能作为独立处理者或受托方接收必要信息。
+
+部分第三方服务可能位于中国大陆以外。使用相关服务前，应查看其所在地、隐私政策和数据传输规则。依法需要单独同意、安全评估、认证、标准合同或其他程序时，在满足要求前不应启用相应官方在线功能。
+
+## 8. 安全
+
+BlexAgent 使用本地进程边界、受保护的管理 API、权限控制以及签名发行和更新机制，但任何系统都无法保证绝对安全。请保持应用和操作系统更新，只使用可信工作区、模板、工具和插件，并在凭据疑似泄露后立即撤销或轮换。
+
+安全问题请发送至 security@blexagent.com，不要通过公开 Issue 发送凭据或个人信息。
+
+## 9. 你的权利
+
+在适用法律规定的范围内，你可以请求了解、查阅、复制、更正、补充或删除由公司控制的个人信息，也可以撤回同意、限制或拒绝特定处理，并要求解释处理规则。仅保存在你设备上的信息通常可以直接在应用或文件系统中管理。
+
+隐私请求请发送至 privacy@blexagent.com。为防止冒用，公司可能在必要范围内核验请求者身份。我们会在适用法律规定的期限内处理；如果无法满足请求，将说明适用理由和救济渠道。
+
+## 10. 儿童与敏感场景
+
+BlexAgent 是通用效率工具，不以收集未成年人个人信息为目的。未成年人应在监护人指导和同意下使用。教育、健康、金融、法律或其他敏感场景需要适当的成年人、专业人员或组织审查，并遵守适用法律和供应商条款。AI 输出不构成专业意见。
+
+## 11. 联系和变更
+
+- 个人信息处理者：杭州波粒二象文化科技有限公司
+- 注册地址：浙江省杭州市临平区南苑街道余之城1幢1223室
+- 隐私联系：privacy@blexagent.com
+- 法律联系：legal@blexagent.com
+
+重大变更将更新生效日期，并随适用版本或官方页面发布。法律规定的强制性权利不因本声明受到限制。

@@ -41,6 +41,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: 校验项目文档与法律主体
+        run: npm run validate:docs
+
       - name: 检查商业发布法律物料
         shell: bash
         run: |
