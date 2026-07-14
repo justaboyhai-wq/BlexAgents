@@ -14,7 +14,6 @@ jobs:
   package:
     name: 公司签名与 Apple 公证 · ARM64 预览包
     runs-on: macos-14
-    environment: production-release
     env:
       APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
