@@ -1,13 +1,13 @@
-# BlexAgent Commercial Release Guide
+# BlexAgent Official Release Guide
 
-This is the release runbook for the proprietary desktop product. Public release
+This is the release runbook for Company-signed builds of the Apache-2.0 project. Official release
 artifacts must be signed, notarized where required, updater-signed, checksummed,
 and approved. Ad-hoc signed, unnotarized artifacts are internal test material
 only and cannot replace a Developer ID release.
 
 ## 1. One-time ownership decisions
 
-Before the first commercial release, the owner must provide and have counsel
+Before the first official release, the owner must provide and have counsel
 approve:
 
 - registered licensor/controller legal name and address;
@@ -15,7 +15,7 @@ approve:
 - privacy request process, retention periods, subprocessors, transfer terms;
 - trademark ownership and the exact publisher name shown in certificates.
 
-Replace the release-gate paragraphs in `specs/legal/EULA.md` and
+Replace the release-gate paragraphs in `specs/legal/OFFICIAL_DISTRIBUTION_TERMS.md` and
 `specs/legal/PRIVACY.md`. The formal workflow intentionally fails while those
 paragraphs remain.
 
@@ -93,6 +93,12 @@ linked from a public download page. It runs the same nested-code and DMG
 integrity checks as the release path, but Gatekeeper approval remains manual
 because the artifact has no Apple notarization ticket.
 
+The manual `Official Preview · Notarized macOS ARM64` workflow is the preferred
+test channel for non-technical testers. It requires the production Apple and
+updater signing secrets, builds only Apple Silicon, performs notarization and
+Gatekeeper verification, and uploads a short-lived Actions artifact without
+creating a GitHub Release.
+
 ## 6. Per-release checklist
 
 1. Confirm the working tree is clean and the intended commit is reviewed.
@@ -106,7 +112,7 @@ because the artifact has no Apple notarization ticket.
 6. Dispatch `Release` with the exact semver or push the protected `vX.Y.Z` tag.
 7. Verify Windows publisher/timestamp, Apple signature/notarization/staple,
    updater signatures, filenames, version, and SHA-256 values on clean machines.
-8. Promote only approved signed artifacts to the public download/CDN path.
+8. Promote only approved Company-signed artifacts to the official download/CDN path. Community builds remain permitted by Apache-2.0 but must not be presented as official releases.
 9. Verify every update manifest and download URL from outside the build network.
 10. Retain checksums, workflow URL, commit, tag, certificate identity, notarization
     submission ID, approvals, and a rollback record.

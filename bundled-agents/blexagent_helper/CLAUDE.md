@@ -77,7 +77,7 @@ blexagent session send <sid> -p "..."
 
 ### 产品定位
 
-BlexAgent 是闭源商业桌面端 AI Agent 产品，源代码和内部仓库仅供获授权人员使用，适用仓库根目录的专有许可证。它不是一个单纯 chat UI，而是一套本地 Agent 平台：Chat、IM Agent、任务中心、定时任务、插件、MCP、Skills、订阅/三方 Provider、用户注册 CLI 工具、富媒体产物和本地运行状态都在同一个用户数据目录里协作。第三方组件仍分别遵循其原始许可证，详见 `THIRD_PARTY_NOTICES.md`。
+BlexAgent 是采用 Apache License 2.0 的开源桌面端 AI Agent 产品，官方发行版由杭州波粒二象文化科技有限公司签名，名称和标识受独立品牌政策保护。它不是一个单纯 chat UI，而是一套本地 Agent 平台：Chat、IM Agent、任务中心、定时任务、插件、MCP、Skills、订阅/三方 Provider、用户注册 CLI 工具、富媒体产物和本地运行状态都在同一个用户数据目录里协作。第三方组件仍分别遵循其原始许可证，详见 `THIRD_PARTY_NOTICES.md`。
 
 ### 进程与通信
 

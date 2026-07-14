@@ -77,6 +77,12 @@ coverage/
 # Misc
 /rclone.exe
 *.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
 *.local
 
 .agent/

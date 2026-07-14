@@ -4829,7 +4829,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
 
                             {/* Copyright */}
                             <p className="text-center text-xs text-[var(--ink-muted)]">
-                                © 2026 Ethan L. All rights reserved.
+                                © 2026 杭州波粒二象文化科技有限公司 · Apache-2.0
                             </p>
 
                             {/* Developer Section - Hidden by default, unlocked by tapping logo 5 times */}

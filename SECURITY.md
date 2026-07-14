@@ -10,7 +10,7 @@ This policy is maintained by 杭州波粒二象文化科技有限公司 (the Com
 
 ### Supported releases
 
-Only the latest generally available, platform-signed release receives standard security fixes. The `0.7.x` line is currently a preview line. Preview, internal, unsigned, ad-hoc-signed, and unnotarized builds may be replaced without backward-compatibility guarantees and are not generally available commercial distributions.
+Only the latest generally available, platform-signed official release receives standard security fixes. The `0.7.x` line is currently a preview line. Preview, community, internal, unsigned, ad-hoc-signed, and unnotarized builds may be replaced without backward-compatibility guarantees and are not supported official distributions.
 
 The supported status of a release is stated on the official BlexAgent download page. Security fixes may require upgrading to the newest release.
 
@@ -54,7 +54,7 @@ Install only from an official BlexAgent location. Public Windows and macOS relea
 
 ### 支持版本
 
-仅最新的正式、完成平台签名的公开发行版获得常规安全修复。`0.7.x` 当前属于预览版本；内部包、预览包、无签名包、临时签名包和未公证包不是正式商业发行版，可能在不保证向后兼容的情况下被替换。
+仅最新的正式、完成平台签名的官方发行版获得常规安全修复。`0.7.x` 当前属于预览版本；社区包、内部包、预览包、无签名包、临时签名包和未公证包不是受支持的官方发行版，可能在不保证向后兼容的情况下被替换。
 
 具体支持状态以 BlexAgent 官方下载页为准。安全修复可能要求升级到最新版本。
 

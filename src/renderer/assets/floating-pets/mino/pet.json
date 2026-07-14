@@ -4,6 +4,6 @@
   "displayName": "Blex",
   "description": "文件夹里蹦出来的小电火花，平时乖乖陪你干活，灵感一来就噼啪亮一下。",
   "author": "BlexAgent",
-  "license": "Proprietary",
+  "license": "Apache-2.0",
   "spritesheetPath": "spritesheet.webp"
 }

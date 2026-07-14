@@ -48,22 +48,22 @@ jobs:
       - name: 校验项目文档与法律主体
         run: npm run validate:docs
 
-      - name: 检查商业发布法律物料
+      - name: 检查开源许可与官方发布法律物料
         shell: bash
         run: |
           set -euo pipefail
           test "$(node -p "require('./package.json').private")" = "true"
-          test "$(node -p "require('./package.json').license")" = "UNLICENSED"
-          required=(LICENSE THIRD_PARTY_NOTICES.md specs/legal/EULA.md specs/legal/PRIVACY.md)
+          test "$(node -p "require('./package.json').license")" = "Apache-2.0"
+          required=(LICENSE NOTICE TRADEMARKS.md THIRD_PARTY_NOTICES.md specs/legal/OFFICIAL_DISTRIBUTION_TERMS.md specs/legal/PRIVACY.md)
           for path in "${required[@]}"; do
-            [[ -s "$path" ]] || { echo "商业发布法律物料缺失或为空: $path" >&2; exit 1; }
+            [[ -s "$path" ]] || { echo "官方发布法律物料缺失或为空: $path" >&2; exit 1; }
           done
           if grep -q 'UNKNOWN — manual review required' THIRD_PARTY_NOTICES.md; then
             echo "第三方许可清单仍有未识别项目；完成合规复核后才能正式发布。" >&2
             exit 1
           fi
-          if grep -Eq 'Release gate:|registered legal entity|注册法律实体' specs/legal/EULA.md specs/legal/PRIVACY.md; then
-            echo "EULA/隐私声明仍含发布门禁占位内容；正式发布前必须由法律主体确认并移除。" >&2
+          if grep -Eq 'Release gate:|registered legal entity|注册法律实体' specs/legal/OFFICIAL_DISTRIBUTION_TERMS.md specs/legal/PRIVACY.md; then
+            echo "官方发行版条款/隐私声明仍含发布门禁占位内容；正式发布前必须由法律主体确认并移除。" >&2
             exit 1
           fi
 

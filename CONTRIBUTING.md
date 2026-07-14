@@ -1,39 +1,55 @@
-# BlexAgent Internal Development and Authorized Contribution Policy
+# Contributing to BlexAgent
 
-BlexAgent is proprietary commercial software owned by 杭州波粒二象文化科技有限公司 (the “Company”). This private repository does not accept public pull requests, public forks, redistribution, or unsolicited source-code contributions.
+Thank you for helping improve BlexAgent. The project is developed in public
+under the Apache License, Version 2.0. Contributions are welcome from users,
+creators, educators, designers, security researchers, and developers.
 
-Only employees, contractors, and other people with explicit repository access and a current written agreement covering confidentiality and intellectual-property ownership may submit changes. AgentHub template and Skill submissions follow a separate content-review process and do not grant access to this source repository.
+## Before opening an issue or pull request
 
-## Authorization and confidentiality
+- Search existing issues and pull requests before creating a duplicate.
+- Do not post credentials, private conversations, personal data, signing
+  material, or unredacted logs. Report vulnerabilities through
+  [SECURITY.md](SECURITY.md), not a public issue.
+- Discuss large product, architecture, persistence, security, privacy, or
+  dependency changes before investing in an implementation.
+- AgentHub templates and Skills must also satisfy
+  [AGENTHUB_CONTENT_POLICY.md](AGENTHUB_CONTENT_POLICY.md) and preserve their
+  source and license attribution.
 
-- Treat source code, product plans, unreleased builds, credentials, signing material, customer information, user data, support cases, and internal discussions as confidential.
-- Do not copy repository content into public issues, paste sites, personal repositories, or AI services that the Company has not approved for confidential source code.
-- Never commit API keys, tokens, certificates, private keys, passwords, production environment files, customer data, or unredacted logs.
-- Use only Company-approved accounts, devices, repositories, build systems, and release channels.
-- Access ends when the related employment, contractor, or written authorization ends. Return or securely destroy copies when directed.
+## Contribution license and provenance
 
-## Intellectual property and provenance
+Unless you explicitly mark a submission as “Not a Contribution”, a contribution
+intentionally submitted for inclusion in BlexAgent is provided under Section 5
+of Apache License 2.0, without additional terms. You must have the right to
+submit it.
 
-- Changes submitted to this repository must be owned by the Company or covered by a written assignment or license that permits the intended proprietary distribution.
-- Record the origin and license of third-party code, packages, fonts, images, screenshots, templates, datasets, prompts, and generated assets before they are committed or shipped.
-- AI-assisted changes require the same human review, testing, provenance, confidentiality, and license checks as manually written work. Do not assume generated material is original or safe to distribute.
-- Dependency changes must update `THIRD_PARTY_NOTICES.md` through the repository's legal tooling and review every unknown, copyleft, custom, or non-standard license entry.
-- AgentHub content must satisfy [AGENTHUB_CONTENT_POLICY.md](AGENTHUB_CONTENT_POLICY.md) and, when submitted externally, a signed content submission agreement.
+Record the origin and license of third-party code, packages, fonts, images,
+screenshots, templates, datasets, prompts, and generated assets. AI-assisted
+changes require the same human review, testing, and provenance checks as other
+changes. Do not submit material copied from an incompatible or unknown source.
+
+The Apache license does not grant permission to use the BlexAgent name or logo
+to represent a fork as an official release. Descriptive references to the
+project and preservation of required notices remain permitted.
 
 ## Development workflow
 
-1. Work from a tracked internal issue or approved task with an identifiable owner.
-2. Create a short-lived branch; do not develop directly on a protected release branch.
-3. Inspect the current implementation and applicable architecture documents before editing.
-4. Keep the change scoped and preserve unrelated user or collaborator work.
-5. Add or update tests, technical documentation, privacy disclosures, support guidance, and third-party notices when behavior changes.
-6. Use Conventional Commits with a message that explains the product or engineering reason for the change.
-7. Obtain review before merging. Security, privacy, authentication, signing, release, licensing, data migration, and dependency changes require the responsible owner’s approval.
-8. Document rollback or recovery steps for migrations, persistent-data changes, updater changes, and high-risk infrastructure changes.
+1. Read `AGENTS.md`, `CLAUDE.md`, and the architecture document named by the
+   changed subsystem.
+2. Create a focused branch from the current default branch.
+3. Reuse existing project patterns and keep unrelated local changes untouched.
+4. Add or update tests and documentation for changed behavior.
+5. Use Conventional Commits and explain the product or engineering reason.
+6. Open a pull request describing behavior, verification, compatibility impact,
+   security or privacy considerations, and rollback steps when relevant.
+
+Maintainers may request changes, split an oversized pull request, or decline a
+change that conflicts with the product direction, safety requirements, or
+maintainability goals.
 
 ## Required verification
 
-Run the narrowest relevant check first, then the repository checks required by the changed surfaces. The default baseline is:
+Run the narrowest relevant check first. The normal baseline is:
 
 ```text
 npm run typecheck
@@ -42,27 +58,24 @@ npm run test:classification
 npm run test:unit
 ```
 
-Also run:
+Also run `npm run test:dom` for renderer changes, `npm run test:integration`
+for shared contracts and runtime boundaries, and the repository Rust test and
+clippy commands for Rust changes. Dependency changes require
+`npm run legal:third-party` and manual review of the generated notices.
 
-- `npm run test:dom` for renderer components and browser-like behavior.
-- `npm run test:integration` for Sidecar, shared contracts, persistence, runtime, IO, and security boundaries.
-- `cargo test --manifest-path src-tauri/Cargo.toml` and the repository clippy command for Rust changes.
-- `npm run legal:third-party` for dependency changes.
-- Signing, notarization, installer, and updater verification for release changes.
+## Releases and secrets
 
-Do not weaken assertions, skip deterministic tests, or use real customer data and production credentials to make a test pass.
+Only maintainers publish official BlexAgent installers. Official Windows and
+macOS artifacts are distinguished by Company-controlled signing identities,
+not by a different source-code license. Never commit API keys, tokens,
+certificates, private keys, certificate passwords, production environment
+files, customer data, or unredacted support logs.
 
-## Releases
+Unsigned, ad-hoc-signed, or unnotarized artifacts must be labelled as community
+or test builds and must not be represented as official releases.
 
-Only the protected formal release workflow may produce a generally available commercial release. It must satisfy the checklist in `specs/guides/commercial-release.md`, including platform code signing, macOS notarization, updater signing, provenance checks, legal-document validation, and approval.
+## Community
 
-Unsigned, ad-hoc-signed, unnotarized, or otherwise incomplete artifacts are internal or preview test material and must be clearly labelled. They must not be presented as a generally available commercial release.
-
-## Conduct, security, and support
-
-- Team conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Security reporting: [SECURITY.md](SECURITY.md)
-- Product support: [SUPPORT.md](SUPPORT.md)
-- Internal development guide: [docs/internal/DEVELOPMENT.md](docs/internal/DEVELOPMENT.md)
-
-Internal development contact: team@blexagent.com
+All participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Use [SUPPORT.md](SUPPORT.md) for product support and [SECURITY.md](SECURITY.md)
+for private vulnerability reporting.

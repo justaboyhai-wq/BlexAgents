@@ -159,7 +159,7 @@ if [ -d "$INTEL_DIR" ]; then
     INTEL_SIG=$(find "${INTEL_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
 fi
 
-# 商业发布必须是双架构、Developer ID 已签名并完成公证的完整物料。
+# 官方发布必须是双架构、Developer ID 已签名并完成公证的完整物料。
 for required in "$ARM_DMG" "$ARM_TAR" "$ARM_SIG" "$INTEL_DMG" "$INTEL_TAR" "$INTEL_SIG"; do
     if [ -z "$required" ] || [ ! -f "$required" ]; then
         echo -e "${RED}错误: 正式发布缺少双架构 DMG、更新包或签名文件${NC}" >&2

@@ -946,7 +946,7 @@ pub fn cmd_copy_folder_to_templates(
 
 // ============= Admin Agent Sync =============
 
-const ADMIN_AGENT_VERSION: &str = "25";
+const ADMIN_AGENT_VERSION: &str = "26";
 
 /// Helper-bundled paths (relative to `~/.blexagent/`) that previous versions
 /// shipped but that have since been retired.

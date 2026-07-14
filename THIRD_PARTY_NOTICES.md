@@ -5,8 +5,8 @@ Generated from `package-lock.json` and `src-tauri/Cargo.lock`. Run
 compliance aid, not a replacement for the complete license files supplied by
 each upstream component.
 
-BlexAgent's proprietary license applies only to BlexAgent-owned material. The
-third-party components below remain under their respective licenses. Copyright
+BlexAgent-owned material is available under Apache License 2.0. The third-party
+components below remain under their respective licenses. Copyright
 notices and license texts shipped inside dependency packages, bundled skills,
 runtime distributions, templates, and default-workspace resources must be
 preserved.
@@ -41,7 +41,7 @@ No missing machine-readable license declarations were found.
 
 Packages declaring LGPL, GPL, MPL, CC, custom, or `SEE LICENSE IN ...` terms
 require release-by-release review to confirm that the shipped form and notice
-delivery satisfy those terms. A formal commercial release must not proceed on
+delivery satisfy those terms. An official release must not proceed on
 the generated table alone.
 
 ## npm production and build dependency inventory

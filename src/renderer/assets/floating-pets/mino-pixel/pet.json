@@ -4,6 +4,6 @@
   "displayName": "Blex Pixel",
   "description": "像素重绘版 Blex，小方块里装着大精神，复古但不掉帧。",
   "author": "BlexAgent",
-  "license": "Proprietary",
+  "license": "Apache-2.0",
   "spritesheetPath": "spritesheet.webp"
 }
