@@ -87,6 +87,16 @@ jobs:
           security find-identity -v -p codesigning "$keychain" | grep -F "$APPLE_SIGNING_IDENTITY"
           rm -f "$certificate"
 
+      - name: 验证 Tauri 更新签名密钥
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe="$RUNNER_TEMP/blexagent-updater-signing-probe"
+          printf 'BlexAgent updater signing probe\n' > "$probe"
+          npm run tauri -- signer sign "$probe"
+          test -s "$probe.sig"
+          rm -f "$probe" "$probe.sig"
+
       - name: 准备 App Store Connect 公证密钥
         shell: bash
         run: |
