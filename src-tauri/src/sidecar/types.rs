@@ -81,11 +81,10 @@ pub(super) enum ExistingSidecarReuse {
     },
 }
 
-pub(super) fn normalize_runtime_name(runtime: Option<&str>) -> &str {
-    match runtime {
-        Some(runtime) if !runtime.is_empty() => runtime,
-        _ => "builtin",
-    }
+pub(super) fn normalize_runtime_name(_runtime: Option<&str>) -> &str {
+    // External command-line runtimes were retired. Persisted legacy values are
+    // deliberately collapsed to the bundled Claude Agent SDK.
+    "builtin"
 }
 
 pub(super) fn normalize_runtime_source_name(
@@ -185,7 +184,7 @@ mod lifecycle_contract_tests {
     }
 
     #[test]
-    fn runtime_drift_with_tab_and_agent_owner_is_kept_alive() {
+    fn legacy_runtime_names_do_not_create_drift_with_tab_and_agent_owner() {
         let owners = owners(vec![
             SidecarOwner::Tab("tab-a".to_string()),
             SidecarOwner::Agent("agent-a".to_string()),
@@ -193,17 +192,17 @@ mod lifecycle_contract_tests {
 
         assert_eq!(
             decide_runtime_drift_result(Some("codex"), "gemini", &owners),
-            RuntimeDriftResult::DetectedKeptAlive
+            RuntimeDriftResult::NoDrift
         );
     }
 
     #[test]
-    fn runtime_drift_with_only_agent_owners_is_killable() {
+    fn legacy_runtime_names_do_not_create_drift_with_agent_owner() {
         let owners = owners(vec![SidecarOwner::Agent("agent-a".to_string())]);
 
         assert_eq!(
             decide_runtime_drift_result(Some("codex"), "gemini", &owners),
-            RuntimeDriftResult::KilledAndRemoved
+            RuntimeDriftResult::NoDrift
         );
     }
 
@@ -222,7 +221,7 @@ mod lifecycle_contract_tests {
     }
 
     #[test]
-    fn runtime_source_is_part_of_drift_identity() {
+    fn legacy_runtime_sources_are_ignored() {
         let owners = owners(vec![SidecarOwner::Agent("agent-a".to_string())]);
 
         assert_eq!(
@@ -233,7 +232,7 @@ mod lifecycle_contract_tests {
                 Some("managed-provider"),
                 &owners,
             ),
-            RuntimeDriftResult::KilledAndRemoved
+            RuntimeDriftResult::NoDrift
         );
         assert_eq!(
             decide_runtime_identity_drift_result(
@@ -287,7 +286,7 @@ mod lifecycle_contract_tests {
     }
 
     #[test]
-    fn session_runtime_identity_parser_preserves_builtin_metadata() {
+    fn session_runtime_identity_parser_collapses_legacy_values_to_builtin() {
         let content = serde_json::json!([
             { "id": "missing-runtime" },
             { "id": "builtin-runtime", "runtime": "builtin" },
@@ -306,20 +305,20 @@ mod lifecycle_contract_tests {
         );
         assert_eq!(
             resolve_session_runtime_identity_from_json("codex-runtime", &content),
-            Some("codex".to_string())
+            Some("builtin".to_string())
         );
         assert_eq!(
             resolve_session_runtime_identity_full_from_json("codex-runtime", &content),
             Some(RuntimeIdentity {
-                runtime: "codex".to_string(),
-                runtime_source: Some("system-cli".to_string()),
+                runtime: "builtin".to_string(),
+                runtime_source: None,
             })
         );
         assert_eq!(
             resolve_session_runtime_identity_full_from_json("managed-codex-runtime", &content),
             Some(RuntimeIdentity {
-                runtime: "codex".to_string(),
-                runtime_source: Some("managed-provider".to_string()),
+                runtime: "builtin".to_string(),
+                runtime_source: None,
             })
         );
         assert_eq!(
@@ -329,7 +328,7 @@ mod lifecycle_contract_tests {
     }
 
     #[test]
-    fn cron_and_background_owners_make_runtime_drift_non_killable() {
+    fn legacy_runtime_names_do_not_create_cron_or_background_drift() {
         let cron = owners(vec![SidecarOwner::CronTask("cron-a".to_string())]);
         let background = owners(vec![SidecarOwner::BackgroundCompletion(
             "session-a".to_string(),
@@ -337,11 +336,11 @@ mod lifecycle_contract_tests {
 
         assert_eq!(
             decide_runtime_drift_result(Some("codex"), "gemini", &cron),
-            RuntimeDriftResult::DetectedKeptAlive
+            RuntimeDriftResult::NoDrift
         );
         assert_eq!(
             decide_runtime_drift_result(Some("codex"), "gemini", &background),
-            RuntimeDriftResult::DetectedKeptAlive
+            RuntimeDriftResult::NoDrift
         );
     }
 

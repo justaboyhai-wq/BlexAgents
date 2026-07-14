@@ -1,21 +1,22 @@
 {
   "name": "blexagent",
-  "description": "BlexAgent - Desktop Claude Code for everyone. AI-powered productivity, not just for developers.",
+  "description": "BlexAgent - A desktop personal Agent for creators, everyday life, education, and productive work.",
   "type": "module",
-  "version": "0.2.49",
-  "license": "Apache-2.0",
+  "version": "0.7.2",
+  "private": true,
+  "license": "UNLICENSED",
   "packageManager": "npm@11.13.0",
   "engines": {
     "node": ">=22.0.0"
   },
-  "author": "BlexAgent Team <team@blexagent.com>",
+  "author": "杭州波粒二象文化科技有限公司 <team@blexagent.com>",
   "homepage": "https://blexagent.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/justaboyhai-wq/BlexAgents.git"
   },
   "bugs": {
-    "url": "https://github.com/justaboyhai-wq/BlexAgents/issues"
+    "email": "support@blexagent.com"
   },
   "keywords": [
     "claude",
@@ -29,7 +30,7 @@
   "scripts": {
     "dev": "./start_dev.sh",
     "dev:web": "vite",
-    "build:web": "node scripts/apply-default-workspace-branding.mjs --if-present --validate && npm run validate:agenthub && vite build",
+    "build:web": "npm run validate:docs && node scripts/apply-default-workspace-branding.mjs --if-present --validate && npm run validate:agenthub && vite build",
     "build:server": "node scripts/esbuild-bundle.mjs server",
     "build:bridge": "node scripts/esbuild-bundle.mjs bridge",
     "build:cli": "node scripts/esbuild-bundle.mjs cli",
@@ -52,14 +53,13 @@
     "brand:default-workspace": "node scripts/apply-default-workspace-branding.mjs",
     "validate:bundled-resources": "npm run brand:default-workspace && node scripts/validate-bundled-resources.mjs",
     "validate:agenthub": "node scripts/validate-agenthub.mjs",
+    "validate:docs": "node scripts/validate-project-docs.mjs",
+    "legal:third-party": "node scripts/generate-third-party-notices.mjs",
     "test:watch": "vitest --project unit --project dom --project integration",
     "coverage": "vitest run --coverage --project unit --project dom --project integration",
     "format": "prettier --experimental-cli --write .",
     "format:check": "prettier --experimental-cli --check --log-level warn .",
     "generate:sdk-shims": "node --import tsx/esm scripts/generate-sdk-shims.ts",
-    "package:managed-codex": "node scripts/package-managed-codex-runtime.mjs",
-    "publish:managed-codex": "./publish_managed_codex_runtime.sh",
-    "publish:managed-codex:win": "powershell -ExecutionPolicy Bypass -File ./publish_managed_codex_runtime.ps1",
     "clean": "rm -rf node_modules dist .turbo .eslintcache *.tsbuildinfo src-tauri/target",
     "version": "node scripts/sync-version.js && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml"
   },
@@ -153,7 +153,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.7.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@tailwindcss/vite": "^4.1.17",
-    "@tauri-apps/cli": "^2.9.6",
+    "@tauri-apps/cli": "~2.10.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

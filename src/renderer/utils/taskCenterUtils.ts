@@ -96,8 +96,8 @@ export function extractPlatformDisplay(sessionKey: string): string {
 }
 
 /**
- * Get a concise display label for a channel type (e.g., "飞书", "Telegram", "钉钉").
- * Handles both plain types ("telegram") and openclaw prefixed ("openclaw:openclaw-lark").
+ * Get a concise display label for a channel type (e.g., "飞书", "钉钉").
+ * Handles both built-in and openclaw-prefixed channel types.
  */
 export function getChannelTypeLabel(channelType: string): string {
     if (channelType.startsWith('openclaw:')) {
@@ -113,7 +113,6 @@ export function getChannelTypeLabel(channelType: string): string {
  * promotedPlugins.ts (with channelBrand + tagLabel) makes all display paths work.
  */
 const BUILTIN_PLATFORM_NAMES: Record<string, string> = {
-    telegram: 'Telegram',
     feishu: '飞书',
     dingtalk: '钉钉',
 };

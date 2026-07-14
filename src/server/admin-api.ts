@@ -2048,8 +2048,7 @@ Commands:
   channel remove <a-id> <ch-id>   Remove a channel
 
 Options for 'channel add':
-  --type        telegram | feishu | dingtalk (required)
-  --token       Bot token (for telegram)
+  --type        feishu | dingtalk (required)
   --app-id      App ID (for feishu/dingtalk)
   --app-secret  App Secret (for feishu/dingtalk)
 
@@ -2941,8 +2940,8 @@ export async function handleImWake(payload: { text?: string }): Promise<AdminRes
 }
 
 /**
- * `blexagent im channels` — list all configured IM channels (Telegram /
- * Feishu / DingTalk / OpenClaw plugin bots). Useful for AI to discover what
+ * `blexagent im channels` — list all configured IM channels (Feishu /
+ * DingTalk / reviewed OpenClaw plugin bots). Useful for AI to discover what
  * delivery targets are available before creating a cron task that delivers
  * to IM. Works in any session — does not require an active IM context.
  */
@@ -2962,7 +2961,7 @@ export async function handleImChannels(): Promise<AdminResponse> {
     success: true,
     data: { channels },
     hint: channels.length === 0
-      ? 'No IM channels configured. The user needs to set up an Agent channel (Telegram/Feishu/DingTalk) in Settings first.'
+      ? 'No IM channels configured. The user needs to set up a Feishu, DingTalk, or reviewed OpenClaw Agent channel in Settings first.'
       : `${channels.length} IM channel${channels.length === 1 ? '' : 's'} configured.`,
   };
 }
@@ -3110,7 +3109,7 @@ DO NOT
 const README_IM = `blexagent im — IM Bot capabilities
 
 WHAT
-  Commands that act on the current IM chat (Telegram / Feishu / DingTalk /
+  Commands that act on the current IM chat (Feishu / DingTalk / reviewed
   OpenClaw plugin channels). Most commands only work inside an IM Bot
   session or Agent Channel session; \`channels\` works anywhere.
 
@@ -3130,7 +3129,7 @@ COMMANDS
       a contextual hint into the wake message. IM session only.
 
   channels
-      List configured IM channels (Telegram / Feishu / DingTalk / OpenClaw
+      List configured IM channels (Feishu / DingTalk / reviewed OpenClaw
       plugin bots) the user has set up. Useful before creating a cron task
       that should deliver results to a specific channel. Works in any
       session — does not require an active IM context.

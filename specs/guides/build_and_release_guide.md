@@ -10,8 +10,8 @@ BlexAgent 支持 **macOS** 和 **Windows** 平台：
 
 | 平台 | 架构 | 构建脚本 | 发布脚本 |
 |------|------|---------|---------|
-| macOS | ARM64 (M1/M2), x86_64 (Intel) | `build_macos.sh` | `publish_release.sh` |
-| Windows | x86_64 | `build_windows.ps1` | `publish_windows.ps1` |
+| macOS | ARM64 (Apple Silicon), x86_64 (Intel) | `build_macos.sh` | GitHub Release / `publish_release.sh` |
+| Windows | x86_64 | `build_windows.ps1` | GitHub Release / `publish_windows.ps1` |
 
 > **Windows 用户**：请参阅 [Windows 构建与测试指南](./windows_build_guide.md)
 
@@ -21,6 +21,7 @@ BlexAgent 支持 **macOS** 和 **Windows** 平台：
 
 | 渠道 | 用途 | 所需文件 | 清单文件 |
 |------|------|---------|---------|
+| **GitHub Release** | Windows/macOS 正式安装包 | `.exe` / `.dmg` / 便携版 `.zip` | `SHA256SUMS.txt` |
 | **官网下载** | 用户从官网手动下载安装 | `.dmg` | `latest.json` |
 | **自动更新** | 应用内静默更新 (Tauri Updater) | `.app.tar.gz` + `.sig` | `darwin-aarch64.json` / `darwin-x86_64.json` |
 
@@ -43,6 +44,29 @@ blexagent-releases/
         ├── BlexAgent_{VERSION}_x64.app.tar.gz      # Intel 更新包
         └── BlexAgent_{VERSION}_x64.app.tar.gz.sig  # Intel 签名
 ```
+
+---
+
+## GitHub Release 正式发布
+
+`.github/workflows/release.yml` 是跨平台安装包的统一正式发布入口。推送与 `package.json` 一致的 `v*` 标签，或手动填写相同版本号，即会执行：
+
+1. 在构建前校验版本号和全部签名 Secrets，缺少任意凭据立即停止。
+2. 在 Windows 2022 runner 构建并验证已签名的 x64 NSIS 安装包、便携版和更新包。
+3. 在 macOS runner 构建 Apple Silicon 与 Intel 两个 DMG，验证 Developer ID 签名、公证和更新签名。
+4. 两个平台全部通过后生成 `SHA256SUMS.txt`，并创建公开 GitHub Release。
+
+正式发布需要在仓库 Actions Secrets 中配置：
+
+- Windows：`WINDOWS_CERTIFICATE_PFX_BASE64`、`WINDOWS_CERTIFICATE_PASSWORD`。
+- macOS：`APPLE_CERTIFICATE_P12_BASE64`、`APPLE_CERTIFICATE_PASSWORD`、`APPLE_SIGNING_IDENTITY`、`APPLE_TEAM_ID`、`APPLE_API_ISSUER`、`APPLE_API_KEY`、`APPLE_API_KEY_P8_BASE64`。
+- 自动更新：`TAURI_SIGNING_PRIVATE_KEY`、`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
+
+签名材料不得提交到仓库。当前没有上述凭据时，可以继续开发和运行普通测试，但正式 Release 会停在预检阶段，不会发布未签名安装包。
+
+无 Apple 凭据的 ARM64 内部测试使用手动工作流 `Internal Package · Ad-hoc macOS`。该流程生成完整 ad-hoc 签名树并验证 DMG 完整性，但没有 Developer ID 和 Apple 公证票据，只能按 `internal-macos-testing.md` 在批准的测试设备上使用。
+
+Windows ARM64 不属于当前发布矩阵；待原生 Node、Claude SDK、sharp 与外部二进制全部具备 ARM64 验证后再单独加入。
 
 ---
 

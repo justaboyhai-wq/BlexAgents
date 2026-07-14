@@ -4,6 +4,8 @@ node_modules/
 # Build outputs
 dist/
 *.tsbuildinfo
+/artifacts/
+/release-artifacts/
 
 # Lockfiles — v0.2.0+ uses npm (package-lock.json is committed).
 # Any residual bun.lock from pre-0.2.0 checkout is ignored so local installs
@@ -91,3 +93,4 @@ start_dev.sh
 
 # Default workspace (cloned by setup.sh)
 /mino/
+.claude/plans/blexagent/

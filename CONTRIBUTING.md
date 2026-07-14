@@ -1,175 +1,68 @@
-# Contributing to BlexAgent
+# BlexAgent Internal Development and Authorized Contribution Policy
 
-[English](#english) | [中文](#中文)
+BlexAgent is proprietary commercial software owned by 杭州波粒二象文化科技有限公司 (the “Company”). This private repository does not accept public pull requests, public forks, redistribution, or unsolicited source-code contributions.
 
----
+Only employees, contractors, and other people with explicit repository access and a current written agreement covering confidentiality and intellectual-property ownership may submit changes. AgentHub template and Skill submissions follow a separate content-review process and do not grant access to this source repository.
 
-<a name="english"></a>
+## Authorization and confidentiality
 
-## English
+- Treat source code, product plans, unreleased builds, credentials, signing material, customer information, user data, support cases, and internal discussions as confidential.
+- Do not copy repository content into public issues, paste sites, personal repositories, or AI services that the Company has not approved for confidential source code.
+- Never commit API keys, tokens, certificates, private keys, passwords, production environment files, customer data, or unredacted logs.
+- Use only Company-approved accounts, devices, repositories, build systems, and release channels.
+- Access ends when the related employment, contractor, or written authorization ends. Return or securely destroy copies when directed.
 
-Thank you for your interest in contributing to BlexAgent! This document provides guidelines and instructions for contributing.
+## Intellectual property and provenance
 
-### Code of Conduct
+- Changes submitted to this repository must be owned by the Company or covered by a written assignment or license that permits the intended proprietary distribution.
+- Record the origin and license of third-party code, packages, fonts, images, screenshots, templates, datasets, prompts, and generated assets before they are committed or shipped.
+- AI-assisted changes require the same human review, testing, provenance, confidentiality, and license checks as manually written work. Do not assume generated material is original or safe to distribute.
+- Dependency changes must update `THIRD_PARTY_NOTICES.md` through the repository's legal tooling and review every unknown, copyleft, custom, or non-standard license entry.
+- AgentHub content must satisfy [AGENTHUB_CONTENT_POLICY.md](AGENTHUB_CONTENT_POLICY.md) and, when submitted externally, a signed content submission agreement.
 
-Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+## Development workflow
 
-### How to Contribute
+1. Work from a tracked internal issue or approved task with an identifiable owner.
+2. Create a short-lived branch; do not develop directly on a protected release branch.
+3. Inspect the current implementation and applicable architecture documents before editing.
+4. Keep the change scoped and preserve unrelated user or collaborator work.
+5. Add or update tests, technical documentation, privacy disclosures, support guidance, and third-party notices when behavior changes.
+6. Use Conventional Commits with a message that explains the product or engineering reason for the change.
+7. Obtain review before merging. Security, privacy, authentication, signing, release, licensing, data migration, and dependency changes require the responsible owner’s approval.
+8. Document rollback or recovery steps for migrations, persistent-data changes, updater changes, and high-risk infrastructure changes.
 
-#### Reporting Bugs
+## Required verification
 
-1. Check if the bug has already been reported in [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues)
-2. If not, create a new issue with:
-   - Clear, descriptive title
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - System information (macOS version, chip type)
-   - Screenshots if applicable
+Run the narrowest relevant check first, then the repository checks required by the changed surfaces. The default baseline is:
 
-#### Suggesting Features
-
-1. Check existing [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues) for similar suggestions
-2. Create a new issue with the "Feature Request" label
-3. Describe the feature and its use case clearly
-
-#### Pull Requests
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature-name`
-3. Make your changes
-4. Run checks before committing:
-   ```bash
-   npm run typecheck
-   npm run lint
-   ```
-5. Commit with conventional commit messages:
-   - `feat:` New feature
-   - `fix:` Bug fix
-   - `docs:` Documentation changes
-   - `refactor:` Code refactoring
-   - `test:` Adding tests
-   - `chore:` Maintenance tasks
-6. Push and create a Pull Request
-
-### Development Setup
-
-```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/BlexAgent.git
-cd BlexAgent
-
-# Install dependencies
-./setup.sh
-
-# Start development
-./start_dev.sh
+```text
+npm run typecheck
+npm run lint
+npm run test:classification
+npm run test:unit
 ```
 
-### Project Structure
+Also run:
 
-```
-BlexAgent/
-├── src/
-│   ├── renderer/     # React frontend
-│   ├── server/       # Bun backend (Sidecar)
-│   └── shared/       # Shared types
-├── src-tauri/        # Tauri Rust code
-└── specs/            # Design documents
-```
+- `npm run test:dom` for renderer components and browser-like behavior.
+- `npm run test:integration` for Sidecar, shared contracts, persistence, runtime, IO, and security boundaries.
+- `cargo test --manifest-path src-tauri/Cargo.toml` and the repository clippy command for Rust changes.
+- `npm run legal:third-party` for dependency changes.
+- Signing, notarization, installer, and updater verification for release changes.
 
-### Code Style
+Do not weaken assertions, skip deterministic tests, or use real customer data and production credentials to make a test pass.
 
-- Use TypeScript for frontend code
-- Follow existing code patterns
-- Run `npm run lint` before committing
-- Keep components small and focused
+## Releases
 
-### Questions?
+Only the protected formal release workflow may produce a generally available commercial release. It must satisfy the checklist in `specs/guides/commercial-release.md`, including platform code signing, macOS notarization, updater signing, provenance checks, legal-document validation, and approval.
 
-Feel free to open an issue or reach out at team@blexagent.com
+Unsigned, ad-hoc-signed, unnotarized, or otherwise incomplete artifacts are internal or preview test material and must be clearly labelled. They must not be presented as a generally available commercial release.
 
----
+## Conduct, security, and support
 
-<a name="中文"></a>
+- Team conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Security reporting: [SECURITY.md](SECURITY.md)
+- Product support: [SUPPORT.md](SUPPORT.md)
+- Internal development guide: [docs/internal/DEVELOPMENT.md](docs/internal/DEVELOPMENT.md)
 
-## 中文
-
-感谢您有兴趣为 BlexAgent 做出贡献！本文档提供贡献指南和说明。
-
-### 行为准则
-
-请阅读并遵守我们的[行为准则](CODE_OF_CONDUCT.md)。
-
-### 如何贡献
-
-#### 报告 Bug
-
-1. 先在 [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues) 中检查是否已有相同报告
-2. 如果没有，创建新 issue 并包含：
-   - 清晰的标题
-   - 复现步骤
-   - 预期行为 vs 实际行为
-   - 系统信息（macOS 版本、芯片类型）
-   - 相关截图
-
-#### 功能建议
-
-1. 先检查 [Issues](https://github.com/justaboyhai-wq/BlexAgents/issues) 中是否有类似建议
-2. 使用 "Feature Request" 标签创建新 issue
-3. 清晰描述功能及其使用场景
-
-#### Pull Request
-
-1. Fork 仓库
-2. 创建功能分支：`git checkout -b feature/your-feature-name`
-3. 进行修改
-4. 提交前运行检查：
-   ```bash
-   npm run typecheck
-   npm run lint
-   ```
-5. 使用规范的 commit 信息：
-   - `feat:` 新功能
-   - `fix:` Bug 修复
-   - `docs:` 文档更新
-   - `refactor:` 代码重构
-   - `test:` 添加测试
-   - `chore:` 维护任务
-6. 推送并创建 Pull Request
-
-### 开发环境设置
-
-```bash
-# 克隆你的 fork
-git clone https://github.com/YOUR_USERNAME/BlexAgent.git
-cd BlexAgent
-
-# 安装依赖
-./setup.sh
-
-# 启动开发
-./start_dev.sh
-```
-
-### 项目结构
-
-```
-BlexAgent/
-├── src/
-│   ├── renderer/     # React 前端
-│   ├── server/       # Bun 后端 (Sidecar)
-│   └── shared/       # 共享类型
-├── src-tauri/        # Tauri Rust 代码
-└── specs/            # 设计文档
-```
-
-### 代码风格
-
-- 前端使用 TypeScript
-- 遵循现有代码模式
-- 提交前运行 `npm run lint`
-- 保持组件小而专注
-
-### 有问题？
-
-欢迎创建 issue 或发送邮件至 team@blexagent.com
+Internal development contact: team@blexagent.com

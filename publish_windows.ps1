@@ -203,13 +203,21 @@ if (-not $NsisExe) {
     throw "NSIS 安装包缺失"
 }
 
-if (-not $UpdateZip) {
-    Write-Host "[!] 更新包缺失，自动更新将不可用" -ForegroundColor Yellow
-    $continue = Read-Host "是否继续? (y/N)"
-    if ($continue -ne "y" -and $continue -ne "Y") {
-        Write-Host "发布已取消" -ForegroundColor Red
-        throw "用户取消发布"
-    }
+if ($NsisExe.Name -like 'INTERNAL-UNSIGNED-*') {
+    throw "拒绝发布内部无签名安装包: $($NsisExe.Name)"
+}
+$authenticode = Get-AuthenticodeSignature -LiteralPath $NsisExe.FullName
+if ($authenticode.Status -ne 'Valid') {
+    throw "拒绝发布未通过 Authenticode 验证的安装包: $($NsisExe.Name) ($($authenticode.Status))"
+}
+Write-Host "[OK] Authenticode: $($authenticode.SignerCertificate.Subject)" -ForegroundColor Green
+
+if (-not $UpdateZip -or -not $SigFile) {
+    throw "正式发布必须同时包含 Tauri 更新包和签名文件"
+}
+$signatureText = (Get-Content -LiteralPath $SigFile.FullName -Raw).Trim()
+if ([string]::IsNullOrWhiteSpace($signatureText)) {
+    throw "Tauri 更新签名文件为空: $($SigFile.Name)"
 }
 
 Write-Host ""

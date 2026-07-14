@@ -1,0 +1,44 @@
+name: Internal Package · Ad-hoc macOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: INTERNAL ONLY · macOS ad-hoc · ARM64
+    runs-on: macos-14
+    env:
+      VITE_ANALYTICS_ENABLED: "false"
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@1.92.0
+        with:
+          targets: aarch64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - name: Prepare bundled Blex workspace
+        run: |
+          git clone --depth 1 https://github.com/hAcKlyc/openmino.git mino
+          rm -rf mino/.git
+          npm run brand:default-workspace
+          node scripts/validate-bundled-resources.mjs
+      - name: Build complete ad-hoc ARM64 DMG
+        run: ./build_macos.sh --ci --internal --arch arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: INTERNAL-ADHOC-UNNOTARIZED-BlexAgent-macOS-arm64
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            specs/guides/internal-macos-testing.md

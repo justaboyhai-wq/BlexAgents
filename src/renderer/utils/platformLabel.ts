@@ -1,7 +1,7 @@
 // Display label for an IM channel platform / type.
 //
 // Channel `type` comes in three shapes:
-//   • Built-in platforms ("telegram" / "feishu" / "dingtalk") → hard-coded
+//   • Built-in platforms ("feishu" / "dingtalk") → hard-coded
 //     localized labels.
 //   • OpenClaw plugin channels ("openclaw:<platform>", e.g. "openclaw:larksuite",
 //     "openclaw:wechat") → resolve via the promoted-plugin registry to the
@@ -15,7 +15,6 @@
 import { findPromotedByPlatform } from '@/components/ImSettings/promotedPlugins';
 
 const BUILTIN_LABELS: Record<string, string> = {
-  telegram: 'Telegram',
   feishu: '飞书',
   dingtalk: '钉钉',
 };

@@ -1,4 +1,4 @@
-﻿; BlexAgent NSIS Installer Hooks
+; BlexAgent NSIS Installer Hooks
 ; - PREINSTALL: Kill all BlexAgent processes before file replacement
 ;   Prevents file-lock failures when updating node.exe / claude.exe / etc.
 

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "BlexAgent",
-  "version": "0.2.49",
+  "version": "0.7.2",
   "identifier": "com.blexagents.app",
   "build": {
     "frontendDist": "../dist",
@@ -15,9 +15,7 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": [
-          "$HOME/.blexagent/**"
-        ]
+        "scope": ["$HOME/.blexagent/**"]
       },
       "csp": "default-src 'self' ipc: tauri: asset: http://ipc.localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ipc: tauri: asset: http://ipc.localhost http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://download.blexagent.com; img-src 'self' data: blob: asset: blexagent: http://blexagent.localhost http://asset.localhost https://asset.localhost https://download.blexagent.com https:; media-src 'self' blob: asset: blexagent: http://blexagent.localhost http://asset.localhost https://asset.localhost;",
       "dangerousDisableAssetCspModification": true
@@ -25,13 +23,14 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "dmg",
-      "app",
-      "nsis",
-      "appimage",
-      "deb"
-    ],
+    "publisher": "杭州波粒二象文化科技有限公司",
+    "copyright": "Copyright © 2026 杭州波粒二象文化科技有限公司. All rights reserved.",
+    "license": "Proprietary",
+    "licenseFile": "../specs/legal/EULA.md",
+    "category": "Productivity",
+    "shortDescription": "A desktop personal Agent for creators, everyday life, education, and productive work.",
+    "longDescription": "BlexAgent brings conversations, workspaces, tools, tasks, skills, and personal AI workflows into one local-first desktop application.",
+    "targets": ["dmg", "app", "nsis", "appimage", "deb"],
     "createUpdaterArtifacts": "v1Compatible",
     "icon": [
       "icons/32x32.png",
@@ -54,12 +53,14 @@
       "../src-tauri/resources/cli": "cli",
       "../mino": "mino",
       "../agenthub": "agenthub",
+      "../LICENSE": "legal/LICENSE",
+      "../THIRD_PARTY_NOTICES.md": "legal/THIRD_PARTY_NOTICES.md",
+      "../specs/legal/EULA.md": "legal/EULA.md",
+      "../specs/legal/PRIVACY.md": "legal/PRIVACY.md",
       "infoplist/en.lproj/InfoPlist.strings": "en.lproj/InfoPlist.strings",
       "infoplist/zh-Hans.lproj/InfoPlist.strings": "zh-Hans.lproj/InfoPlist.strings"
     },
-    "externalBin": [
-      "binaries/cuse"
-    ],
+    "externalBin": ["binaries/cuse"],
     "macOS": {
       "minimumSystemVersion": "13.0",
       "entitlements": "Entitlements.plist",
@@ -95,10 +96,7 @@
         "headerImage": null,
         "sidebarImage": null,
         "installMode": "currentUser",
-        "languages": [
-          "SimpChinese",
-          "English"
-        ],
+        "languages": ["SimpChinese", "English"],
         "displayLanguageSelector": false,
         "customLanguageFiles": {
           "SimpChinese": "nsis/languages/SimpChinese.nsh",
@@ -110,9 +108,7 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY3RkQ5QjIzMTE4RTgyRTkKUldUcGdvNFJJNXY5OTB3T2pnUzVUbjFrV203Zk5ZTDg0NVJRdGI0UVRranJzTUsvM0hGcmFlc0IK",
-      "endpoints": [
-        "https://download.blexagent.com/update/{{target}}.json"
-      ]
+      "endpoints": ["https://download.blexagent.com/update/{{target}}.json"]
     }
   }
 }

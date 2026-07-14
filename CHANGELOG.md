@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.2] - 2026-07-14
+
+> 本版修复 macOS Apple Silicon 内部测试包被系统报告为“已损坏”的打包根因，并进一步收紧正式发布门禁。
+
+### Changed
+
+- **内部 macOS 包改为完整 ad-hoc 签名**：主应用、Node.js、Claude Agent SDK、esbuild、sharp 与外部二进制使用一致的 ad-hoc 签名，不再生成完全无签名的 Apple Silicon 应用。
+- **内部与正式产物彻底隔离**：测试包统一使用 `INTERNAL-ADHOC-UNNOTARIZED` 标识、七天保留期和独立试装说明，所有正式上传入口拒绝任意 `INTERNAL-*` 文件。
+- **分发验证统一收口**：新增单一验证脚本，检查应用签名树、目标架构、DMG 完整性；正式包额外强制验证 Developer ID、Team ID、Hardened Runtime、Gatekeeper 和 stapled 公证票据。
+
+### Fixed
+
+- **Apple Silicon 下载包不再完全无签名**：修复内部构建将 Tauri `signingIdentity` 设为 `null` 并跳过全部嵌套代码签名的问题。
+- **正式发布不再只检查 DMG 外层**：本地 R2 与 GitHub Release 上传前都会验证双架构 `.app` 的完整签名树和公证状态，防止外层 DMG 正常但内部原生组件签名缺失。
+
+---
+
+## [0.7.1] - 2026-07-13
+
+> 本版更新聊天机器人添加教程，并为 Windows 与 macOS 的正式桌面分发收敛版本、无终端启动和签名发布流程。
+
+### Changed
+
+- **聊天机器人教程与当前界面一致**：使用新版 Blex 蓝白界面截图，明确从工作区菜单进入 Agent 设置、开启主动 Agent 模式并添加 Channel 的完整路径。
+- **桌面版本统一升级至 0.7.1**：npm、Tauri 与 Cargo 的版本来源保持一致，发布标签使用 `v0.7.1`。
+- **Windows GUI 启动不再弹出控制台**：Debug 与 Release 桌面应用均使用 GUI 子系统；显式 CLI 调用仍可在调用者终端输出结果。
+- **跨平台正式发布准备**：发布矩阵覆盖 Windows x64、macOS Apple Silicon 与 Intel，并将代码签名、公证和更新签名设为正式发布前置条件。
+
+---
+
 ## [0.2.49] - 2026-07-07
 
 > 本版扩展 Agent 长期记忆、Team Space 协作和 IM 渠道交互：Agent 可定期整理/进化长期记忆；Space 增加个人资料、成员设置、Skill 发布历史和 Issue 投送体验；飞书等渠道可以用原生卡片向用户追问。OpenAI 兼容桥、会话草稿可见性、后台子 Agent 状态和 Skill 安装安全性也做了稳定性修复。

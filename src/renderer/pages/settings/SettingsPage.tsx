@@ -4751,50 +4751,6 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                 </div>
                             </div>
 
-                            {/* 实验室 */}
-                            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
-                                <h3 className="text-base font-medium text-[var(--ink)]">{tSettings('about.labTitle')}</h3>
-
-                                <div className="mt-4 flex items-center justify-between">
-                                    <div className="flex-1 pr-4">
-                                        <p className="text-sm font-medium text-[var(--ink)]">{tSettings('about.runtimeTitle')}</p>
-                                        <p className="text-xs text-[var(--ink-muted)]">
-                                            {tSettings('about.runtimeDescription')}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => updateConfig({ multiAgentRuntime: !config.multiAgentRuntime })}
-                                        className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors ${config.multiAgentRuntime ? 'bg-[var(--accent)]' : 'bg-[var(--line-strong)]'
-                                            }`}
-                                    >
-                                        <span
-                                            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--toggle-thumb)] shadow transition-transform ${config.multiAgentRuntime ? 'translate-x-5' : 'translate-x-0'
-                                                }`}
-                                        />
-                                    </button>
-                                </div>
-
-                                <div className="mt-4 flex items-center justify-between border-t border-[var(--line)] pt-4">
-                                    <div className="flex-1 pr-4">
-                                        <p className="text-sm font-medium text-[var(--ink)]">{tSettings('about.cliRegistryTitle')}</p>
-                                        <p className="text-xs text-[var(--ink-muted)]">
-                                            {tSettings('about.cliRegistryDescription')}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={() => updateConfig({ cliToolRegistryEnabled: config.cliToolRegistryEnabled !== true })}
-                                        className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors ${config.cliToolRegistryEnabled === true ? 'bg-[var(--accent)]' : 'bg-[var(--line-strong)]'
-                                            }`}
-                                    >
-                                        <span
-                                            className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--toggle-thumb)] shadow transition-transform ${config.cliToolRegistryEnabled === true ? 'translate-x-5' : 'translate-x-0'
-                                                }`}
-                                        />
-                                    </button>
-                                </div>
-
-                            </div>
-
                             {/* AI Feedback */}
                             <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
                                 <div className="flex items-center justify-between">
@@ -4839,7 +4795,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-wider text-[var(--ink-muted)]">Developer</p>
-                                        <p className="mt-1 text-[var(--ink)]">Ethan L</p>
+                                        <p className="mt-1 text-[var(--ink)]">杭州波粒二象文化科技有限公司</p>
                                     </div>
                                     <div>
                                         <p className="text-xs font-medium uppercase tracking-wider text-[var(--ink-muted)]">Website</p>

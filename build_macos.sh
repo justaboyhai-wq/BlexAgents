@@ -1,9 +1,37 @@
-﻿#!/bin/bash
+#!/bin/bash
 # BlexAgent macOS 正式发布构建脚本
 # 构建签名+公证的 DMG 安装包用于分发
 # 支持 ARM (M1/M2)、Intel 构建
 
 set -e
+
+CI_MODE=false
+INTERNAL_MODE=false
+ARCH_CHOICE=""
+TAURI_EXTRA_CONFIG_ARGS=()
+TEMP_BUILD_CONFIG=""
+cleanup_temp_config() {
+    if [ -n "$TEMP_BUILD_CONFIG" ]; then
+        rm -f "$TEMP_BUILD_CONFIG"
+    fi
+}
+trap cleanup_temp_config EXIT
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --ci) CI_MODE=true; shift ;;
+        --internal|--unsigned) INTERNAL_MODE=true; shift ;;
+        --arch)
+            case "${2:-}" in
+                arm64) ARCH_CHOICE=1 ;;
+                x64) ARCH_CHOICE=2 ;;
+                all) ARCH_CHOICE=3 ;;
+                *) echo "错误: --arch 仅支持 arm64、x64 或 all"; exit 1 ;;
+            esac
+            shift 2
+            ;;
+        *) echo "错误: 未知参数 $1"; exit 1 ;;
+    esac
+done
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION=$(grep '"version"' "${PROJECT_DIR}/src-tauri/tauri.conf.json" | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
@@ -38,6 +66,10 @@ if [ "$PKG_VERSION" != "$TAURI_VERSION" ] || [ "$PKG_VERSION" != "$CARGO_VERSION
     echo -e "  tauri.conf.json:   ${CYAN}${TAURI_VERSION}${NC}"
     echo -e "  Cargo.toml:        ${CYAN}${CARGO_VERSION}${NC}"
     echo ""
+    if [ "$CI_MODE" = true ]; then
+        echo -e "${RED}错误: CI 发布要求版本号预先同步${NC}"
+        exit 1
+    fi
     read -p "是否同步版本号到 ${PKG_VERSION}? (y/N) " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -57,23 +89,51 @@ if [ -f "$ENV_FILE" ]; then
     set +a
     echo -e "${GREEN}✓ 已加载 .env${NC}"
 else
-    echo -e "${RED}错误: .env 文件不存在!${NC}"
-    echo "请创建 .env 文件并配置以下变量:"
-    echo "  APPLE_SIGNING_IDENTITY"
-    echo "  APPLE_TEAM_ID"
-    echo "  APPLE_API_ISSUER"
-    echo "  APPLE_API_KEY"
-    echo "  APPLE_API_KEY_PATH"
-    exit 1
+    if [ "$CI_MODE" = true ] || [ "$INTERNAL_MODE" = true ]; then
+        echo -e "${GREEN}✓ 使用进程环境变量（内部模式不要求 Apple 凭据）${NC}"
+    else
+        echo -e "${RED}错误: .env 文件不存在!${NC}"
+        echo "请创建 .env 文件并配置 Apple 与 Tauri 签名变量"
+        exit 1
+    fi
 fi
 
-# 验证签名环境变量
-if [ -z "$APPLE_SIGNING_IDENTITY" ]; then
-    echo -e "${RED}错误: APPLE_SIGNING_IDENTITY 未设置!${NC}"
-    exit 1
+# 验证正式签名与公证环境变量。--internal（兼容旧参数 --unsigned）仅用于
+# 内部测试：使用 ad-hoc 身份签完整棵代码树，但不具备 Developer ID、公证和更新签名。
+if [ "$INTERNAL_MODE" = true ]; then
+    echo -e "${YELLOW}⚠ 内部测试模式：使用 ad-hoc 签名，跳过 Apple 公证与 Tauri 更新签名${NC}"
+    TEMP_BUILD_CONFIG=$(mktemp "${TMPDIR:-/tmp}/blexagent-tauri-internal.XXXXXX.json")
+    printf '%s\n' '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"-"}}}' > "$TEMP_BUILD_CONFIG"
+    TAURI_EXTRA_CONFIG_ARGS=(--config "$TEMP_BUILD_CONFIG")
+    APPLE_SIGNING_IDENTITY="-"
+    unset APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH
+
+    # Ad-hoc signatures cannot use a trusted timestamp. Keep every existing
+    # nested-binary signing call active while stripping only that option.
+    codesign() {
+        local filtered=()
+        local argument
+        for argument in "$@"; do
+            if [ "$argument" != "--timestamp" ]; then
+                filtered+=("$argument")
+            fi
+        done
+        command /usr/bin/codesign "${filtered[@]}"
+    }
+else
+    for required_var in APPLE_SIGNING_IDENTITY APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH; do
+        if [ -z "${!required_var:-}" ]; then
+            echo -e "${RED}错误: ${required_var} 未设置!${NC}"
+            exit 1
+        fi
+    done
+    if [ ! -f "$APPLE_API_KEY_PATH" ]; then
+        echo -e "${RED}错误: APPLE_API_KEY_PATH 指向的文件不存在${NC}"
+        exit 1
+    fi
 fi
 
-if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+if [ "$INTERNAL_MODE" != true ] && [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
     echo -e "${YELLOW}╔═══════════════════════════════════════════════════════════╗${NC}"
     echo -e "${YELLOW}║ 警告: TAURI_SIGNING_PRIVATE_KEY 未设置                     ║${NC}"
     echo -e "${YELLOW}║ 自动更新功能将不可用!                                      ║${NC}"
@@ -83,17 +143,31 @@ if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
     echo -e "${YELLOW}║   TAURI_SIGNING_PRIVATE_KEY_PASSWORD=<密码>                ║${NC}"
     echo -e "${YELLOW}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
+    if [ "$CI_MODE" = true ]; then
+        echo -e "${RED}错误: CI 正式发布必须配置 Tauri 更新签名私钥${NC}"
+        exit 1
+    fi
     read -p "是否继续构建? (Y/n) " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         echo -e "${RED}构建已取消${NC}"
         exit 1
     fi
+    TEMP_BUILD_CONFIG=$(mktemp "${TMPDIR:-/tmp}/blexagent-tauri-no-updater.XXXXXX.json")
+    printf '%s\n' '{"bundle":{"createUpdaterArtifacts":false}}' > "$TEMP_BUILD_CONFIG"
+    TAURI_EXTRA_CONFIG_ARGS=(--config "$TEMP_BUILD_CONFIG")
+    echo -e "${YELLOW}本地测试构建将跳过 Tauri 更新包，仅生成 DMG${NC}"
 else
-    echo -e "  ${GREEN}✓ Tauri 签名私钥已配置${NC}"
+    if [ "$INTERNAL_MODE" != true ]; then
+        echo -e "  ${GREEN}✓ Tauri 签名私钥已配置${NC}"
+    fi
 fi
 
-echo -e "  签名身份: ${CYAN}${APPLE_SIGNING_IDENTITY}${NC}"
+if [ "$INTERNAL_MODE" = true ]; then
+    echo -e "  构建类型: ${CYAN}Internal ad-hoc signed, unnotarized${NC}"
+else
+    echo -e "  签名身份: ${CYAN}${APPLE_SIGNING_IDENTITY}${NC}"
+fi
 echo ""
 
 # ========================================
@@ -113,7 +187,13 @@ echo "  1) ARM (Apple Silicon M1/M2) [默认]"
 echo "  2) Intel (x86_64)"
 echo "  3) Both (同时构建两个版本)"
 echo ""
-read -p "请输入选项 (1/2/3) [1]: " -r ARCH_CHOICE
+if [ -z "$ARCH_CHOICE" ]; then
+    if [ "$CI_MODE" = true ]; then
+        ARCH_CHOICE=3
+    else
+        read -p "请输入选项 (1/2/3) [1]: " -r ARCH_CHOICE
+    fi
+fi
 ARCH_CHOICE=${ARCH_CHOICE:-1}
 
 case $ARCH_CHOICE in
@@ -692,7 +772,7 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
         exit 1
     fi
 
-    npm run tauri:build -- --target "$TARGET"
+    npm run tauri:build -- --target "$TARGET" "${TAURI_EXTRA_CONFIG_ARGS[@]}"
 
     echo -e "${GREEN}✓ $TARGET 构建完成${NC}"
 done
@@ -721,9 +801,22 @@ echo ""
 
 # 显示构建产物
 UPDATER_READY=true
+RELEASE_VALIDATION_FAILED=false
 for TARGET in "${BUILD_TARGETS[@]}"; do
     TARGET_BUNDLE_DIR="${BUNDLE_DIR}/${TARGET}/release/bundle"
     DMG_PATH=$(find "${TARGET_BUNDLE_DIR}/dmg" -name "*.dmg" 2>/dev/null | head -1)
+    if [ -n "$DMG_PATH" ] && [ "$INTERNAL_MODE" = true ]; then
+        DMG_DIR=$(dirname "$DMG_PATH")
+        DMG_NAME=$(basename "$DMG_PATH")
+        case "$DMG_NAME" in
+            INTERNAL-ADHOC-UNNOTARIZED-*) ;;
+            *)
+                INTERNAL_DMG_PATH="${DMG_DIR}/INTERNAL-ADHOC-UNNOTARIZED-${DMG_NAME}"
+                mv "$DMG_PATH" "$INTERNAL_DMG_PATH"
+                DMG_PATH="$INTERNAL_DMG_PATH"
+                ;;
+        esac
+    fi
     APP_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app" 2>/dev/null | head -1)
     TAR_GZ_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app.tar.gz" ! -name "*.sig" 2>/dev/null | head -1)
     SIG_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
@@ -743,6 +836,12 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
         echo -e "    📦 DMG: $(basename "$DMG_PATH") (${DMG_SIZE})"
     else
         echo -e "    ${RED}✗${NC} DMG: 未找到"
+        RELEASE_VALIDATION_FAILED=true
+    fi
+
+    if [ -z "$APP_PATH" ]; then
+        echo -e "    ${RED}✗${NC} App: 未找到，无法验证代码签名树"
+        RELEASE_VALIDATION_FAILED=true
     fi
 
     # tar.gz (自动更新用)
@@ -762,40 +861,56 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
         UPDATER_READY=false
     fi
 
-    if [ -n "$APP_PATH" ]; then
-        # 验证 Apple 签名
-        if codesign --verify --deep --strict "$APP_PATH" 2>/dev/null; then
-            echo -e "    ✅ Apple 签名: ${GREEN}通过${NC}"
+    if [ -n "$APP_PATH" ] && [ -n "$DMG_PATH" ]; then
+        if [[ "$TARGET" == "aarch64-apple-darwin" ]]; then VERIFY_ARCH="arm64"; else VERIFY_ARCH="x86_64"; fi
+        if [ "$INTERNAL_MODE" = true ]; then VERIFY_MODE="internal"; else VERIFY_MODE="release"; fi
+        if bash "${PROJECT_DIR}/scripts/verify-macos-distribution.sh" \
+            --mode "$VERIFY_MODE" --app "$APP_PATH" --dmg "$DMG_PATH" --arch "$VERIFY_ARCH"; then
+            echo -e "    ✅ macOS 分发验证: ${GREEN}通过${NC}"
         else
-            echo -e "    ⚠️ Apple 签名: ${YELLOW}失败${NC}"
-        fi
-
-        # 验证公证
-        if spctl --assess --type exec "$APP_PATH" 2>/dev/null; then
-            echo -e "    ✅ 公证验证: ${GREEN}通过${NC}"
-        else
-            echo -e "    ⚠️ 公证验证: ${YELLOW}未完成或失败${NC}"
+            echo -e "    ❌ macOS 分发验证: ${RED}失败${NC}"
+            RELEASE_VALIDATION_FAILED=true
         fi
     fi
     echo ""
 done
 
 # 自动更新状态总结
-if [ "$UPDATER_READY" = true ]; then
+if [ "$INTERNAL_MODE" = true ]; then
+    echo -e "  ${YELLOW}⚠️  自动更新: 内部测试包按设计禁用${NC}"
+elif [ "$UPDATER_READY" = true ]; then
     echo -e "  ${GREEN}✅ 自动更新: 所有文件就绪${NC}"
 else
     echo -e "  ${YELLOW}⚠️  自动更新: 缺少必要文件 (tar.gz 或 .sig)${NC}"
     echo -e "  ${YELLOW}   请确保 .env 中配置了 TAURI_SIGNING_PRIVATE_KEY${NC}"
 fi
+if [ "$RELEASE_VALIDATION_FAILED" = true ]; then
+    echo -e "${RED}错误: macOS 应用签名树、架构或 DMG 完整性验证失败${NC}"
+    exit 1
+fi
+if [ "$CI_MODE" = true ] && [ "$INTERNAL_MODE" != true ] && [ "$UPDATER_READY" != true ]; then
+    echo -e "${RED}错误: CI 正式发布产物未通过签名、公证或更新包验证${NC}"
+    exit 1
+fi
 echo ""
 
-echo -e "  ${CYAN}正式版特性:${NC}"
-echo -e "    ✅ Developer ID 签名"
-echo -e "    ✅ Apple 公证 (Notarized)"
-echo -e "    ✅ Hardened Runtime"
+if [ "$INTERNAL_MODE" = true ]; then
+    echo -e "  ${CYAN}测试分发版特性:${NC}"
+    echo -e "    ✅ 完整 ad-hoc 签名树（适用于 Apple Silicon 内部测试）"
+    echo -e "    ⚠️ 未使用 Developer ID、未公证（仅限批准的内部测试）"
+else
+    echo -e "  ${CYAN}正式版特性:${NC}"
+    echo -e "    ✅ Developer ID 签名"
+    echo -e "    ✅ Apple 公证 (Notarized)"
+    echo -e "    ✅ Hardened Runtime"
+fi
 echo -e "    ✅ CSP 安全策略"
 echo -e "    ✅ Release 优化"
 echo ""
+
+if [ "$CI_MODE" = true ]; then
+    exit 0
+fi
 
 read -p "是否打开输出目录? (y/N) " -n 1 -r
 echo ""

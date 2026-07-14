@@ -1,6 +1,6 @@
 # BlexAgent — Desktop AI Agent
 
-基于 Claude Agent SDK 的桌面端通用 Agent 产品。开源（Apache-2.0），Conventional Commits，不提交敏感信息。
+基于 Claude Agent SDK 的桌面端通用 Agent 产品。闭源商业软件（专有许可），Conventional Commits，不提交敏感信息、签名证书或发布密钥。
 
 ## 技术栈
 
@@ -53,9 +53,9 @@
 | Sidecar 启动性能 / 冷启动退化排查 | `tech_docs/sidecar_cold_start.md` |
 | 任务中心 / Task Store / Thought Store | `tech_docs/task_center.md` |
 | Cloud Space / Space Issue / Space Skill / registered agent（开发中） | `tech_docs/space_cloud.md` |
-| IM Bot / Telegram / Dingtalk / 飞书 | `tech_docs/im_integration_architecture.md` |
+| IM Bot / Dingtalk / 飞书 / OpenClaw | `tech_docs/im_integration_architecture.md` |
 | Plugin Bridge / OpenClaw / SDK shim | `tech_docs/plugin_bridge_architecture.md` |
-| Claude Code / Codex / Gemini / Hermes Runtime | `tech_docs/multi_agent_runtime.md` |
+| Claude Agent SDK Runtime / SessionEngine | `tech_docs/multi_agent_runtime.md` |
 | Session ID / 存储 / 状态同步 | `tech_docs/session_architecture.md` |
 | System Reminder 隐藏消息协议 / user bubble badge / 注入 user message 的隐藏 payload | `tech_docs/system_reminder_protocol.md` |
 | Task / Cron provider routing 三层架构 | `tech_docs/task_provider_routing.md` |
@@ -145,8 +145,8 @@ MCP / Agents 同步触发 `schedulePreWarm()`（500ms 防抖），Model 同步**
 
 **MCP 配置权威来源分离**：Tab 由前端 `/api/mcp/set` 配，IM/Cron 由 self-resolve 从磁盘读。混用会导致 fingerprint 差异 → abort → 30s 重启循环。
 
-### Multi-Agent Runtime
-内置 SDK（builtin）+ 外部 Runtime（Claude Code / Codex / Gemini CLI / Hermes Agent），门控 `config.multiAgentRuntime`（默认关闭）。**新增"config 同步 / 注入 user 消息 / 等待 turn 完成 / session 读操作"的 sidecar 端点 MUST 走 `src/server/session-engine/` facade**（`selector.ts` 统一选 adapter），禁止手写 `shouldUseExternalRuntime()` 分支——漏分流 = builtin 去 resume 外部会话 → 静默空转 + 假成功。`completed` 必须 gate 在真·turn 成功（external=`didLastTurnSucceed`，builtin=`!getAndClearLastAgentError()`），别只凭 `waitForSessionIdle`。`agent-session.ts` / `runtimes/external-session.ts` 是 public facade 不是 owner state 落点，内核在 `src/server/builtin-session/*` 与 `src/server/runtimes/external-session/*`。详见 `tech_docs/multi_agent_runtime.md`。
+### Agent Runtime
+BlexAgent 只支持随应用打包的 Claude Agent SDK（代码历史名称 `builtin`）。外部 Agent CLI 和 Managed Codex 已退役；禁止重新增加 Runtime 选择器、检测/安装/登录逻辑或 `BLEXAGENT_RUNTIME` 分流。新增会话端点 MUST 走 `src/server/session-engine/` facade，`selector.ts` 始终选择 builtin adapter。内部 `blexagent` 管理 CLI 不是模型 Runtime，必须保留。详见 `tech_docs/multi_agent_runtime.md`。
 
 ### 定时任务系统
 Rust `CronTaskManager` 统一管理所有定时任务（Chat 定时 / 独立创建 / AI 工具 / IM Cron / Heartbeat）。Cron Tool（`im-cron` MCP）已泛化为**所有 Session 可用**，始终信任。新增 `CronTask` 字段 MUST 带 `#[serde(default)]`。详见 ARCHITECTURE「定时任务系统」。
@@ -248,8 +248,6 @@ npm run tauri:dev                 # Tauri 开发模式（完整桌面体验）
 ./build_dev.sh                    # Debug 构建（含 DevTools）
 ./build_macos.sh                  # 生产构建
 ./publish_release.sh              # 发布到 R2
-./publish_managed_codex_runtime.sh -y      # 发布 Managed Codex runtime macOS 资源
-powershell -ExecutionPolicy Bypass -File ./publish_managed_codex_runtime.ps1 -Yes  # 发布 Managed Codex runtime Windows 资源
 npm run typecheck && npm run lint # 代码质量检查
 npm run test:classification       # server 测试后缀/分层 guard
 npm run test:unit                 # 快池（纯逻辑，并行，秒级）— 开发回合中频繁跑
@@ -262,10 +260,6 @@ npm run coverage                  # 非 credentialed 覆盖率报告（不设硬
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check  # Rust 格式检查（使用 rust-toolchain.toml pin 的 rustfmt）
 cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D clippy::disallowed_methods -D clippy::disallowed_macros
 ```
-
-## Managed Codex Runtime 资源发布
-
-独立于桌面 App 的可执行资源，**不随** `publish_release.sh` / `publish_windows.ps1` 上传；仅当客户端锁定新 `REQUIRED_RUNTIME_SET` / `REQUIRED_VERSION`（权威来源 `src-tauri/src/managed_codex.rs`，别从 App 版本推导）或补发缺失平台时，用根目录 `./publish_managed_codex_runtime.sh -y`（macOS）/ `publish_managed_codex_runtime.ps1 -Yes`（Windows）单独发布。非交互必须显式 `-y`/`-Yes`；默认禁止覆盖已存在的同平台 manifest（`--force-republish` 仅在确认远端内容错误时用）；**Windows 资源必须在 Windows 发布端验证 `codex.exe` 的 Authenticode 签名，不得在 macOS 上绕过**。平台矩阵 / R2 前缀等细节见 `specs/guides/build_and_release_guide.md`。
 
 ## Rust 工具链纪律
 
@@ -299,13 +293,13 @@ Rust 工具链由仓库根目录 `rust-toolchain.toml` 固定，开发机和 CI 
 - **Commit 格式**：Conventional Commits（`feat:` / `fix:` / `refactor:`）。**只有 prefix 不算合格**：`fix: harden X` / `fix: update Y` 这种只复述 diff 的 subject 仍然是不合格 message。
 - **Commit message 写什么**：diff 已经说清「改了什么」，message 别重复它，专心写「为什么」——为什么要改、为什么这么改而不用那个更显然的办法、有哪些后人不能踩的坑。它是写给半年后来翻这段历史的人（或 AI）看的，不是写给此刻的自己。内容必须和真正提交的代码一致，别写没做、或后来又改掉的事。长短随改动而定：错别字一行就够，微妙的 bug、架构取舍值得写一段。别写 `fix`、`update`、`wip` 这种等于没写的，也别一次提交里混进好几件不相干的事。
 - **Commit 命令前硬闸**：在输入 `git commit` 前，先用“看不到 diff 的半年后维护者”视角检查 message：① 是否说明了触发 bug / 需求的真实故障模式或产品动机；② 是否说明了关键取舍（为什么不是更显然的 move/delete/cache/guard 等方案）；③ 是否标出副作用、残留风险或后人不能踩的坑。任一回答为“没有”，就不要提交，先重写 message。除错别字 / 纯机械小改外，非平凡 bugfix / refactor / 架构相关改动 MUST 用多段 message（`git commit -m "<subject>" -m "<body>"` 或 `git commit -F <file>`），禁止只写一行 subject。
-- **发布流程**：先更新 CHANGELOG.md → `npm version` → 若本客户端锁定了新的 Managed Codex runtime set，先用独立脚本确认对应平台资源已上传 → `./build_macos.sh` → `./publish_release.sh` → push tag
+- **发布流程**：先更新 CHANGELOG.md → `npm version` → `./build_macos.sh` → `./publish_release.sh` → push tag
 
 ## 日志与排查
 
 日志来自三层（React / Node.js Sidecar / Rust），汇入统一日志 `~/.blexagent/logs/unified-{YYYY-MM-DD}.log`。**用户报告问题时 MUST 主动读日志，不等用户粘贴。**
 
-- **IM Bot 问题**：搜 `[feishu]` `[im]` `[telegram]` `[dingtalk]` `[bridge]` `[openclaw]`
+- **IM Bot 问题**：搜 `[feishu]` `[im]` `[dingtalk]` `[bridge]` `[openclaw]`
 - **AI / Agent 异常**：搜 `[agent]` `pre-warm` `timeout`
 - **定时任务**：搜 `[CronTask]`
 - **终端**：搜 `[terminal]`

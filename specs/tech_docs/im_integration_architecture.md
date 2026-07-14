@@ -1,1104 +1,130 @@
-# BlexAgent IM 集成技术架构
+# Agent Channel / IM 集成架构
 
-## 一、核心架构决策
+> 状态：当前有效
+> 更新：2026-07-14
 
-### 1.1 分层解耦：IM in Rust, AI in Node.js
+## 支持范围
 
-| 层 | 职责 | 实现语言 | 理由 |
-|----|------|---------|------|
-| **IM 适配层** | Telegram/飞书/钉钉 连接管理、消息收发、重连、白名单 | Rust | I/O 密集型，零 GC、稳定性高，崩溃不影响 IM 连接 |
-| **Plugin Bridge 层** | 加载 OpenClaw 社区 Channel Plugin，代理消息收发 | Node.js 独立进程 | 兼容 TS 生态插件，故障隔离于独立进程 |
-| **Session 路由层** | peer→Sidecar 映射、按需启停、消息缓冲 | Rust | 复用 SidecarManager，统一进程生命周期管理 |
-| **AI 对话层** | Claude SDK、MCP、工具系统、Session 管理 | Node.js Sidecar | 已有完整生态，不值得用 Rust 重写 |
+BlexAgent 当前支持：
 
-**关键优势**：
-1. **故障隔离**：AI 进程（Node.js）崩溃 → Rust IM 层继续收消息、缓冲 → 自动重启 Node.js Sidecar → resume Session → 用户无感
-2. **资源高效**：IM 连接在 Rust，额外内存 < 5MB
-3. **连接稳定**：Rust 长轮询天然适合 always-on 场景
+- 飞书内置 Channel；
+- 钉钉内置 Channel；
+- 经过 BlexAgent 审核的 OpenClaw Channel 插件。
 
-### 1.2 多 Bot 架构
+原生 Telegram Channel 已移除。配置加载会删除历史 Telegram 项，Rust 创建命令也会明确拒绝 `telegram`。不得把旧文案、图标、教程或配置表单重新作为产品入口暴露。
 
-支持同时运行多个 IM Bot 实例，每个 Bot 拥有独立的配置、连接、Session 和健康状态。
+## 分层
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Tauri Desktop App │
-├──────────────────────────────────────────────────────────────────┤
-│ React Frontend │
-│ ┌────────────┐ ┌────────────┐ ┌─────────────────────────────┐ │
-│ │ Chat Tab │ │ Chat Tab │ │ Settings → 聊天机器人 │ │
-│ │ Tab Sidecar│ │ Tab Sidecar│ │ ┌─────┐ ┌─────┐ ┌─────┐ │ │
-│ └──────┬─────┘ └──────┬─────┘ │ │Bot 1│ │Bot 2│ │Bot 3│ │ │
-│ │ │ │ └──┬──┘ └──┬──┘ └──┬──┘ │ │
-├─────────┼───────────────┼────────┼─────┼──────┼──────┼───────┤ │
-│ ▼ ▼ │ ▼ ▼ ▼ Rust │ │
-│ ┌─────────────┐ ┌───────────┐ │ ManagedImBots │ │
-│ │ Tab Sidecar │ │Tab Sidecar│ │ HashMap<String, ImBotInstance│ │
-│ │ :31415 │ │ :31416 │ │ ├── bot_1 → Instance │ │
-│ └─────────────┘ └───────────┘ │ │ ├── TelegramAdapter │ │
-│ │ │ ├── SessionRouter │ │
-│ │ │ ├── HealthManager │ │
-│ │ │ └── MessageBuffer │ │
-│ │ ├── bot_2 → Instance │ │
-│ │ └── bot_3 → Instance │ │
-│ └─────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
- │
- ┌───────────┼───────────┐
- Telegram API Feishu WS Plugin Bridge (Node.js)
- ↕ HTTP
- OpenClaw 社区插件
- (QQ Bot, Matrix, …)
+```text
+Platform / Plugin
+       |
+       v
+ImAdapter / Plugin Bridge
+       |
+       v
+Agent Channel Router
+       |
+       v
+Sidecar management API
+       |
+       v
+SessionEngine (builtin)
+       |
+       v
+Claude Agent SDK
 ```
 
----
+Rust 负责连接、消息 I/O、白名单、重连、路由和 Channel 生命周期；Node sidecar 负责 Agent 会话、工具、模型供应商、审批和结果生成。Plugin Bridge 在独立 Node 子进程中加载 OpenClaw 插件，不能直接获得主 sidecar 的进程内状态。
 
-## 二、Rust 侧实现
+## 核心类型
 
-### 2.1 核心数据结构
+`ImPlatform` 只包含内置 `feishu`、`dingtalk` 和 `openclaw:<plugin-id>`。新增平台必须先定义：
 
-```rust
-/// 多 Bot 管理容器（Tauri State）
-pub type ManagedImBots = Arc<Mutex<HashMap<String, ImBotInstance>>>;
+- 凭证所有权和保存位置；
+- 私聊/群聊身份键；
+- 消息长度、媒体和卡片能力；
+- 白名单和权限边界；
+- 重连、限流和错误恢复；
+- 数据发送到第三方平台的隐私说明。
 
-/// 单个 Bot 实例
-pub struct ImBotInstance {
- pub bot_id: String,
- pub shutdown_tx: watch::Sender<bool>, // 优雅关闭信号
- pub health: Arc<HealthManager>, // 健康状态持久化
- pub router: Arc<Mutex<SessionRouter>>, // peer→Sidecar 映射
- pub buffer: Arc<Mutex<MessageBuffer>>, // 离线消息缓冲
- pub started_at: Instant, // 用于计算 uptime
- pub process_handle: JoinHandle<()>, // 消息处理主循环
- pub bind_code: String, // QR 绑定码 "BIND_{uuid8}"
- pub config: ImConfig, // 运行时配置快照
-}
+## Session Router
+
+每个 peer 映射到稳定 session key：
+
+```text
+im:<platform>:private:<peer-id>
+im:<platform>:group:<chat-id>
 ```
 
-### 2.2 Tauri Commands（Legacy，已 Deprecated）
+Router 负责：
 
-> 以下旧命令已标 `@deprecated`，内部转发到新 Agent Channel API。新代码应使用 `cmd_start_agent_channel` 等新命令（见文档末尾"Agent Channel 架构"章节）。
+1. 根据 Channel 找到 Agent 与工作区；
+2. 校验 Channel 是否启用、凭证是否完整和发送者是否允许；
+3. 恢复或创建 peer session；
+4. 通过 capability-token 管理 API 唤醒 sidecar；
+5. 将消息提交给 builtin SessionEngine；
+6. 把文本、媒体、审批卡片和错误结果送回原 Channel。
 
-```rust
-/// @deprecated — 使用 cmd_start_agent_channel 替代
-#[tauri::command]
-async fn cmd_start_im_bot(
- botId: String,
- botToken: String,
- allowedUsers: Vec<String>,
- permissionMode: String,
- workspacePath: String,
- model: Option<String>,
- providerEnvJson: Option<String>,
- mcpServersJson: Option<String>,
- availableProvidersJson: Option<String>,
- botName: Option<String>, // Bot 显示名称，传入系统提示词
-) -> Result<ImBotStatus, String>;
+Runtime identity 固定为 builtin。旧 `runtime`、`runtimeSource` 或 Managed Codex 值只能作为迁移输入，不参与 peer drift 或 sidecar spawn 决策。
 
-/// 停止指定 Bot
-#[tauri::command]
-async fn cmd_stop_im_bot(botId: String) -> Result<(), String>;
+## 飞书
 
-/// 查询单个 Bot 状态
-#[tauri::command]
-async fn cmd_im_bot_status(botId: String) -> Result<ImBotStatus, String>;
+飞书支持手动 App ID/App Secret 配置以及开放平台允许的一键扫码创建流程。扫码流程必须在回调完成、凭证可用并经用户确认后才绑定 Channel；仅生成二维码不等于绑定成功。
 
-/// 批量查询所有 Bot 状态
-#[tauri::command]
-async fn cmd_im_all_bots_status() -> Result<HashMap<String, ImBotStatus>, String>;
+消息使用官方 SDK/WebSocket 能力。文档、表格、日历等深度能力通过经过审核的 OpenClaw 飞书插件提供时，插件配置和权限必须在 UI 中明确展示。
 
-/// 获取 Bot 的对话列表
-#[tauri::command]
-async fn cmd_im_conversations(botId: String) -> Result<Vec<ImConversation>, String>;
-```
+## 钉钉
 
-### 2.3 Bot 生命周期
+钉钉使用官方 Stream 能力保持连接。Client ID/Secret 等凭证仅保存在本机受控配置中，不进入日志。消息发送、卡片和媒体能力按平台限制降级。
 
-#### 启动流程（`start_im_bot()`）
+## OpenClaw Plugin Bridge
 
-```
-cmd_start_im_bot(botId, botToken, ...)
- │
- ├── 若同 botId 已在运行 → 优雅停止（等待 5s 收尾）
- │
- ├── 迁移遗留文件（v1/v2 → v3 子目录）
- │ └── im_state.json / im_{botId}_*.json → im_bots/{botId}/*.json
- │
- ├── 初始化组件
- │ ├── HealthManager（加载上次状态）
- │ ├── MessageBuffer（恢复磁盘缓冲）
- │ └── SessionRouter（恢复 peer→session 映射）
- │
- ├── 创建 TelegramAdapter
- │ └── 传入 allowed_users: Arc<RwLock<Vec<String>>>
- │
- ├── 验证连接
- │ └── getMe() → 获取 bot_username
- │
- ├── 注册 Bot 命令
- │ └── setMyCommands: /new, /workspace, /model, /provider, /status
- │
- ├── 初始化运行时共享状态
- │ ├── current_model: Arc<RwLock<Option<String>>>
- │ └── current_provider_env: Arc<RwLock<Option<Value>>>
- │
- ├── 启动后台任务
- │ ├── 消息处理主循环（tokio::spawn）
- │ ├── Telegram 长轮询（listen_loop）
- │ ├── 健康状态持久化（5s 间隔）
- │ └── 空闲 Session 回收（60s 间隔）
- │
- ├── 生成绑定 URL
- │ └── https://t.me/{username}?start=BIND_{uuid8}
- │
- └── 返回 ImBotStatus（含 bot_username、bind_url）
-```
+Bridge 只加载已安装且通过 catalogue/manifest 校验的插件。每个 Channel 使用独立运行目录和状态目录；插件通过受限协议调用 BlexAgent，不得直接读取任意应用配置或其他工作区。
 
-#### 关闭流程（`stop_im_bot()`）
+兼容 shim 可以包含第三方插件依赖的符号，但这不代表 BlexAgent 原生支持对应平台。产品 catalogue、创建接口和 UI 是支持范围的权威来源。
 
-```
-cmd_stop_im_bot(botId)
- │
- ├── 发送 shutdown 信号（watch channel）
- ├── 等待 process_handle 完成（超时 10s）
- ├── 持久化缓冲消息到磁盘
- ├── 持久化活跃 Session 到健康状态
- ├── 释放所有 Sidecar Session
- └── 设置状态 Stopped，写入最终状态
-```
+## 审批与 AskUserQuestion
 
-#### 应用启动自动恢复
+Channel 能力通过 `hostInteraction` 显式声明。支持原生卡片的平台可以展示审批和结构化问题；不支持的平台必须安全降级，不能让 Agent 永久等待一个用户无法看到的交互。
 
-```
-Tauri app 启动
- │
- └── 遍历 config.imBotConfigs[]
- └── 若 enabled == true && botToken 非空
- └── cmd_start_im_bot(...)
-```
+- permission request 必须绑定 request id 和 session；
+- 回答只能解除对应 pending request；
+- stop/reset/崩溃恢复必须清理或过期 pending request；
+- 敏感操作不得因平台不支持交互而默认放行。
 
-### 2.4 消息处理循环
+## 媒体
 
-**并发模型**：
+入站附件下载必须使用统一 SSRF 防护：HTTPS-only、全球可路由单播地址、DNS pinning、禁止重定向、超时和体积上限。下载后的文件进入受控附件目录，再通过 workspace/attachment 协议交给 Agent。
 
-```
-Per-Message Task:
-1. 获取 per-peer 锁（同一用户/群消息串行化）
- ↓
-2. 获取 global semaphore（GLOBAL_CONCURRENCY = 5）
- ↓
-3. 短暂锁 router（ensure sidecar/consumer + enqueue request）
- ↓
-4. `/api/im/events` consumer 按 requestId 接收事件并由 ReplyRouter 渲染回复
- ↓
-5. Sidecar 不可用时缓冲入站消息；恢复后重新入队，回复仍按 requestId 归属
-```
+出站媒体必须校验路径、MIME、大小和当前 Channel 上下文。内部中间文件不能在没有用户意图时自动发送。
 
-**命令分发（无需 Sidecar I/O）**：
+## 配置迁移
 
-| 命令 | 行为 |
-|------|------|
-| `/start BIND_xxxx` | QR 绑定：添加用户到白名单，发射 `im:user-bound` 事件 |
-| `/start` | 显示帮助文本 |
-| `/new` | 重置 Session（`router.reset_session()`） |
-| `/workspace [path]` | 显示/切换工作区 |
-| `/model [name]` | 显示/切换 AI 模型（支持快捷名：sonnet, opus, haiku） |
-| `/provider [id]` | 显示/切换 AI 供应商 |
-| `/status` | 显示 Session 信息 |
+Renderer 与 Rust 都有读时修复：
 
-**普通消息处理（IM Pipeline v2：enqueue + event bus）**：
+- 删除历史 Telegram Channel；
+- 规范旧 Channel JSON 字段；
+- 保留飞书、钉钉和有效 OpenClaw 配置；
+- 不因一个已移除 Channel 导致整个 Agent 配置反序列化失败。
 
-```
-收到普通消息
- │
- ├── ACK：setMessageReaction(⏳) + sendChatAction(typing)
- │
- ├── ensure_sidecar()：获取/创建 Sidecar
- ├── 若新 Sidecar → 同步 AI 配置（model + MCP servers）
- │
- ├── ensure_im_consumer()：每个 peer_session 保持一个 /api/im/events long-poll SSE consumer
- ├── ReplyRouter 预注册 requestId → draft/reply slot
- ├── POST /api/im/enqueue → 同步 ACK（含 requestId、runtime/config、群聊上下文）
- │ └── Node Sidecar 通过 SessionEngine enqueue 到 builtin/external runtime，立即返回 accepted
- │
- ├── /api/im/events 推送带 requestId 的事件
- │ ├── "partial" 事件 → ReplyRouter 节流编辑消息（≥1s 间隔，截断平台限制）
- │ ├── "block-end" 事件 → 定稿（超长则分片发送）
- │ ├── "complete" 事件 → 返回 sessionId，slot terminal
- │ ├── "permission-request" / "ask-user-question-request" → 原生卡片或文本 fallback
- │ └── "error" / "cancelled" / "ask-user-question-expired" 事件 → 删除 draft / 失效 pending，发送反馈
- │
- ├── 清除 ACK：setMessageReaction("")
- ├── 更新 Session 状态：record_response(session_key, sessionId)
- ├── 更新健康状态：last_message_at, active_sessions
- │
- └── 重放缓冲消息（若有）
-```
+迁移必须幂等，并在下一次安全写盘时持久化清理后的结构。
 
-**Runtime identity drift**：
+## 可靠性
 
-IM / Agent Channel 属于 live-follow owner，但 peer session 仍必须绑定执行 runtime identity。Router 在普通消息、heartbeat、`/model` 命令唤醒 Sidecar 前比较 desired identity 与 persisted / live sidecar identity；只要 `runtime` 或 `runtimeSource` 任一变化，就 reset peer session 并释放旧 Sidecar，随后新建会话。`codex/system-cli`（外部 Codex CLI）与 `codex/managed-provider`（Codex 订阅 Provider）必须视为不同身份；`codex-sub` 选择路径要把 `RuntimeConfig.source:'managed-provider'` 传入 drift check，不能只传 `runtime:'codex'`。
+- Channel 连接由 owner 生命周期管理，避免窗口关闭即断开；
+- reconnect 使用退避并区分凭证错误与瞬时网络错误；
+- 同一 peer 的消息按序处理；
+- handover 时先冻结旧 session，再切换端口/owner；
+- heartbeat 和 Cron 投递只使用明确的目标 Channel/session；
+- 错误日志不得包含 token、secret、完整消息或敏感附件内容。
 
-### 2.5 Telegram Adapter
+## 测试要求
 
-```rust
-pub struct TelegramAdapter {
- bot_token: String,
- allowed_users: Arc<RwLock<Vec<String>>>, // 可热更新白名单
- client: reqwest::Client, // LONG_POLL_TIMEOUT + 10s
- coalescer: Arc<Mutex<MessageCoalescer>>, // 碎片合并 + 防抖
- bot_username: Arc<Mutex<Option<String>>>, // getMe() 后缓存
-}
-```
-
-**ImAdapter Trait**：
-- `verify_connection()` → `getMe()` 验证 Token
-- `register_commands()` → `setMyCommands()` 注册命令菜单
-- `listen_loop()` → `getUpdates` 长轮询，指数退避重连
-- `send_message()` → 自动分片 + Markdown 降级 + 纯文本 fallback
-- `ack_received/processing/clear()` → `setMessageReaction` emoji 管理
-
-**MessageCoalescer（碎片合并 + 防抖）**：
-- 缓冲 ≥4000 字符的消息为 fragments
-- 合并连续 fragments（<1500ms 间隔 + 同 chat_id）
-- 非 fragment 消息立即返回（不防抖）
-- 500ms 超时后刷出合并结果
-
-**白名单**：
-- 空白名单 → 拒绝所有消息（安全默认）
-- 检查 user_id 和 username
-- QR 绑定请求（`/start BIND_`）绕过白名单
-- 群聊需 @mention 或 `/ask` 前缀
-
-**错误处理**：
-
-| 错误类型 | 处理策略 |
-|----------|---------|
-| 429 Rate Limited | 等待 `retry_after` 秒后重试 |
-| 500/503 瞬态错误 | 3 次重试，1s 退避 |
-| 401 Unauthorized | 停止长轮询 |
-| Markdown 解析失败 | 降级纯文本重发 |
-| 消息未修改 | 静默忽略（Draft Stream 常见） |
-| 消息过长 | 自动分片（4096 UTF-16 code unit 限制） |
-
-### 2.6 Session Router
-
-```rust
-pub struct SessionRouter {
- peer_sessions: HashMap<String, PeerSession>, // peer→session 映射
- sidecar_manager: Arc<ManagedSidecarManager>,
- default_workspace: PathBuf,
- global_semaphore: Arc<Semaphore>, // 默认 5 并发
- peer_locks: HashMap<String, Arc<Mutex<()>>>, // 同一 peer 串行化
-}
-```
-
-**Session Key 设计**：
-```
-私聊： im:telegram:private:{user_id}
-群聊： im:telegram:group:{group_id}
-```
-
-**Sidecar 所有权**：IM Bot 使用 `SidecarOwner::ImBot(session_key)` 作为 Sidecar 的 owner，与 `Tab`、`CronTask`、`BackgroundCompletion` 并列。当所有 owner 释放时 Sidecar 自动停止。`ensure_session_sidecar()` 和 `release_session_sidecar()` 统一管理生命周期。
-
-### 2.7 Agent Heartbeat 私聊目标
-
-Agent 工作区可以同时绑定多个 Channel（例如微信 + 飞书，或多个飞书 Bot）。Heartbeat 不能逐个 Channel 广播，也不能只根据某个 Channel 的“最近活跃 peer”临场猜测；它必须由 Agent 级状态先解析出一个完整的私聊目标 `{ channel_id, session_key }`，再把 wake 精确投递给对应 Channel 的 heartbeat runner。
-
-权威状态：
-- `AgentInstance.last_active_channel` 保留“最近活跃 Channel/Session”历史，但它可以指向 group，只能作为迁移线索。
-- `AgentInstance.last_active_private_target` 是 heartbeat / cron / manual wake 的目标权威，只在私聊用户消息或私聊 handover 时更新；群聊消息不会覆盖它。
-- `SessionRouter` 提供 private-only helper（exact private target、latest private target、active private port）。Agent 目标解析必须使用这些 helper 验证目标仍是当前 Channel 内有效的 private peer。
-
-解析规则：
-- 已有 `last_active_private_target`：只投递到该 Channel 的精确 private session；目标缺失、变成 group、或 Channel 非 Online 时直接跳过，不 fallback。
-- 没有 private target 但 `last_active_channel` 指向 Online Channel 的 private session：迁移并 seed `last_active_private_target`。
-- `last_active_channel` 指向 group、目标 Channel 不在线、或 session 已不可判定：跳过，不 fallback 到旧私聊。
-- 完全没有历史时，才允许 bootstrap 到所有 Online Channel 中最近的 private session。
-
-投递规则：
-- Agent 级 `route_agent_heartbeat_once()` 只负责解析一次目标并发送 `HeartbeatWake { target_session_key }`；per-bot `HeartbeatRunner` 收到显式 target 后只验证并投递该 private session，验证失败不得 fallback。
-- Cron / Task Center completion 复用同一个 Agent 目标解析器。它先解析当前 private target，再把携带 `target_session_key` 的 `PendingCronEvent` append 到目标 Channel 的 pending queue；per-bot `HeartbeatRunner` 只 snapshot 当前 private session 匹配的 pending event（历史无 target 的 legacy event 仍兼容处理）。没有当前 private target 时只保留 cron 执行历史，不把事件塞进配置里的旧 bot queue。
-- Management API `/api/im/wake` 对 Agent Channel 也走 Agent 目标解析器；文本 `manual_wake` 只 POST 到显式 private active session。Legacy standalone bot 保留 targetless latest-private fallback。
-- Wake coalescing 同优先级时优先保留带 `target_session_key` 的 wake，避免 target metadata 被普通 interval/manual wake 覆盖。
-
-### 2.8 健康状态持久化
-
-```rust
-pub struct HealthManager {
- state: Arc<Mutex<ImHealthState>>,
- persist_path: PathBuf, // ~/.blexagent/im_bots/{bot_id}/state.json
-}
-
-pub struct ImHealthState {
- pub status: ImStatus, // Online | Connecting | Error | Stopped
- pub bot_username: Option<String>,
- pub uptime_seconds: u64,
- pub last_message_at: Option<String>,
- pub active_sessions: Vec<ImActiveSession>,
- pub error_message: Option<String>,
- pub restart_count: u32,
- pub buffered_messages: usize,
- pub last_persisted: Option<String>,
-}
-```
-
-**持久化**：每 5 秒写入磁盘，供前端轮询展示。
-
-**Per-Bot 文件路径**（v3 子目录结构）：
-- 健康状态：`~/.blexagent/im_bots/{bot_id}/state.json`
-- 消息缓冲：`~/.blexagent/im_bots/{bot_id}/buffer.json`
-- 去重缓存：`~/.blexagent/im_bots/{bot_id}/dedup.json`（仅飞书）
-- 遗留文件迁移：启动时自动迁移 v1（`im_state.json`）和 v2（`im_{botId}_*.json`）到 v3 子目录，孤儿文件自动清理
-
-### 2.9 消息缓冲
-
-```rust
-pub struct MessageBuffer {
- queue: VecDeque<BufferedMessage>,
- max_size: usize, // 默认 100 条
- persist_path: PathBuf, // 磁盘持久化
-}
-```
-
-Sidecar 不可用时入站消息进入缓冲队列；恢复后由 peer lock 保护入队顺序，回复生命周期仍由 `/api/im/events` 的 requestId 事件归属，而不是依赖同一 SSE 流内重放。
-
-### 2.10 Draft / Reply 渲染（`/api/im/events` → ReplyRouter）
-
-当前实现是 Sidecar 事件总线 + Rust consumer：
-
-```
-Rust ImEventConsumer 连接 Node /api/im/events?since=<seq>
- │
- ├── 收到 { requestId, type:"partial" }
- │ └── ReplyRouter 找到 requestId slot，创建/编辑 draft（节流 + 平台长度限制）
- │
- ├── 收到 { requestId, type:"block-end" }
- │ ├── 文本在平台限制内 → editMessageText / finalize_message 定稿
- │ └── 文本超限 → delete draft → 分片发送
- │
- ├── 收到 { requestId, type:"complete" }
- │ └── terminal outcome 携带 sessionId，移除 slot，record_response
- │
- └── 收到 { requestId, type:"error"|"cancelled" }
-   └── delete draft / send error or cancelled feedback，移除 slot
-```
-
-`ImEventConsumer` 拥有 SSE reconnect lifecycle，使用 `since=<lastSeq>` 恢复 ring-buffered events；`ReplyRouter` 拥有每个 requestId 的 draft/message slot。多 block 回复继续按 block 独立创建/编辑/定稿。
-
-### 2.11 Tauri 事件
-
-| 事件 | Payload | 触发时机 |
-|------|---------|---------|
-| `im:user-bound` | `{ botId, userId, username? }` | 用户通过 QR 码绑定成功 |
-
-### 2.12 交互式权限审批
-
-当 IM Bot 使用非 `fullAgency` 模式时，SDK 的 `canUseTool()` 会阻塞等待审批。审批请求通过飞书交互卡片 / Telegram Inline Keyboard 展示给用户。
-
-#### 数据流
-
-```
-canUseTool() 阻塞 → checkToolPermission() 通过 IM event bus 发出 permission-request
- → /api/im/events consumer 收到带 requestId 的事件
- → ReplyRouter / adapter.send_approval_card()
- → 存储 PendingApproval{request_id, sidecar_port, chat_id, card_message_id}
- → runtime turn 自然暂停（canUseTool 在等 Promise）
-
---- 用户点击按钮 / 回复文本 ---
-
- → approval_tx 通道 → POST /api/im/permission-response
- → handlePermissionResponse() 解除 Promise → runtime turn 恢复，后续回复事件继续从 /api/im/events 到达
- → 更新卡片/消息为"已允许"或"已拒绝"
-```
-
-#### 核心类型
-
-```rust
-struct ApprovalCallback {
- request_id: String,
- decision: String, // "allow_once" | "always_allow" | "deny"
- user_id: String,
-}
-
-struct PendingApproval {
- sidecar_port: u16,
- chat_id: String,
- card_message_id: String, // 空 = 卡片发送失败，文本降级
- created_at: Instant, // 用于 15 分钟 TTL 清理
-}
-
-type PendingApprovals = Arc<Mutex<HashMap<String, PendingApproval>>>;
-```
-
-#### 文本命令降级
-
-即使交互卡片/按钮不可用，用户也能通过文本完成审批：
-
-| 用户回复 | 等效操作 |
-|---------|---------|
-| `同意` / `approve` | allow_once |
-| `始终同意` / `always approve` | always_allow |
-| `拒绝` / `deny` | deny |
-
-系统自动匹配该 chat 最近的 pending approval，无需输入 request_id。
-
-#### 平台实现
-
-- **飞书**：`msg_type: "interactive"` 交互卡片，3 个按钮（允许/始终允许/拒绝），`card.action.trigger` 事件回调
-- **Telegram**：`inline_keyboard` + `callback_query`，short_id 映射解决 64 byte `callback_data` 限制
-
-### 2.13 Channel Host Interaction Capability
-
-IM / Agent Channel 的结构化人类交互不是普通工具偏好，而是 host 能力。Rust `/api/im/enqueue` 与 heartbeat payload 都带 `hostInteraction: { askUserQuestion: 'none' | 'native-card' }`，Node 侧 `InteractionScenario` 同步携带该字段。
-
-- 默认值必须是 `'none'`。Telegram、Dingtalk、OpenClaw Bridge 默认不承接 `AskUserQuestion`，Node 会把它作为 channel compatibility overlay 禁用，避免 AI 发出桌面-only 选项后 IM 用户收不到。
-- 原生飞书 adapter 当前声明 `'native-card'`，因此 runtime 可放开 `AskUserQuestion`，并通过 IM event bus 的 `ask-user-question-request` / `ask-user-question-expired` 交给 Rust `ReplyRouter`。
-- `ReplyRouter` 解析 request 后调用 `adapter.send_question_card()`，并在 `PendingQuestion` 中保存 inner `requestId`、chat、card message id、requester、questions 和 sidecar port。用户按钮或文本 fallback 进入 `QuestionCallback`，Rust POST 现有 `/api/ask-user-question/respond`，只有 HTTP 2xx 且 JSON `{success:true}` 后才删除 pending / 更新卡片状态；失败时保留 pending 让用户重试。
-- 敏感问题（`isSecret`）在 IM 渠道 fail-closed：不要求用户在聊天历史里输入 secret，直接通知用户并向 sidecar 回传取消。安全输入能力需要单独设计，不能用普通 IM 文本兜底。
-- 文本 fallback 只用于自由文本、多题、多选等卡片按钮无法完整表达的场景；同 chat 多个 pending 时固定路由到最新 pending，并记录 warning。
-
-### 2.14 飞书 WebSocket 事件 ACK
-
-飞书 WS 协议要求客户端对数据帧发送 ACK 确认。未 ACK 的事件在 WebSocket 重连后会被服务端重放。
-
-```rust
-// 收到数据帧后立即发送 ACK（相同 seq_id，type: "ack"）
-let ack_data = Self::build_ack_frame(&frame);
-ws_write.send(WsMessage::Binary(ack_data.into())).await;
-```
-
-配合 72 小时 dedup 缓存 TTL（`DEDUP_TTL_SECS = 72 * 60 * 60`）作为防御兜底，防止长时间运行后重连导致消息重复处理。
-
-### 2.15 Plugin Bridge（OpenClaw 社区插件桥接）
-
-**设计动机**：OpenClaw 生态有大量 Channel Plugin（QQ Bot、WeChat、Matrix 等），均为 TypeScript 实现。为避免为每个平台写 Rust 适配器，引入 Plugin Bridge 机制——独立 Node.js 进程加载社区插件，仅做 Channel I/O，AI 推理走现有 Rust → Node.js Sidecar 管道。
-
-#### 架构
-
-```
-Rust BridgeAdapter ←─ HTTP ──→ Plugin Bridge (Node.js 进程)
- │ │
- │ POST /send-text │ import(plugin)
- │ POST /send-media │ compat-api → register()
- │ POST /edit-message │ compat-runtime → dispatchReply 拦截
- │ GET /status │
- │ │ POST /api/im-bridge/message → Rust
- │ │
- ▼ ▼
-SessionRouter → Sidecar(AI) 社区 IM 平台 (QQ/Matrix/…)
-```
-
-#### 核心组件
-
-| 组件 | 位置 | 职责 |
-|------|------|------|
-| `BridgeAdapter` | `src-tauri/src/im/bridge.rs` | 实现 ImAdapter + ImStreamAdapter，通过 HTTP 与 Bridge 进程通信 |
-| Plugin Bridge 入口 | `src/server/plugin-bridge/index.ts` | 启动 HTTP server，加载插件，转发消息 |
-| compat-api | `src/server/plugin-bridge/compat-api.ts` | OpenClaw API shim，捕获 `registerChannel()` |
-| compat-runtime | `src/server/plugin-bridge/compat-runtime.ts` | channelRuntime mock，拦截 `dispatchReply` 提取用户消息 |
-| plugin-sdk-shim | `src/server/plugin-bridge/plugin-sdk-shim/` | 为 `openclaw/plugin-sdk` imports 提供运行时 shim |
-| Bridge sender registry | `bridge.rs` 静态 `BRIDGE_SENDERS` | bot_id → (sender_channel, plugin_id) 路由映射 |
-
-#### 消息流
-
-**入站**（社区平台 → AI）：
-1. 社区插件收到消息 → 调 `withReplyDispatcher({ run })` 或 `dispatchReplyFromConfig()`
-2. compat-runtime 拦截 → 提取 ctx 字段 → POST `/api/im-bridge/message` → Rust
-3. Rust 查 `BRIDGE_SENDERS` registry → `mpsc::Sender<ImMessage>` → 标准消息处理循环
-4. SessionRouter → ensure sidecar/consumer → `/api/im/enqueue` → `/api/im/events` → ReplyRouter/BridgeAdapter 回复
-
-**出站**（AI → 社区平台）：
-1. Rust `BridgeAdapter::send_message()` → POST `/send-text` 到 Bridge 进程
-2. Bridge 调用插件的 deliver 回调 → 社区平台 API
-
-#### Dispatch 返回值约定
-
-OpenClaw 插件对 dispatch 函数的返回值做 `{ queuedFinal, counts }` 解构。**所有** dispatch 相关函数 MUST 返回此结构，否则插件崩溃：
-
-| 函数 | 返回 |
-|------|------|
-| `withReplyDispatcher({ run })` | `{ queuedFinal: 0, counts: {} }` |
-| `dispatchReplyFromConfig(params)` | 透传 `dispatchReplyWithBufferedBlockDispatcher` 的返回值 |
-| `dispatchReplyWithBufferedBlockDispatcher(params)` | `{ queuedFinal: 0, counts: {} }`（包括 empty text 提前返回路径） |
-| `createReplyDispatcherWithTyping()` 的 `dispatch` 回调 | `{ queuedFinal: 0, counts: {} }` |
-
-#### ctx 字段提取映射
-
-compat-runtime 从 OpenClaw 插件的 dispatch context 中提取以下字段，转发到 Rust：
-
-| 插件 ctx 字段 | compat-runtime 变量 | Rust BridgeMessagePayload | 用途 |
-|---|---|---|---|
-| `BodyForAgent` / `Body` | `text` | `text` | 消息正文（BodyForAgent 含插件预处理的群聊历史） |
-| `SenderId` | `senderId` | `sender_id` | 发送者 ID |
-| `SenderName` | `senderName` | `sender_name` | 发送者名称 |
-| `ChatType` | `chatType` | `chat_type` | `"group"` 或 `"direct"` |
-| `From` | `chatId`（去除 `feishu:` 前缀） | `chat_id` | 会话 ID |
-| `MessageSid` | `messageId` | `message_id` | 消息 ID |
-| `WasMentioned` / `IsMention` | `isMention` | `is_mention` | 是否 @机器人 |
-| `GroupSubject` / `GroupName` | `groupName` | `group_name` | 群名称（人类可读） |
-| `MessageThreadId` | `threadId` | `thread_id` | 线程/话题 ID |
-| `ReplyToBody` | `replyToBody` | `reply_to_body` | 引用回复原文 |
-| `GroupSystemPrompt` | `groupSystemPrompt` | `group_system_prompt` | 群聊自定义系统提示 |
-
-**isMention 默认值逻辑**：
-
-```typescript
-// compat-runtime.ts — 与 Rust management_api.rs 保持一致
-const isMention = ctx.WasMentioned ?? ctx.IsMention ?? (chatType !== 'group');
-// 私聊 → true（消息直达 bot），群聊 → false（需插件明确标记）
-```
-
-OpenClaw 飞书插件通过 `mentionedBot(ctx.mentions)` 检测 @mention，结果写入 `ctx.WasMentioned`。若插件未设置此字段，群消息默认 `false`——配合 `GroupActivation::Mention` 策略，未 @bot 的消息会被缓冲到群历史而非触发 AI。
-
-#### 插件生命周期
-
-```
-安装：cmd_install_openclaw_plugin(npm_spec)
- → bun init + bun add <spec>
- → 读取 openclaw.plugin.json manifest
- → 复制 plugin-sdk-shim → node_modules/openclaw/
- → 返回 manifest + capabilities
-
-启动：start_im_bot(platform="openclaw:<install-or-route-id>")
- → spawn_plugin_bridge() (Node.js 进程)
- → 健康检查 GET /status
- → register_bridge_sender(bot_id, plugin_id, tx)
- → listen_loop + poll_handle watcher
-
-停止：stop_im_bot()
- → POST /stop → Bridge 优雅退出
- → unregister_bridge_sender(bot_id)
- → kill bridge process
-
-卸载：cmd_uninstall_openclaw_plugin(plugin_id)
- → is_plugin_in_use() 安全检查
- → rm -rf plugin 目录
-```
-
-### 2.16 群聊处理
-
-#### 群激活策略
-
-| 模式 | 行为 | 配置 |
-|------|------|------|
-| `GroupActivation::Mention` | 仅 @bot / `/ask` 触发 AI，其他消息缓冲到群历史 | 默认 |
-| `GroupActivation::Always` | 所有消息都触发 AI，AI 可回复 `<NO_REPLY>` 跳过 | 需显式配置 |
-
-#### 平台覆盖矩阵
-
-| 平台 | `Mention` 上下文积攒 | `Always` 模式 | 说明 |
-|------|------|------|------|
-| Telegram | ✅ | ✅ | 完整支持 |
-| Feishu 原生 | ✅ | ✅ | 仅识别 @bot / `/ask`，不识别 reply-to-bot |
-| Dingtalk | ✅ | ✅ | `is_mention = isInAtList` |
-| OpenClaw Bridge（飞书 / QQ 等） | ✅ | ✅ | `compat-runtime.ts::defaultIsMentionForGroup` 默认 `false`，依赖插件设置 `WasMentioned` |
-| **OpenClaw Bridge - 企微 (wecom)** | ❌ | ❌ | 企微 AI Bot **平台限制**：webhook 仅在 `@机器人` 时下发 `aibot_msg_callback`，未 @ 的群消息上游就没有事件可推。`compat-runtime.ts::defaultIsMentionForGroup('wecom')` 硬编码 `true` 反映这一事实。前端 UI（`ChannelDetailView.tsx`）已禁用企微的"全部消息"开关并加 tooltip 说明 |
-
-#### 群名解析（3 级 fallback）
-
-```rust
-// mod.rs — group_name 解析链
-let group_name = group_permissions // 1. 用户在 UI 配置的群名
- .find(|g| g.group_id == msg.chat_id)
- .map(|g| g.group_name.clone())
- .or_else(|| msg.hint_group_name.clone()) // 2. Bridge 插件传来的群名
- .unwrap_or_else(|| msg.chat_id.clone()); // 3. 原始 chat_id
-```
-
-#### 群聊 AI Prompt 模板
-
-Rust 构建 `GroupStreamContext` 后，Sidecar `/api/im/enqueue` 端点组装最终 prompt：
-
-```
-[群聊信息] ← 仅 isFirstGroupTurn
-你正在「{groupName}」{groupPlatform}群聊中。
-你的回复会自动发送到群里，直接回复即可。
-群内不同人的消息会以 [from: 名字] 标注发送者。
-你会收到群里的所有消息。如果你认为不需要回复… ← 仅 GroupActivation::Always
-
-[群聊指令] ← groupSystemPrompt（来自插件配置）
-{groupSystemPrompt}
-
-{pendingHistory} ← 积攒的未触发群消息
-
-[引用回复] ← replyToBody（引用回复上下文）
-> {quoted original text}
-
-[from: {senderName}] ← 发送者标记
-{message text}
-```
-
-**私聊引用回复**：非群聊时 `replyToBody` 也会注入（`[引用回复]\n> ...` 前置于消息）。
-
-#### 群工具禁用
-
-群聊默认禁用危险工具：`['Bash', 'Edit', 'Write']`。可通过 `groupToolsDeny` 配置覆盖（空数组 = 全部允许）。
-
-#### ImMessage 群聊相关字段
-
-```rust
-pub struct ImMessage {
- // ... 基础字段（chat_id, text, sender_id 等） ...
- pub is_mention: bool, // @bot 检测结果
- pub reply_to_bot: bool, // 回复 bot 消息检测
- pub hint_group_name: Option<String>, // Bridge 插件提供的群名 hint
- pub reply_to_body: Option<String>, // 引用回复原文（Bridge 插件）
- pub group_system_prompt: Option<String>, // 群聊自定义系统提示（Bridge 插件）
-}
-```
-
-这 3 个 Option 字段由 Bridge 插件透传，原生适配器（Telegram/Feishu/Dingtalk）设为 `None`。`BufferedMessage` 序列化时同步携带（`#[serde(default)]`），崩溃恢复后不丢失。
-
----
-
-## 三、前端实现
-
-### 3.1 组件结构
-
-```
-src/renderer/components/ImSettings/
-├── index.ts # re-export BotPlatformRegistry
-├── BotPlatformRegistry.tsx # Settings「聊天机器人 Bot」页：内置/插件平台卡、插件安装/更新/卸载、接入指南
-├── promotedPlugins.ts # 推荐 OpenClaw 插件列表
-├── assets/
-│ ├── telegram.png / dingtalk.svg / qqbot.svg / weixin.svg # 平台图标
-│ └── Bot*.png / *_step*.png # 平台接入指南图片
-└── components/
-  ├── BotTokenInput.tsx / FeishuCredentialInput.tsx / DingtalkCredentialInput.tsx
-  ├── BindQrPanel.tsx / BindCodePanel.tsx / BotStatusPanel.tsx
-  ├── WhitelistManager.tsx / GroupPermissionList.tsx
-  ├── PermissionModeSelect.tsx / AiConfigCard.tsx / McpToolsCard.tsx
-  └── HeartbeatConfigCard.tsx
-
-src/renderer/components/AgentSettings/channels/
-├── ChannelWizard.tsx # per-Agent Channel 创建/编辑向导，复用 ImSettings/components
-```
-
-### 3.2 设置页入口与 Channel 向导
-
-当前没有独立 `ImSettings.tsx` 路由容器。`pages/settings/SettingsPage.tsx` 在「聊天机器人 Bot」section 直接渲染 `BotPlatformRegistry`，用于展示可接入平台与社区插件；真正的 per-Agent Channel 创建/编辑在 `components/AgentSettings/channels/ChannelWizard.tsx`，它复用 `components/ImSettings/components/*` 的表单控件和平台素材。
-
-### 3.3 BotPlatformRegistry
-
-`BotPlatformRegistry` 是 Settings 页「聊天机器人 Bot」section 的当前入口：
-
-- 读取 `cmd_list_openclaw_plugins` 展示已安装社区插件。
-- 展示内置 Telegram / Dingtalk 平台卡，以及 `promotedPlugins.ts` 声明的推荐 OpenClaw 插件。
-- 支持插件安装、更新、卸载；更新后调用 `cmd_restart_channels_using_plugin` 重启相关运行中 channel。
-- 展示接入指南图片，不直接创建 per-Agent channel。
-
-### 3.4 ChannelWizard
-
-per-Agent Channel 创建/编辑由 `components/AgentSettings/channels/ChannelWizard.tsx` 拥有。它复用 `components/ImSettings/components/*` 的输入组件和素材，负责：
-
-- Telegram / Feishu / Dingtalk / OpenClaw platform credential 表单。
-- `patchAgentConfig` 写入 `agent.channels[]`。
-- `invokeStartAgentChannel` 启动 channel，并查询 `cmd_agent_channel_status`。
-- QR / bind code / whitelist / group permission / heartbeat / permission mode / AI config / MCP tools 等子配置。
-
-### 3.5 共享表单组件
-
-`components/ImSettings/components/*` 是 ChannelWizard 与 Bot 平台页共享的表单/状态组件：
-
-- `BotTokenInput` / `FeishuCredentialInput` / `DingtalkCredentialInput`
-- `BindQrPanel` / `BindCodePanel` / `BotStatusPanel`
-- `WhitelistManager` / `GroupPermissionList`
-- `PermissionModeSelect` / `AiConfigCard` / `McpToolsCard`
-- `HeartbeatConfigCard`
-- Deep link URL + 复制按钮
-- 3 步说明
-- 无白名单用户时显示"推荐"标签
-
-**PermissionModeSelect**：
-- 自定义 radio 卡片（`sr-only` 隐藏原生 radio）
-- 选中态：品牌色边框 + 背景 + 内圆点
-- 读取 `PERMISSION_MODES` 配置（行动/规划/自主行动）
-
----
-
-## 四、配置持久化
-
-### 4.1 数据模型
-
-```typescript
-interface ImBotConfig {
- id: string; // UUID
- name: string; // 展示名（自动同步为 @username）
- platform: ImPlatform; // 'telegram' | 'feishu' | 'dingtalk' | `openclaw:${string}`
- botToken: string;
- allowedUsers: string[]; // Telegram user_id 或 username
- providerId?: string; // AI 供应商（独立于客户端）
- model?: string; // AI 模型
- permissionMode: string; // 'plan' | 'auto' | 'fullAgency'
- mcpEnabledServers?: string[]; // Bot 可用的 MCP 服务 ID
- defaultWorkspacePath?: string;
- enabled: boolean;
- setupCompleted?: boolean; // 向导完成标记
- // OpenClaw 社区插件专属
- openclawPluginId?: string; // 安装 ID / pluginId，用于定位 ~/.blexagent/openclaw-plugins/<pluginId>
- openclawNpmSpec?: string; // npm 包名
- openclawPluginConfig?: Record<string, unknown>; // 插件运行时配置
- openclawManifest?: object; // 插件 manifest 缓存
-}
-```
-
-**OpenClaw 身份边界**：历史配置里的 `platform: "openclaw:<...>"` 可能保存安装 ID（如 `openclaw-lark`、`wecom-openclaw-plugin`），也可能保存协议 Channel ID（如 `qqbot`）。Rust/Renderer 用 `openclawPluginId` 作为安装目录身份保持兼容；Node Plugin Bridge 则必须从 OpenClaw manifest / `package.json.openclaw.channel.id` / `registerChannel()` 得到协议 Channel ID，并用它构造 `cfg.channels.<channelId>`。不要在 Bridge 内用安装 ID 作为 canonical OpenClaw config key。
-
-**存储位置**：`~/.blexagent/config.json` → `imBotConfigs: ImBotConfig[]`
-
-### 4.2 Config Service（磁盘优先）
-
-```typescript
-// 三个 IM 专用函数，全部 disk-first + withConfigLock 序列化
-
-addOrUpdateImBotConfig(botConfig) // Upsert by id
-updateImBotConfig(botId, updates) // Partial merge by id
-removeImBotConfig(botId) // Filter out by id
-```
-
-每个函数先 `loadAppConfig()` 读取磁盘最新，修改后 `saveAppConfig()` 写回。原子写入采用 `.tmp` → `.bak` → 目标文件 的安全模式。
-
-### 4.3 React 状态同步
-
-`useConfig()` 新增 `refreshConfig()` 方法：
-
-```typescript
-const refreshConfig = useCallback(async () => {
- const latest = await loadAppConfig();
- setConfig(latest); // 只更新 config state，不触发 loading
-}, []);
-```
-
-**使用模式**：所有 IM 组件的 config 写操作后调用 `refreshConfig()` 同步 React 状态。
-
-```typescript
-// ImBotDetail 中的 saveBotField
-const saveBotField = useCallback(async (updates) => {
- await updateImBotConfig(botId, updates);
- await refreshConfig(); // 同步到 React state
-}, [botId, refreshConfig]);
-```
-
----
-
-## 五、数据流
-
-### 5.1 Telegram 消息 → AI → 回复
-
-```
-Telegram 用户发消息
- │
- ▼
-TelegramAdapter (getUpdates 长轮询)
- │
- ├── 白名单校验 → 不在白名单 → 忽略
- ├── MessageCoalescer 碎片合并 + 防抖
- ├── 发送到 mpsc channel
- │
- ▼
-消息处理循环
- │
- ├── 命令分发（inline，无 Sidecar I/O）
- │ ├── /start BIND_ → 添加白名单 → emit "im:user-bound"
- │ ├── /model → 更新 current_model RwLock
- │ ├── /provider → 更新 current_provider_env RwLock
- │ ├── /workspace → router.switch_workspace()
- │ └── /new → router.reset_session()
- │
- └── 普通消息
- ├── 获取 per-peer lock + global semaphore
- ├── ensure_sidecar()
- ├── 若新 Sidecar → 同步 AI config
- │
- ├── ensure_im_consumer() + ReplyRouter.register(requestId)
- ├── POST /api/im/enqueue (sync ACK)
- │ └── Node Sidecar SessionEngine enqueue 到当前 runtime
- │
- ├── /api/im/events → ReplyRouter
- │ ├── partial → 编辑 draft（节流）
- │ ├── block-end → 定稿（超长分片）
- │ ├── complete → 返回 sessionId
- │ └── error/cancelled → 发送错误或取消反馈
- │
- ├── 清除 ACK reaction
- ├── 更新 Session + 健康状态
- └── 重放缓冲消息
-```
-
-### 5.2 QR 码绑定流程
-
-```
-用户在设置页启动 Bot
- │
- ├── Rust 生成 bind_code = "BIND_{uuid8}"
- ├── 构造 bind_url = "https://t.me/{username}?start={bind_code}"
- ├── 返回 ImBotStatus（含 bind_url）
- │
- ▼
-前端 BindQrPanel 展示 QR 码
- │
- ▼
-用户扫码 → Telegram 打开 Bot → 自动发送 "/start BIND_xxxx"
- │
- ▼
-Rust TelegramAdapter 收到消息
- │
- ├── 解析 bind_code → 匹配成功
- ├── 添加 user_id 到 allowed_users（Arc<RwLock>）
- ├── 回复绑定成功消息
- └── emit "im:user-bound" 事件
- │
- ▼
-前端 ImBotDetail/ImBotWizard 监听事件
- │
- └── 添加用户到白名单配置 → saveBotField → refreshConfig
-```
-
-### 5.3 设置页 → Bot 生命周期
-
-```
-用户打开 Settings → 聊天机器人
- │
- ▼
-ImBotList（读取 config.imBotConfigs + 轮询 statuses）
- │
- ├── 点击"添加 Bot" → ImBotWizard
- │ ├── Step 1: Token + 验证 + 启动
- │ └── Step 2: QR 绑定 → 完成/跳过
- │
- ├── 点击 Bot 卡片 → ImBotDetail
- │ ├── 修改配置 → saveBotField → refreshConfig
- │ ├── 工作区变更（运行中）→ 重启 Bot
- │ └── 删除 → ConfirmDialog → stop + remove + refreshConfig + onBack
- │
- └── 点击启动/停止 → toggleBot
- ├── 启动：buildStartParams → cmd_start_im_bot → 乐观更新
- └── 停止：cmd_stop_im_bot → 乐观更新为 stopped
-```
-
----
-
-## 六、安全模型
-
-| 层级 | 机制 |
-|------|------|
-| 连接准入 | 白名单（Telegram user_id / username） |
-| 空白名单 | 拒绝所有消息（安全默认） |
-| 群聊触发 | 仅响应 @Bot 或 /ask |
-| AI 权限 | 默认 `plan` 模式（只分析不执行） |
-| 工作区沙箱 | 操作范围不超出 workspacePath |
-| Token 重复 | 前端阻止同一 Token 添加多个 Bot |
-| QR 绑定 | 随机 UUID bind_code，仅对应 Bot 可识别 |
-
----
-
-## 七、文件清单
-
-### Rust
-
-```
-src-tauri/src/
-├── im/
-│ ├── mod.rs # facade / public re-exports / 少量共享 helper
-│ ├── agent_channel.rs # channel lifecycle、消息入口、ensure sidecar/consumer + enqueue 编排
-│ ├── enqueue.rs # Rust → Node /api/im/enqueue 同步 ACK 请求
-│ ├── event_consumer.rs # /api/im/events SSE consumer、since 恢复、事件分发
-│ ├── reply_router.rs # requestId → draft/reply slot、权限卡与终态归属
-│ ├── state.rs # ManagedAgents / ManagedImBots / runtime config sync / channel state
-│ ├── config_store.rs # Agent/Bot config 读写、auto-start、missing config reporting
-│ ├── commands.rs # Tauri IM/Agent command glue
-│ ├── adapter.rs # ImAdapter trait 定义 + AnyAdapter enum
-│ ├── telegram.rs / feishu.rs / dingtalk.rs # 内置平台适配器
-│ ├── bridge.rs # BridgeAdapter + Plugin Bridge 进程管理 + 插件安装/卸载 + sender registry
-│ ├── health.rs / heartbeat.rs / memory_update.rs / runtime_change.rs # 健康、主动 Agent 周期任务、runtime 切换
-│ ├── router.rs / buffer.rs / group_history.rs / handover.rs # peer→session 映射、缓冲、群聊上下文、session handover
-│ └── types.rs # ImConfig, ImMessage, ImPlatform 等共享类型
-├── management_api.rs # /api/im-bridge/message 端点（Bridge 入站消息路由）
-└── lib.rs # Command 注册
-```
-
-### 前端
-
-```
-src/renderer/
-├── components/ImSettings/ # 全部 IM 前端组件（见 §3.1）
-├── config/configService.ts # IM config CRUD 函数
-├── config/types.ts # PERMISSION_MODES + ImBotConfig 相关类型
-├── hooks/useConfig.ts # refreshConfig 函数
-└── pages/settings/SettingsPage.tsx # "聊天机器人" 导航入口
-```
-
-### Plugin Bridge（Node.js 进程）
-
-```
-src/server/plugin-bridge/
-├── index.ts # Bridge 入口：CLI args 解析、插件加载、HTTP server
-├── compat-api.ts # OpenClaw API shim（registerChannel 捕获）
-├── compat-runtime.ts # channelRuntime mock（dispatchReply 拦截 → Rust，ctx 字段提取）
-├── streaming-adapter.ts # 流式卡片适配（start-stream/stream-chunk/finalize-stream）
-├── mcp-handler.ts # Bridge 插件 MCP 工具暴露
-└── sdk-shim/
- └── plugin-sdk/
- └── feishu.js # openclaw/plugin-sdk/feishu 的 ~44 符号 shim
-```
-
-### 共享类型
-
-```
-src/shared/types/im.ts # ImBotConfig, ImBotStatus, ImPlatform, InstalledPlugin, DEFAULT_IM_BOT_CONFIG
-```
-
-### 数据文件
-
-```
-~/.blexagent/
-├── config.json # imBotConfigs[] 数组
-└── im_bots/ # Per-bot 运行时数据
- └── {botId}/
- ├── state.json # 健康状态
- ├── buffer.json # 消息缓冲
- └── dedup.json # 去重缓存（仅飞书）
-```
-
----
-
-## 八、Telegram Bot API 端点
-
-| 端点 | 用途 |
-|------|------|
-| `getMe` | 验证 Token + 获取 bot_username |
-| `getUpdates` | 长轮询接收消息 |
-| `sendMessage` | 发送文本（Markdown → 纯文本 fallback） |
-| `editMessageText` | Draft Stream 编辑（流式输出） |
-| `deleteMessage` | 删除 Draft（超长回复时） |
-| `sendChatAction` | 发送"正在输入"状态 |
-| `setMessageReaction` | ACK Reaction（⏳ / 清除） |
-| `setMyCommands` | 注册命令菜单 |
-
----
-
-## 九、待实现 / 未来规划
-
-### 9.1 多端 Session 共享
-
-当前每个 Bot 的 Session 独立于 Desktop Tab。已可通过 Desktop 打开 IM Session（跳转到已有 Sidecar），但完整双端同步尚未实现。
-
-### 9.2 Bot Token 加密存储
-
-当前 Token 明文存储在 `config.json`（与 Provider API Key 一致）。后续应统一迁移到 OS Keychain。
-
-### 9.3 Bridge 插件功能补全
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| 消息分发 | ✅ 已修复 | dispatch 返回 `{ queuedFinal, counts }` |
-| 群聊 isMention | ✅ 已修复 | 按 chatType 区分默认值 |
-| 群名/引用回复/群系统提示 | ✅ 已透传 | 全链路闭环 |
-| 群内 @mention 主动检测 | ⏳ 依赖插件 | Bridge 依赖插件设置 `WasMentioned`，无独立检测 |
-| 附件/图片转发 | ⏳ 待实现 | compat-runtime 提取但 Rust `ImMessage.attachments` 为空 |
-| 消息去重（Bridge） | ✅ feishu.js shim | `createDedupeCache` + Rust 层 72h dedup |
-
-### 9.4 更多 IM 平台
-
-`ImAdapter` trait 已定义（Telegram、飞书、钉钉已实现），可扩展 Slack、Discord 等平台，复用 Session Router 和消息处理循环。
-
-社区平台可通过 OpenClaw Plugin Bridge 机制接入，无需编写 Rust 适配器。
-
----
-
-## 附录：相关文档
-
-| 文档 | 说明 |
-|------|------|
-| [架构总览](../ARCHITECTURE.md) | BlexAgent 整体架构 |
-| [Session 架构](./session_architecture.md) | Session 管理机制 |
-| [Sidecar 管理](./bundled_node.md) | Node.js Sidecar 生命周期 |
-
-## Agent Channel 架构
-
-IM Bot 升级为 Agent 实体，Channel 为可插拔连接。新旧 Tauri Commands 并存：
-
-### 新 Tauri Commands
-
-| 命令 | 用途 |
-|------|------|
-| `cmd_start_agent_channel` | 启动 Agent Channel |
-| `cmd_stop_agent_channel` | 停止 Agent Channel |
-| `cmd_agent_channel_status` | 查询 Channel 状态 |
-| `cmd_all_agents_status` | 查询所有 Agent 状态 |
-| `cmd_update_agent_config` | 更新 Agent 配置 |
-| `cmd_install_openclaw_plugin` | 安装 OpenClaw 社区插件 |
-| `cmd_uninstall_openclaw_plugin` | 卸载插件 |
-| `cmd_list_openclaw_plugins` | 列出已安装插件 |
-
-> 旧命令 `cmd_start_im_bot` 等已标 `@deprecated`，内部转发到新 Agent API。
-
-归档 Agent 工作区时，`Project.archivedAt` 是权威状态。Rust IM runtime 在 `cmd_start_agent_channel`、开机 `schedule_agent_auto_start()`、以及 `monitor_agent_channels()` 的缺失/异常频道重启路径都会读取 `projects.json`，跳过 archived workspace。CLI/Admin API 的 `agent archive` 还会通过 Management API `/api/agent/stop-channels` 立即停止已运行的 Channel；这只是运行时副作用，不能替代 `Project.archivedAt`。
-
-### InteractionScenario 扩展
-
-系统提示词支持四种场景：
-- `desktop` — 桌面客户端对话
-- `im` — 内置 IM Bot（Telegram/飞书/钉钉）
-- `agent-channel` — Agent Channel（OpenClaw 插件，platform 为任意字符串）
-- `cron` — 定时任务
-
-Agent Channel 与 IM Bot 的区别：`platform` 字段为 `string` 而非固定枚举，支持任意社区插件平台。
-
-### 数据模型
-
-```typescript
-// src/shared/types/agent.ts
-interface AgentConfig {
- id: string;
- name: string;
- workspacePath?: string;
- providerId?: string;
- model?: string;
- lastActivePrivateTarget?: LastActivePrivateTarget;
- channels: ChannelConfig[];
-}
-
-interface LastActivePrivateTarget {
- channelId: string;
- sessionKey: string;
- lastActiveAt: string;
-}
-
-interface ChannelConfig {
- id: string;
- type: ChannelType; // 'telegram' | 'dingtalk' | `openclaw:<install-or-route-id>`
- // ... credentials per type
-}
-```
-
-### Agent Channel 权限默认值
-
-Agent Channel 是无人值守入口。没有 `ChannelOverrides.permissionMode` 时，Channel 的有效权限默认取当前 runtime 的最大自主权限，而不是继承桌面 Agent 的 `permissionMode`：
-
-- builtin → `fullAgency`
-- Claude Code → `bypassPermissions`
-- Codex → `no-restrictions`
-- Gemini → `yolo`
-
-`AgentConfig.permissionMode` 仍然是桌面/Agent 默认对话权限；它不能静默降低 IM Channel。用户显式配置 Channel permission override 时才按 override 执行。群聊的 `groupToolsDeny` 是独立安全层，默认仍可额外禁止 `Bash` / `Edit` / `Write`。
-
-### Blex 默认模板与 Agent 默认能力
-
-Blex 默认工作区的“文件内容模板”和 BlexAgent 的“产品级 Agent 默认策略”是两层；内部模板 ID 与资源目录为兼容旧配置继续保留 `mino`：
-
-| 层 | 权威来源 | 职责 |
-|----|----------|------|
-| 文件内容模板 | `resources/mino/`（来自外部 OpenMino 模板仓库/打包资源，并叠加 Blex 品牌层） | 初始化工作区里的 Markdown、配置文件、示例内容 |
-| 产品默认能力 | `src/shared/config-types.ts::PRESET_TEMPLATES[].agentDefaults` | 声明新建 builtin Blex project 时 Agent 是否默认开启，以及 heartbeat / memory 默认参数 |
-
-`Project` 会记录 `templateId` / `templateSource`。只有 `templateSource === 'builtin'` 且模板本身带 `agentDefaults` 时，`buildAgentForProject()` 才会把这些默认策略复制进 `AgentConfig`。用户模板即使复用了内部兼容 ID `mino`，也不会自动继承 builtin 默认能力。
-
-关键不变式：
-- 新建 project / 启动补齐历史 project 的 Agent 配置必须走 `buildAgentForProject()`，避免 Launcher、ConfigProvider、migration 路径分叉。
-- `ensureAllProjectsHaveAgent()` 只负责保证每个 project 有一个基础 Agent；对 builtin Blex project 会应用 `agentDefaults`，并把 `project.isAgent` 标为 true。
-- `agentDefaults.enabled = true` 只表示这个 workspace 的 Agent 能力默认打开；它不自动创建 Channel，也不绕过运行时门槛。
-- `memoryAutoUpdate.enabled = true` 不要求 Blex 文件模板预置 `UPDATE_MEMORY.md`。自动更新真正执行时由 Rust `memory_update.rs` 在工作区根目录 ensure 该文件：已存在则读取用户内容；缺失则从 `src/shared/default-update-memory.md` 初始化默认指令。
-- Rust 启动 Channel / heartbeat 仍以 `agent.enabled && channel.enabled && credentials` 为准。没有 channel 或 credential 时不会产生外部 IM 连接。
-- 后续如果要让用户模板也配置默认能力，需要新增用户可见的模板编辑能力和持久化 schema；不能把产品 builtin 默认值隐式套到 user template。
+- catalogue/UI 不出现原生 Telegram；
+- 旧 Telegram 配置会被删除且不影响其他 Channel；
+- 创建命令拒绝 Telegram；
+- 飞书、钉钉、OpenClaw 的配置、启动、停止、恢复与消息流；
+- 私聊/群聊白名单；
+- capability token 正反向；
+- SSRF、媒体大小和路径边界；
+- pending approval/AskUserQuestion 的完成、取消和崩溃清理。

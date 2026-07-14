@@ -1,27 +1,18 @@
-import { interruptCurrentResponse } from '../agent-session';
-import {
-  getActiveRuntimeType,
-  hasPendingExternalAskUserQuestion,
-  isExternalSessionActive,
-  shouldUseExternalRuntime,
-} from '../runtimes/external-session';
 import { createBuiltinSessionEngine } from './builtin-adapter';
-import { createExternalSessionEngine } from './external-adapter';
 import type { SessionEngine, SessionEngineKind } from './types';
 
 const builtinEngine = createBuiltinSessionEngine();
-const externalEngine = createExternalSessionEngine();
 
 export function getSessionEngine(): SessionEngine {
-  return shouldUseExternalRuntime() ? externalEngine : builtinEngine;
+  return builtinEngine;
 }
 
 export function getSessionEngineKind(): SessionEngineKind {
-  return shouldUseExternalRuntime() ? 'external' : 'builtin';
+  return 'builtin';
 }
 
-export function getSessionRuntimeType(): ReturnType<typeof getActiveRuntimeType> {
-  return getActiveRuntimeType();
+export function getSessionRuntimeType(): 'builtin' {
+  return 'builtin';
 }
 
 /**
@@ -31,13 +22,6 @@ export function getSessionRuntimeType(): ReturnType<typeof getActiveRuntimeType>
  * external adapter does not become a mixed owner.
  */
 export async function stopActiveTurn(): Promise<{ success: boolean; alreadyStopped?: boolean; error?: string }> {
-  if (shouldUseExternalRuntime()) {
-    if (isExternalSessionActive()) {
-      return externalEngine.stopTurn();
-    }
-    const stopped = await interruptCurrentResponse();
-    return stopped ? { success: true } : { success: true, alreadyStopped: true };
-  }
   return builtinEngine.stopTurn();
 }
 
@@ -47,9 +31,7 @@ export async function stopActiveTurn(): Promise<{ success: boolean; alreadyStopp
  * requests. Keep that compatibility at the selector seam.
  */
 export function getPermissionResponseEngine(): SessionEngine {
-  return shouldUseExternalRuntime() && isExternalSessionActive()
-    ? externalEngine
-    : builtinEngine;
+  return builtinEngine;
 }
 
 /**
@@ -58,8 +40,6 @@ export function getPermissionResponseEngine(): SessionEngine {
  * away; the external handler preserves the pending entry and returns false so
  * the UI can surface retry/failure instead of silently losing the answer.
  */
-export function getAskUserQuestionResponseEngine(requestId: string): SessionEngine {
-  return shouldUseExternalRuntime() && hasPendingExternalAskUserQuestion(requestId)
-    ? externalEngine
-    : builtinEngine;
+export function getAskUserQuestionResponseEngine(_requestId: string): SessionEngine {
+  return builtinEngine;
 }

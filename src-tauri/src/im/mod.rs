@@ -1,5 +1,5 @@
 // IM Bot integration module
-// Manages the Telegram Bot lifecycle, routing IM messages to AI Sidecars.
+// Manages Agent Channel lifecycles and routes IM messages to AI Sidecars.
 
 pub mod adapter;
 pub(crate) mod agent_channel;

@@ -15,7 +15,6 @@ import {
     type ProxySettings,
     PRESET_PROVIDERS,
     PROXY_DEFAULTS,
-    MANAGED_CODEX_REQUIRED_RUNTIME,
     applyProviderEnablementAndOrder,
 } from './types';
 import type { AgentConfig } from '../../shared/types/agent';
@@ -24,6 +23,7 @@ import {
     atomicModifyConfig,
     ensureBundledWorkspace,
     mergePresetCustomModels,
+    removeRetiredRuntimeConfig,
 } from './services/appConfigService';
 import {
     getAllProviders,
@@ -133,16 +133,6 @@ async function reconcileMemoryEvolutionTasks(
     }
 }
 
-function shouldAutoUpdateManagedCodexRuntime(config: AppConfig): boolean {
-    const install = config.managedCodexRuntimeInstall;
-    const userEngaged = Boolean(install?.status || install?.installedVersion || install?.installedAt);
-    if (!userEngaged || !install) return false;
-    if (install.status === 'downloading' || install.status === 'checking') return false;
-    if (install.status === 'update-required') return true;
-    return install.status === 'installed'
-        && install.installedVersion !== MANAGED_CODEX_REQUIRED_RUNTIME.version;
-}
-
 // ============= Context Types =============
 
 export interface ConfigDataValue {
@@ -243,7 +233,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     // Mount guard
     const isMountedRef = useRef(true);
     const configRef = useRef<AppConfig>(DEFAULT_CONFIG);
-    const managedCodexAutoUpdateRef = useRef(false);
     useEffect(() => {
         isMountedRef.current = true;
         return () => { isMountedRef.current = false; };
@@ -287,6 +276,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                 loadApiKeysService(),
                 loadProviderVerifyStatusService(),
             ]);
+
+            removeRetiredRuntimeConfig(rawConfig);
 
             // Migrate legacy imBotConfigs → agents (one-time, skipped if already migrated)
             const preMigrationAgentsCount = rawConfig.agents?.length ?? 0;
@@ -403,36 +394,6 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         void load();
     }, [load]);
-
-    useEffect(() => {
-        if (!isTauriEnvironment()) return;
-        if (isLoading) return;
-        if (managedCodexAutoUpdateRef.current) return;
-        if (!shouldAutoUpdateManagedCodexRuntime(config)) return;
-
-        managedCodexAutoUpdateRef.current = true;
-        (async () => {
-            try {
-                const { invoke } = await import('@tauri-apps/api/core');
-                console.info(
-                    `[managed-codex] auto update start runtime=codex runtimeSource=managed-provider requiredVersion=${MANAGED_CODEX_REQUIRED_RUNTIME.version}`,
-                );
-                await invoke('cmd_managed_codex_download');
-            } catch (err) {
-                console.warn(
-                    `[managed-codex] auto update failed runtime=codex runtimeSource=managed-provider requiredVersion=${MANAGED_CODEX_REQUIRED_RUNTIME.version}`,
-                    err,
-                );
-            } finally {
-                managedCodexAutoUpdateRef.current = false;
-                await load();
-            }
-        })();
-    }, [
-        config,
-        isLoading,
-        load,
-    ]);
 
     const syncNativeUiLanguageFromConfig = useCallback(async () => {
         if (!isTauriEnvironment()) return;

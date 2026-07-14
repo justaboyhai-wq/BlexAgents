@@ -1,4 +1,4 @@
-﻿; Simplified Chinese language file for BlexAgent NSIS Installer
+; Simplified Chinese language file for BlexAgent NSIS Installer
 ; Custom translations for reinstall page
 
 LangString addOrReinstall ${LANG_SIMPCHINESE} "重新安装"

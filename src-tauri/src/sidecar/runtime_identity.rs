@@ -6,9 +6,6 @@ use super::*;
 // reading sites share a single helper.
 use crate::utils::bom::strip_bom;
 
-const CODEX_SUBSCRIPTION_PROVIDER_ID: &str = "codex-sub";
-const MANAGED_CODEX_REQUIRED_VERSION: &str = "0.142.2";
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuntimeIdentity {
     pub runtime: String,
@@ -52,48 +49,10 @@ impl RuntimeIdentity {
 /// Used for NEW sessions (the agent config decides the default runtime for new conversations)
 /// and for IM/Agent sidecar paths that don't have a session_id yet.
 pub(super) fn resolve_agent_runtime_identity_from_config(
-    workspace_path: &std::path::Path,
+    _workspace_path: &std::path::Path,
 ) -> Option<RuntimeIdentity> {
-    let config_path = dirs::home_dir()?.join(".blexagent").join("config.json");
-    let content = std::fs::read_to_string(&config_path).ok()?;
-    let cfg: serde_json::Value = serde_json::from_str(strip_bom(&content)).ok()?;
-
-    let agents = cfg.get("agents")?.as_array()?;
-    for agent in agents {
-        let agent_path = agent.get("workspacePath")?.as_str()?;
-        if workspace_paths_match(agent_path, workspace_path) {
-            if agent.get("providerId").and_then(|v| v.as_str())
-                == Some(CODEX_SUBSCRIPTION_PROVIDER_ID)
-                && managed_codex_provider_ready(&cfg)
-            {
-                return Some(RuntimeIdentity::new(
-                    Some("codex"),
-                    Some("managed-provider"),
-                ));
-            }
-            // Gate: multi-agent runtime feature must be explicitly enabled
-            // for user-managed external runtimes. Managed Codex provider
-            // is gated above by its own provider readiness flags instead.
-            if !cfg
-                .get("multiAgentRuntime")
-                .and_then(|v| v.as_bool())
-                .unwrap_or(false)
-            {
-                return None;
-            }
-            if let Some(runtime) = agent.get("runtime").and_then(|v| v.as_str()) {
-                if runtime != "builtin" {
-                    let runtime_source = agent
-                        .get("runtimeConfig")
-                        .and_then(|v| v.as_object())
-                        .and_then(|o| o.get("source"))
-                        .and_then(|v| v.as_str());
-                    return Some(RuntimeIdentity::new(Some(runtime), runtime_source));
-                }
-            }
-            return None;
-        }
-    }
+    // External runtime selection was retired. Absence means builtin throughout
+    // the sidecar lifecycle and prevents legacy disk fields from affecting spawn.
     None
 }
 
@@ -103,37 +62,7 @@ pub(super) fn resolve_agent_runtime_from_config(
     resolve_agent_runtime_identity_from_config(workspace_path).map(|identity| identity.runtime)
 }
 
-fn managed_codex_provider_ready(cfg: &serde_json::Value) -> bool {
-    let install = cfg.get("managedCodexRuntimeInstall");
-    let auth = cfg.get("managedCodexAuth");
-    let provider_disabled = cfg
-        .get("disabledProviderIds")
-        .and_then(|v| v.as_array())
-        .map(|ids| {
-            ids.iter()
-                .any(|id| id.as_str() == Some(CODEX_SUBSCRIPTION_PROVIDER_ID))
-        })
-        .unwrap_or(false);
-    cfg.get("managedCodexProviderDevGate")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
-        && !provider_disabled
-        && install
-            .and_then(|v| v.get("status"))
-            .and_then(|v| v.as_str())
-            == Some("installed")
-        && install
-            .and_then(|v| v.get("installedVersion"))
-            .and_then(|v| v.as_str())
-            == Some(MANAGED_CODEX_REQUIRED_VERSION)
-        && auth.and_then(|v| v.get("status")).and_then(|v| v.as_str()) == Some("valid")
-        && matches!(
-            auth.and_then(|v| v.get("authMethod"))
-                .and_then(|v| v.as_str()),
-            Some("chatgpt") | Some("access-token")
-        )
-}
-
+#[cfg(test)]
 fn workspace_paths_match(agent_path: &str, workspace_path: &std::path::Path) -> bool {
     crate::cron_task::normalize_path(agent_path)
         == crate::cron_task::normalize_path(&workspace_path.to_string_lossy())
@@ -287,74 +216,6 @@ pub(super) fn validate_sidecar_runtime_invariant(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn managed_codex_provider_ready_requires_explicit_gate_install_and_chatgpt_auth() {
-        let missing_gate = serde_json::json!({
-            "managedCodexRuntimeInstall": {
-                "status": "installed",
-                "installedVersion": MANAGED_CODEX_REQUIRED_VERSION
-            },
-            "managedCodexAuth": {
-                "status": "valid",
-                "authMethod": "chatgpt"
-            }
-        });
-        assert!(!managed_codex_provider_ready(&missing_gate));
-
-        let ready = serde_json::json!({
-            "managedCodexProviderDevGate": true,
-            "managedCodexRuntimeInstall": {
-                "status": "installed",
-                "installedVersion": MANAGED_CODEX_REQUIRED_VERSION
-            },
-            "managedCodexAuth": {
-                "status": "valid",
-                "authMethod": "chatgpt"
-            }
-        });
-        assert!(managed_codex_provider_ready(&ready));
-
-        let gate_off = serde_json::json!({
-            "managedCodexProviderDevGate": false,
-            "managedCodexRuntimeInstall": {
-                "status": "installed",
-                "installedVersion": MANAGED_CODEX_REQUIRED_VERSION
-            },
-            "managedCodexAuth": {
-                "status": "valid",
-                "authMethod": "chatgpt"
-            }
-        });
-        assert!(!managed_codex_provider_ready(&gate_off));
-
-        let api_key_auth = serde_json::json!({
-            "managedCodexProviderDevGate": true,
-            "managedCodexRuntimeInstall": {
-                "status": "installed",
-                "installedVersion": MANAGED_CODEX_REQUIRED_VERSION
-            },
-            "managedCodexAuth": {
-                "status": "valid",
-                "authMethod": "api-key"
-            }
-        });
-        assert!(!managed_codex_provider_ready(&api_key_auth));
-
-        let disabled = serde_json::json!({
-            "managedCodexProviderDevGate": true,
-            "disabledProviderIds": [CODEX_SUBSCRIPTION_PROVIDER_ID],
-            "managedCodexRuntimeInstall": {
-                "status": "installed",
-                "installedVersion": MANAGED_CODEX_REQUIRED_VERSION
-            },
-            "managedCodexAuth": {
-                "status": "valid",
-                "authMethod": "chatgpt"
-            }
-        });
-        assert!(!managed_codex_provider_ready(&disabled));
-    }
 
     #[test]
     fn workspace_path_match_reuses_canonical_workspace_identity() {

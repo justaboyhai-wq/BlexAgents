@@ -1,4 +1,4 @@
-﻿; English language file for BlexAgent NSIS Installer
+; English language file for BlexAgent NSIS Installer
 ; Custom translations for reinstall page
 
 LangString addOrReinstall ${LANG_ENGLISH} "Reinstall"
