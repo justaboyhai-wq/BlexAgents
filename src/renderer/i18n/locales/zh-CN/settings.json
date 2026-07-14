@@ -139,6 +139,15 @@
       "resetTitle": "恢复默认快捷键",
       "resetDefault": "重置默认"
     },
+    "voice": {
+      "title": "全局语音唤醒快捷键",
+      "description": "在任何应用中按下快捷键，打开微型语音窗口并实时识别语音。识别后可生成简短回答或打开完整对话。",
+      "enableTitle": "启用语音唤醒",
+      "enableDescription": "默认使用右 Alt 键，按下即可唤起语音窗口",
+      "currentTitle": "当前语音快捷键",
+      "currentDescription": "点击右侧键位修改",
+      "resetDefault": "恢复右 Alt"
+    },
     "recorder": {
       "cancelled": "已取消",
       "recordingDisplay": "请按下快捷键...（Esc 取消）",

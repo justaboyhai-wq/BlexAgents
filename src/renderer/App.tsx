@@ -20,6 +20,7 @@ import { stopTabSidecar, startGlobalSidecar, initGlobalSidecarReadyPromise, mark
 import ConfirmDialog from '@/components/ConfirmDialog';
 import BugReportOverlay from '@/components/BugReportOverlay';
 import CustomTitleBar from '@/components/CustomTitleBar';
+import GlobalVoiceWakeOverlay from '@/components/GlobalVoiceWakeOverlay';
 import LinkContextMenuProvider from '@/components/LinkContextMenuProvider';
 import TabBar from '@/components/TabBar';
 import TabProvider from '@/context/TabProvider';
@@ -3913,6 +3914,12 @@ export default function App() {
           />
         ))}
       </div>
+
+      <GlobalVoiceWakeOverlay
+        appVersion={appVersion}
+        enabled={!!appApiKeys['volcengine-agent-plan']
+          && appProviderVerifyStatus['volcengine-agent-plan']?.status === 'valid'}
+      />
 
       {/* Exit confirmation dialog for running cron tasks */}
       {exitConfirmState && (

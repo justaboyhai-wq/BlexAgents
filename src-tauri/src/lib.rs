@@ -414,6 +414,8 @@ pub fn run() {
             // Global shortcut (summon-or-toggle, PRD 0.2.16)
             global_shortcut::cmd_get_global_summon_shortcut,
             global_shortcut::cmd_set_global_summon_shortcut,
+            global_shortcut::cmd_get_global_voice_shortcut,
+            global_shortcut::cmd_set_global_voice_shortcut,
             // Floating ball desktop companion (PRD 0.2.35)
             floating_ball::cmd_fb_enable,
             floating_ball::cmd_fb_disable,

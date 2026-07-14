@@ -50,6 +50,9 @@ function isMacPlatform(): boolean {
 function displayMainKey(token: string, isMac: boolean): string {
   const t = token.toLowerCase();
   switch (t) {
+    case 'altright':
+    case 'rightalt':
+    case 'altgr': return 'Right Alt';
     case 'space': return isMac ? '␣' : 'Space';
     case 'enter':
     case 'return': return isMac ? '↩' : 'Enter';

@@ -214,5 +214,5 @@ export function useAgentPlanAsr(input: {
     if (sessionId) void apiPostRef.current('/api/agent-plan/asr/cancel', { sessionId }).catch(() => undefined);
   }, [teardownAudio]);
 
-  return { state, error, toggle, cancel };
+  return { state, error, toggle, stop, cancel };
 }

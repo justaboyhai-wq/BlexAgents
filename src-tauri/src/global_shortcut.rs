@@ -18,13 +18,14 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 use crate::{ulog_error, ulog_info, ulog_warn};
 
 /// Canonical default; M = BlexAgent, three-platform-safe.
 pub const DEFAULT_ACCELERATOR: &str = "CmdOrCtrl+Shift+M";
+pub const DEFAULT_VOICE_ACCELERATOR: &str = "AltRight";
 
 /// AppConfig.globalSummonShortcut shape — mirror of TS type in shared/config-types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +33,22 @@ pub const DEFAULT_ACCELERATOR: &str = "CmdOrCtrl+Shift+M";
 pub struct GlobalSummonConfig {
     pub enabled: bool,
     pub accelerator: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalVoiceConfig {
+    pub enabled: bool,
+    pub accelerator: String,
+}
+
+impl Default for GlobalVoiceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            accelerator: DEFAULT_VOICE_ACCELERATOR.to_string(),
+        }
+    }
 }
 
 impl Default for GlobalSummonConfig {
@@ -47,6 +64,7 @@ impl Default for GlobalSummonConfig {
 /// knows what to unregister. Wrapped in a Mutex because Tauri commands run on
 /// arbitrary worker threads.
 static CURRENT_ACCELERATOR: Mutex<Option<String>> = Mutex::new(None);
+static CURRENT_VOICE_ACCELERATOR: Mutex<Option<String>> = Mutex::new(None);
 
 fn config_path() -> Option<PathBuf> {
     crate::app_dirs::blexagent_data_dir().map(|d| d.join("config.json"))
@@ -66,6 +84,22 @@ pub fn load_config() -> GlobalSummonConfig {
     };
     cfg.get("globalSummonShortcut")
         .and_then(|v| serde_json::from_value::<GlobalSummonConfig>(v.clone()).ok())
+        .unwrap_or_default()
+}
+
+pub fn load_voice_config() -> GlobalVoiceConfig {
+    let Some(path) = config_path() else {
+        return GlobalVoiceConfig::default();
+    };
+    let Ok(content) = std::fs::read_to_string(&path) else {
+        return GlobalVoiceConfig::default();
+    };
+    let Ok(cfg) = serde_json::from_str::<serde_json::Value>(crate::utils::bom::strip_bom(&content))
+    else {
+        return GlobalVoiceConfig::default();
+    };
+    cfg.get("globalVoiceShortcut")
+        .and_then(|v| serde_json::from_value::<GlobalVoiceConfig>(v.clone()).ok())
         .unwrap_or_default()
 }
 
@@ -223,6 +257,7 @@ fn parse_code(s: &str) -> Result<Code, String> {
         "f10" => Ok(Code::F10),
         "f11" => Ok(Code::F11),
         "f12" => Ok(Code::F12),
+        "altright" | "rightalt" | "altgr" => Ok(Code::AltRight),
         _ => Err(format!("[global-shortcut] unsupported key '{}'", s)),
     }
 }
@@ -252,6 +287,16 @@ fn on_summon_pressed<R: Runtime>(app: &AppHandle<R>) {
         focused
     );
     crate::tray::show_main_window(app);
+}
+
+fn on_voice_pressed<R: Runtime>(app: &AppHandle<R>) {
+    crate::tray::show_main_window(app);
+    let _ = app.emit("global-voice-wake-start", serde_json::json!({}));
+    ulog_info!("[global-shortcut] voice wake");
+}
+
+fn on_voice_released<R: Runtime>(app: &AppHandle<R>) {
+    let _ = app.emit("global-voice-wake-stop", serde_json::json!({}));
 }
 
 /// Register `accelerator` and remember it for later unregister.
@@ -324,15 +369,28 @@ pub fn unregister<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
 /// accelerator happens later in `setup_on_startup` once config is readable.
 pub fn build_plugin<R: Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri_plugin_global_shortcut::Builder::new()
-        .with_handler(move |app, _shortcut, event| {
-            // Only act on the press edge; release fires too and would
-            // double-toggle.
+        .with_handler(move |app, shortcut, event| {
+            let app_for_handler = app.clone();
+            let is_voice = CURRENT_VOICE_ACCELERATOR
+                .lock()
+                .ok()
+                .and_then(|value| value.clone())
+                .and_then(|value| parse_accelerator(&value).ok())
+                .map(|voice| voice == *shortcut)
+                .unwrap_or(false);
+            if is_voice && event.state() == ShortcutState::Released {
+                let _ = app.run_on_main_thread(move || on_voice_released(&app_for_handler));
+                return;
+            }
             if event.state() == ShortcutState::Pressed {
-                let app_for_handler = app.clone();
                 // Tauri docs: window state queries are safest off the GS
                 // worker thread. Bounce through main thread.
                 let _ = app.run_on_main_thread(move || {
-                    on_summon_pressed(&app_for_handler);
+                    if is_voice {
+                        on_voice_pressed(&app_for_handler);
+                    } else {
+                        on_summon_pressed(&app_for_handler);
+                    }
                 });
             }
         })
@@ -354,6 +412,21 @@ pub fn setup_on_startup<R: Runtime>(app: &AppHandle<R>) {
             cfg.accelerator,
             e
         );
+    }
+    let voice = load_voice_config();
+    if voice.enabled {
+        match parse_accelerator(&voice.accelerator).and_then(|shortcut| {
+            app.global_shortcut()
+                .register(shortcut)
+                .map_err(|e| format!("注册语音快捷键失败: {}", e))
+        }) {
+            Ok(()) => {
+                if let Ok(mut guard) = CURRENT_VOICE_ACCELERATOR.lock() {
+                    *guard = Some(voice.accelerator);
+                }
+            }
+            Err(e) => ulog_warn!("[global-shortcut] voice startup registration failed: {}", e),
+        }
     }
 }
 
@@ -390,4 +463,52 @@ pub async fn cmd_set_global_summon_shortcut<R: Runtime>(
         accelerator,
     })?;
     Ok(())
+}
+
+#[tauri::command]
+pub async fn cmd_get_global_voice_shortcut() -> Result<GlobalVoiceConfig, String> {
+    Ok(load_voice_config())
+}
+
+#[tauri::command]
+pub async fn cmd_set_global_voice_shortcut<R: Runtime>(
+    app: AppHandle<R>,
+    enabled: bool,
+    accelerator: String,
+) -> Result<(), String> {
+    let shortcut = parse_accelerator(&accelerator)?;
+    let previous = CURRENT_VOICE_ACCELERATOR
+        .lock()
+        .ok()
+        .and_then(|g| g.clone());
+    if enabled {
+        app.global_shortcut()
+            .register(shortcut)
+            .map_err(|e| format!("注册语音快捷键失败: {}", e))?;
+        if let Some(previous) = previous.and_then(|v| parse_accelerator(&v).ok()) {
+            let _ = app.global_shortcut().unregister(previous);
+        }
+        if let Ok(mut guard) = CURRENT_VOICE_ACCELERATOR.lock() {
+            *guard = Some(accelerator.clone());
+        }
+    } else {
+        if let Some(previous) = previous.and_then(|v| parse_accelerator(&v).ok()) {
+            let _ = app.global_shortcut().unregister(previous);
+        }
+        if let Ok(mut guard) = CURRENT_VOICE_ACCELERATOR.lock() {
+            *guard = None;
+        }
+    }
+    let path = config_path().ok_or_else(|| "[global-shortcut] no data dir".to_string())?;
+    crate::config_io::with_config_lock(&path, false, move |json| {
+        if !json.is_object() {
+            *json = serde_json::json!({});
+        }
+        json.as_object_mut().unwrap().insert(
+            "globalVoiceShortcut".to_string(),
+            serde_json::json!({ "enabled": enabled, "accelerator": accelerator }),
+        );
+        Ok(())
+    })
+    .map(|_| ())
 }

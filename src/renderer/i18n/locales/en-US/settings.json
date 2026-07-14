@@ -139,6 +139,15 @@
       "resetTitle": "Restore default shortcut",
       "resetDefault": "Reset"
     },
+    "voice": {
+      "title": "Global voice wake shortcut",
+      "description": "Press the shortcut from any app to open a compact voice window, transcribe speech, and get a concise answer or open the full chat.",
+      "enableTitle": "Enable voice wake",
+      "enableDescription": "Uses Right Alt by default",
+      "currentTitle": "Current voice shortcut",
+      "currentDescription": "Click the key recorder to change it",
+      "resetDefault": "Use Right Alt"
+    },
     "recorder": {
       "cancelled": "Cancelled",
       "recordingDisplay": "Press shortcut... (Esc cancels)",

@@ -770,6 +770,11 @@ export interface AppConfig {
     enabled: boolean;
     accelerator: string;
   };
+  /** 全局语音唤醒快捷键，缺省为右 Alt。 */
+  globalVoiceShortcut?: {
+    enabled: boolean;
+    accelerator: string;
+  };
   // OS-level desktop notifications. When false, ALL notification trigger
   // points are suppressed at the Rust entry point (cron complete, task
   // complete, AI turn complete, permission request, ask-user-question,
@@ -1274,8 +1279,13 @@ export const DEFAULT_CONFIG: AppConfig = {
     enabled: true,
     accelerator: 'CmdOrCtrl+Shift+M',
   },
+  globalVoiceShortcut: {
+    enabled: true,
+    accelerator: 'AltRight',
+  },
 };
 
 /** Default accelerator string for the global summon shortcut (PRD 0.2.16).
  *  Mirrors the Rust constant `global_shortcut::DEFAULT_ACCELERATOR`. */
 export const DEFAULT_SUMMON_ACCELERATOR = 'CmdOrCtrl+Shift+M';
+export const DEFAULT_VOICE_ACCELERATOR = 'AltRight';

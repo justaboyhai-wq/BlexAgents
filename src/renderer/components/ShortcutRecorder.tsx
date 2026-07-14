@@ -24,6 +24,8 @@ export interface ShortcutRecorderProps {
   disabled?: boolean;
   /** Optional: extra class for the button. */
   className?: string;
+  /** Allow a standalone physical modifier such as Right Alt (voice wake). */
+  allowBareModifier?: boolean;
 }
 
 const MAIN_KEY_BLOCKLIST = new Set([
@@ -105,6 +107,7 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
   onChange,
   disabled = false,
   className,
+  allowBareModifier = false,
 }: ShortcutRecorderProps) {
   const { t } = useTranslation('settings');
   const [recording, setRecording] = useState(false);
@@ -137,7 +140,13 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
       // Ignore pure modifier keypresses — wait for the user to add a main key.
       const isPureModifier =
         e.key === 'Meta' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift';
-      if (isPureModifier) return;
+      if (isPureModifier && !(allowBareModifier && e.code === 'AltRight')) return;
+
+      if (allowBareModifier && e.code === 'AltRight' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        stopRecording();
+        onChange('AltRight');
+        return;
+      }
 
       const result = eventToAccelerator(e);
       if (!result.ok) {
@@ -150,7 +159,7 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
 
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, [recording, onChange, stopRecording, t]);
+  }, [allowBareModifier, recording, onChange, stopRecording, t]);
 
   // Auto-blur when entering recording state so the button doesn't trap focus
   useEffect(() => {
