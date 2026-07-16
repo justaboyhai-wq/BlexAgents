@@ -27,9 +27,9 @@ import SessionStatsModal from '@/components/SessionStatsModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import CustomSelect from '@/components/CustomSelect';
 import { useToast } from '@/components/Toast';
-import { getFolderName, formatTime, isImSource, getSessionDisplayText, formatMessageCount } from '@/utils/taskCenterUtils';
+import { formatTime, isImSource, getSessionDisplayText, formatMessageCount } from '@/utils/taskCenterUtils';
 import type { SessionMetadata } from '@/api/sessionClient';
-import { workspacePathsEqual } from '@/../shared/workspacePath';
+import { getWorkspaceDisplayName, workspacePathsEqual } from '@/../shared/workspacePath';
 import type { Project } from '@/config/types';
 import OverlayBackdrop from '@/components/OverlayBackdrop';
 import SessionSearchItem from '@/components/search/SessionSearchItem';
@@ -99,7 +99,7 @@ export default memo(function TaskCenterOverlay({
         for (const s of sessions) {
             const proj = projects.find(p => workspacePathsEqual(p.path, s.agentDir));
             if (proj) {
-                const name = getFolderName(proj.path);
+                const name = getWorkspaceDisplayName(proj.path, proj.displayName || proj.name);
                 if (!seen.has(name)) seen.set(name, proj.icon);
             }
         }
@@ -139,7 +139,7 @@ export default memo(function TaskCenterOverlay({
             // Workspace filter
             if (workspaceFilter !== 'all') {
                 const proj = projects.find(p => workspacePathsEqual(p.path, session.agentDir));
-                if (!proj || getFolderName(proj.path) !== workspaceFilter) return false;
+                if (!proj || getWorkspaceDisplayName(proj.path, proj.displayName || proj.name) !== workspaceFilter) return false;
             }
 
             return true;
@@ -387,7 +387,7 @@ export default memo(function TaskCenterOverlay({
                                             <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--ink-muted)]/45">
                                                 <WorkspaceIcon icon={directSessionMatch.project.icon} size={14} />
                                                 <span className="max-w-[80px] truncate">
-                                                    {getFolderName(directSessionMatch.project.path)}
+                                                    {getWorkspaceDisplayName(directSessionMatch.project.path, directSessionMatch.project.displayName || directSessionMatch.project.name)}
                                                 </span>
                                             </div>
                                         </div>
@@ -462,7 +462,7 @@ export default memo(function TaskCenterOverlay({
                                                     <div className="flex shrink-0 items-center gap-1.5 text-xs text-[var(--ink-muted)]/45">
                                                         <WorkspaceIcon icon={project.icon} size={14} />
                                                         <span className="max-w-[80px] truncate">
-                                                            {getFolderName(project.path)}
+                                                            {getWorkspaceDisplayName(project.path, project.displayName || project.name)}
                                                         </span>
                                                     </div>
 

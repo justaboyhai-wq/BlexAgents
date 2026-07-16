@@ -517,6 +517,10 @@ export function getSystemPresetProjectMetadataPatch(
   if (metadata.templateId && project.templateId !== metadata.templateId) patch.templateId = metadata.templateId;
   if (metadata.templateSource && project.templateSource !== metadata.templateSource) patch.templateSource = metadata.templateSource;
   if (!project.icon && metadata.icon) patch.icon = metadata.icon;
+  if (
+    presetId === DEFAULT_SYSTEM_PRESET_WORKSPACE_ID
+    && project.name.toLowerCase() === 'mino'
+  ) patch.name = DEFAULT_SYSTEM_PRESET_WORKSPACE_DISPLAY_NAME;
   const shouldRepairDisplayName = !project.displayName
     || (
       presetId === DEFAULT_SYSTEM_PRESET_WORKSPACE_ID

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 
@@ -11,8 +11,10 @@ interface GlobalDictationProps { enabled: boolean; }
 /** Background push-to-talk dictation. It never activates or sends to BlexAgent. */
 export default function GlobalDictation({ enabled }: GlobalDictationProps) {
   const textRef = useRef('');
+  const [liveText, setLiveText] = useState('');
   const setComposerText = useCallback((value: string) => {
     textRef.current = value;
+    setLiveText(value);
   }, []);
   const asr = useAgentPlanAsr({
     enabled,
@@ -24,6 +26,8 @@ export default function GlobalDictation({ enabled }: GlobalDictationProps) {
   const { state, error, audioLevels, start, stop } = asr;
   const startRef = useRef<Promise<void> | null>(null);
   const heldRef = useRef(false);
+  const insertedTextRef = useRef('');
+  const insertionQueueRef = useRef(Promise.resolve());
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -33,6 +37,8 @@ export default function GlobalDictation({ enabled }: GlobalDictationProps) {
       heldRef.current = true;
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       setComposerText('');
+      insertedTextRef.current = '';
+      insertionQueueRef.current = Promise.resolve();
       void emit('voice-capsule-state', { kind: 'dictation', phase: 'recording', transcript: '', response: '', audioLevels: [] });
       startRef.current = start();
     }, controller.signal);
@@ -49,8 +55,14 @@ export default function GlobalDictation({ enabled }: GlobalDictationProps) {
           hideTimerRef.current = setTimeout(() => { void invoke('cmd_hide_voice_capsule'); }, 1200);
           return;
         }
+        await insertionQueueRef.current;
         await emit('voice-capsule-state', { kind: 'dictation', phase: 'writing', transcript, response: '', audioLevels: [] });
-        await invoke('cmd_insert_global_dictation_text', { text: transcript });
+        await invoke('cmd_insert_global_dictation_text', {
+          text: transcript,
+          replaceCharacters: Array.from(insertedTextRef.current).length,
+          finalize: true,
+        });
+        insertedTextRef.current = '';
         await emit('voice-capsule-state', { kind: 'dictation', phase: 'complete', transcript, response: '', audioLevels: [] });
         setComposerText('');
         hideTimerRef.current = setTimeout(() => { void invoke('cmd_hide_voice_capsule'); }, 650);
@@ -71,12 +83,29 @@ export default function GlobalDictation({ enabled }: GlobalDictationProps) {
     void emit('voice-capsule-state', {
       kind: 'dictation',
       phase: state === 'starting' || state === 'recording' ? 'recording' : 'recognizing',
-      transcript: textRef.current,
+      transcript: liveText,
       response: '',
       audioLevels,
       error: error ?? undefined,
     });
-  }, [audioLevels, error, state]);
+  }, [audioLevels, error, liveText, state]);
+
+  useEffect(() => {
+    if (!heldRef.current || !liveText || liveText === insertedTextRef.current) return;
+    insertionQueueRef.current = insertionQueueRef.current.then(async () => {
+      if (!heldRef.current) return;
+      const previous = insertedTextRef.current;
+      if (liveText === previous) return;
+      await invoke('cmd_insert_global_dictation_text', {
+        text: liveText,
+        replaceCharacters: Array.from(previous).length,
+        finalize: false,
+      });
+      insertedTextRef.current = liveText;
+    }).catch(cause => {
+      console.warn('[global-dictation] live insertion failed:', cause);
+    });
+  }, [liveText]);
 
   return null;
 }

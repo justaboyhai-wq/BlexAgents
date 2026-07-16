@@ -32,11 +32,11 @@ import type { Project } from '@/config/types';
 import { isProjectArchived } from '@/config/types';
 import type { AgentStatusData } from '@/hooks/useAgentStatuses';
 import type { SessionTag, TaskCenterData } from '@/hooks/useTaskCenterData';
-import { normalizeWorkspacePathIdentity } from '@/../shared/workspacePath';
+import { getWorkspaceDisplayName, normalizeWorkspacePathIdentity } from '@/../shared/workspacePath';
 import { isAutomationHistoryOrigin } from '@/../shared/session-origin';
 import type { AgentConfig } from '../../../shared/types/agent';
 import { isSupportedLocale } from '../../../shared/i18n';
-import { formatMessageCount, formatTime, getFolderName, getSessionDisplayText } from '@/utils/taskCenterUtils';
+import { formatMessageCount, formatTime, getSessionDisplayText } from '@/utils/taskCenterUtils';
 import AddWorkspaceMenu from './AddWorkspaceMenu';
 import WorkspaceCard from './WorkspaceCard';
 import WorkspaceIcon from './WorkspaceIcon';
@@ -77,7 +77,7 @@ interface LauncherRightRailProps {
 }
 
 const getProjectDisplayName = (project: Project): string =>
-    project.displayName || getFolderName(project.path);
+    getWorkspaceDisplayName(project.path, project.displayName || project.name);
 
 function ArchiveToggleCard({
     expanded,

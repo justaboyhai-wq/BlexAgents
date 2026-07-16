@@ -11,7 +11,8 @@ import type { SessionMetadata } from '@/api/sessionClient';
 import type { Project } from '@/config/types';
 import WorkspaceIcon from '@/components/launcher/WorkspaceIcon';
 import SearchHighlight from './SearchHighlight';
-import { getFolderName, formatTime } from '@/utils/taskCenterUtils';
+import { formatTime } from '@/utils/taskCenterUtils';
+import { getWorkspaceDisplayName } from '@/../shared/workspacePath';
 
 interface SessionSearchItemProps {
     hit: SessionSearchHit;
@@ -34,7 +35,9 @@ export default memo(function SessionSearchItem({
 }: SessionSearchItemProps) {
     const { t } = useTranslation('app');
     // If we don't have project info, fallback to showing just the agentDir
-    const projectName = project ? getFolderName(project.path) : getFolderName(hit.agentDir);
+    const projectName = project
+        ? getWorkspaceDisplayName(project.path, project.displayName || project.name)
+        : getWorkspaceDisplayName(hit.agentDir);
     const displayLastActiveAt = session?.lastActiveAt ?? hit.lastActiveAt;
     const msgCountStr = hit.messageCount !== null && hit.messageCount > 0
         ? t('historyOverlay.messageCount', { count: hit.messageCount })

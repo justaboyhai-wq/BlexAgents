@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeWorkspacePathIdentity, workspacePathsEqual } from './workspacePath';
+import { getWorkspaceDisplayName, normalizeWorkspacePathIdentity, workspacePathsEqual } from './workspacePath';
 
 describe('normalizeWorkspacePathIdentity', () => {
   // Mirrors the Rust `normalize_path_*` tests in src-tauri/src/cron_task.rs so
@@ -35,6 +35,18 @@ describe('normalizeWorkspacePathIdentity', () => {
 
   it('returns empty string unchanged', () => {
     expect(normalizeWorkspacePathIdentity('')).toBe('');
+  });
+});
+
+describe('getWorkspaceDisplayName', () => {
+  it('hides the legacy bundled-workspace directory name from product chrome', () => {
+    expect(getWorkspaceDisplayName('C:\\Users\\me\\.blexagent\\projects\\mino')).toBe('Blex');
+    expect(getWorkspaceDisplayName('/Users/me/.blexagent/projects/mino')).toBe('Blex');
+  });
+
+  it('prefers explicit project metadata and leaves unrelated mino folders alone', () => {
+    expect(getWorkspaceDisplayName('/Users/me/.blexagent/projects/mino', 'My Blex')).toBe('My Blex');
+    expect(getWorkspaceDisplayName('/Users/me/code/mino')).toBe('mino');
   });
 });
 

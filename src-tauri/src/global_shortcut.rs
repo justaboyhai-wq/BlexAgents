@@ -71,7 +71,19 @@ impl Default for GlobalSummonConfig {
 /// arbitrary worker threads.
 static CURRENT_ACCELERATOR: Mutex<Option<String>> = Mutex::new(None);
 static CURRENT_VOICE_ACCELERATOR: Mutex<Option<String>> = Mutex::new(None);
-static CURRENT_VOICE_SURFACE: Mutex<Option<&'static str>> = Mutex::new(None);
+
+#[derive(Debug, Clone, Copy)]
+struct VoiceWakeRuntimeState {
+    surface: Option<&'static str>,
+    held: bool,
+    revision: u64,
+}
+
+static CURRENT_VOICE_STATE: Mutex<VoiceWakeRuntimeState> = Mutex::new(VoiceWakeRuntimeState {
+    surface: None,
+    held: false,
+    revision: 0,
+});
 static VOICE_POLL_GENERATION: AtomicU64 = AtomicU64::new(0);
 #[cfg(target_os = "windows")]
 static DICTATION_TARGET_WINDOW: AtomicIsize = AtomicIsize::new(0);
@@ -100,15 +112,25 @@ fn on_dictation_released<R: Runtime>(app: &AppHandle<R>) {
 
 #[cfg(target_os = "windows")]
 #[tauri::command]
-pub fn cmd_insert_global_dictation_text(text: String) -> Result<(), String> {
+pub fn cmd_insert_global_dictation_text(
+    text: String,
+    replace_characters: Option<u32>,
+    finalize: Option<bool>,
+) -> Result<(), String> {
     use std::mem::size_of;
     use windows_sys::Win32::Foundation::HWND;
     use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
         SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE,
+        VK_BACK,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{IsWindow, SetForegroundWindow};
 
-    let target = DICTATION_TARGET_WINDOW.swap(0, Ordering::Relaxed) as HWND;
+    let finalize = finalize.unwrap_or(true);
+    let target = if finalize {
+        DICTATION_TARGET_WINDOW.swap(0, Ordering::Relaxed)
+    } else {
+        DICTATION_TARGET_WINDOW.load(Ordering::Relaxed)
+    } as HWND;
     if target.is_null() || unsafe { IsWindow(target) } == 0 {
         return Err("Global dictation target is no longer available.".to_string());
     }
@@ -116,6 +138,45 @@ pub fn cmd_insert_global_dictation_text(text: String) -> Result<(), String> {
         return Err("Unable to restore the dictation target window.".to_string());
     }
     std::thread::sleep(std::time::Duration::from_millis(35));
+
+    for _ in 0..replace_characters.unwrap_or(0) {
+        let mut inputs = [
+            INPUT {
+                r#type: INPUT_KEYBOARD,
+                Anonymous: INPUT_0 {
+                    ki: KEYBDINPUT {
+                        wVk: VK_BACK,
+                        wScan: 0,
+                        dwFlags: 0,
+                        time: 0,
+                        dwExtraInfo: 0,
+                    },
+                },
+            },
+            INPUT {
+                r#type: INPUT_KEYBOARD,
+                Anonymous: INPUT_0 {
+                    ki: KEYBDINPUT {
+                        wVk: VK_BACK,
+                        wScan: 0,
+                        dwFlags: KEYEVENTF_KEYUP,
+                        time: 0,
+                        dwExtraInfo: 0,
+                    },
+                },
+            },
+        ];
+        let sent = unsafe {
+            SendInput(
+                inputs.len() as u32,
+                inputs.as_mut_ptr(),
+                size_of::<INPUT>() as i32,
+            )
+        };
+        if sent != inputs.len() as u32 {
+            return Err("Windows rejected global dictation correction.".to_string());
+        }
+    }
 
     for unit in text.encode_utf16() {
         let mut inputs = [
@@ -160,7 +221,11 @@ pub fn cmd_insert_global_dictation_text(text: String) -> Result<(), String> {
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub fn cmd_insert_global_dictation_text(_text: String) -> Result<(), String> {
+pub fn cmd_insert_global_dictation_text(
+    _text: String,
+    _replace_characters: Option<u32>,
+    _finalize: Option<bool>,
+) -> Result<(), String> {
     Err("Global dictation is currently available on Windows only.".to_string())
 }
 
@@ -485,25 +550,74 @@ fn on_voice_pressed<R: Runtime>(app: &AppHandle<R>) {
             ulog_error!("{}", error);
         }
     }
-    if let Ok(mut current) = CURRENT_VOICE_SURFACE.lock() {
-        *current = Some(surface);
-    }
+    let revision = if let Ok(mut current) = CURRENT_VOICE_STATE.lock() {
+        current.surface = Some(surface);
+        current.held = true;
+        current.revision = current.revision.wrapping_add(1);
+        current.revision
+    } else {
+        ulog_error!("[global-shortcut] voice runtime state mutex poisoned on press");
+        0
+    };
     let _ = app.emit(
         "global-voice-wake-start",
-        serde_json::json!({ "surface": surface }),
+        serde_json::json!({ "surface": surface, "revision": revision }),
     );
-    ulog_info!("[global-shortcut] voice wake surface={}", surface);
+    ulog_info!(
+        "[global-shortcut] voice wake surface={} revision={}",
+        surface,
+        revision
+    );
 }
 
 fn on_voice_released<R: Runtime>(app: &AppHandle<R>) {
-    let surface = CURRENT_VOICE_SURFACE
-        .lock()
-        .ok()
-        .and_then(|mut value| value.take());
+    let (surface, revision) = if let Ok(mut current) = CURRENT_VOICE_STATE.lock() {
+        let surface = current.surface.take();
+        if current.held {
+            current.held = false;
+            current.revision = current.revision.wrapping_add(1);
+        }
+        (surface, current.revision)
+    } else {
+        ulog_error!("[global-shortcut] voice runtime state mutex poisoned on release");
+        (None, 0)
+    };
     let _ = app.emit(
         "global-voice-wake-stop",
-        serde_json::json!({ "surface": surface }),
+        serde_json::json!({ "surface": surface, "revision": revision }),
     );
+    ulog_info!(
+        "[global-shortcut] voice wake released surface={:?} revision={}",
+        surface,
+        revision
+    );
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalVoiceWakeSnapshot {
+    held: bool,
+    surface: Option<String>,
+    revision: u64,
+}
+
+/// Durable native-key state for a WebView that was created after the initial
+/// DOWN event. Event delivery is transient; this snapshot closes the first
+/// capsule mount and hidden-renderer race without polling the physical mouse.
+#[tauri::command]
+pub fn cmd_get_global_voice_wake_snapshot() -> GlobalVoiceWakeSnapshot {
+    CURRENT_VOICE_STATE
+        .lock()
+        .map(|state| GlobalVoiceWakeSnapshot {
+            held: state.held,
+            surface: state.surface.map(str::to_owned),
+            revision: state.revision,
+        })
+        .unwrap_or(GlobalVoiceWakeSnapshot {
+            held: false,
+            surface: None,
+            revision: 0,
+        })
 }
 
 #[cfg(target_os = "windows")]
@@ -576,16 +690,7 @@ fn start_native_voice_monitor<R: Runtime>(
 
 #[cfg(target_os = "windows")]
 fn lingji_ai_edge(report: &[u8]) -> Option<bool> {
-    if report.len() < 6
-        || report[0] != 0x0A
-        || report[1] != 0xD0
-        || report[2] != 0x99
-        || !matches!(report[3], 0x5D | 0x5E | 0x5F)
-        || report[4] != 0x01
-    {
-        return None;
-    }
-    match report[5] {
+    match lingji_control_code(report)? {
         0x23 => Some(true),
         0x24 => Some(false),
         _ => None,
@@ -598,17 +703,18 @@ fn lingji_control_code(report: &[u8]) -> Option<u8> {
         || report[0] != 0x0A
         || report[1] != 0xD0
         || report[2] != 0x99
-        || !matches!(report[3], 0x5D | 0x5E | 0x5F)
         || report[4] != 0x01
     {
         return None;
     }
+    // report[3] is the current battery percentage, not a protocol/version
+    // marker. It changes during normal use and must never gate button routing.
     Some(report[5])
 }
 
 #[cfg(target_os = "windows")]
-fn lingji_output_report(command: u8) -> [u8; 41] {
-    let mut report = [0_u8; 41];
+fn lingji_output_report(command: u8) -> [u8; 10] {
+    let mut report = [0_u8; 10];
     report[0] = 0x0A;
     report[1] = 0x03;
     report[2] = command;
@@ -616,46 +722,78 @@ fn lingji_output_report(command: u8) -> [u8; 41] {
 }
 
 #[cfg(target_os = "windows")]
-const LINGJI_STALE_REPORT_WINDOW: std::time::Duration = std::time::Duration::from_secs(10);
+const LINGJI_INIT_STEPS: &[(u8, u64)] = &[(0xA0, 3), (0x41, 1_300), (0x26, 6), (0x52, 0)];
+#[cfg(target_os = "windows")]
+const LINGJI_STATUS_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(1);
+#[cfg(target_os = "windows")]
+const LINGJI_PROTOCOL_SILENCE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+#[cfg(target_os = "windows")]
+const LINGJI_HEALTH_LOG_INTERVAL: std::time::Duration = std::time::Duration::from_secs(60);
+#[cfg(target_os = "windows")]
+const LINGJI_MAX_HELD_DURATION: std::time::Duration = std::time::Duration::from_secs(90);
+#[cfg(target_os = "windows")]
+const LINGJI_LOOP_GAP_RECOVERY: std::time::Duration = std::time::Duration::from_secs(3);
 
 #[cfg(target_os = "windows")]
-fn lingji_report_stream_is_stale(elapsed_since_valid_report: std::time::Duration) -> bool {
-    elapsed_since_valid_report >= LINGJI_STALE_REPORT_WINDOW
+fn send_lingji_command(device: &hidapi::HidDevice, command: u8) -> Result<(), String> {
+    let report = lingji_output_report(command);
+    // SonicUMouse.exe calls hid_write with these ten user-space bytes. The
+    // windows-native hidapi backend pads them to OutputReportByteLength and
+    // sends them through WriteFile. Although USBPcap ultimately displays an
+    // HID SET_REPORT transaction, HidD_SetOutputReport is a different Windows
+    // API path and leaves this receiver silent.
+    device
+        .write(&report)
+        .map(|_| ())
+        .map_err(|error| format!("hid_write command 0x{command:02X}: {error}"))
 }
 
 #[cfg(target_os = "windows")]
 fn initialize_lingji_ai(device: &hidapi::HidDevice) -> Result<(), String> {
-    use std::time::Duration;
-
-    let send = |command| {
-        let report = lingji_output_report(command);
-        let written = device
-            .write(&report)
-            .map_err(|error| format!("command 0x{command:02X}: {error}"))?;
-        if written != report.len() {
-            return Err(format!(
-                "command 0x{command:02X}: wrote {written}/{} bytes",
-                report.len()
-            ));
+    // Two independent uMouse startup captures agree on this command order.
+    // Delays are conservative upper bounds derived from both captures.
+    for &(command, delay_after_ms) in LINGJI_INIT_STEPS {
+        send_lingji_command(device, command)?;
+        if delay_after_ms > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(delay_after_ms));
         }
-        Ok(())
-    };
-
-    for _ in 0..3 {
-        send(0xA0)?;
-        std::thread::sleep(Duration::from_millis(120));
     }
-    send(0x41)?;
-    std::thread::sleep(Duration::from_millis(1050));
-    send(0x26)?;
-    std::thread::sleep(Duration::from_millis(10));
-    send(0x52)?;
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LingjiButtonState {
+    Up,
+    Down,
+}
+
+#[cfg(target_os = "windows")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LingjiEdgeTransition {
+    Ignore,
+    Press,
+    Release,
+    RetryPress,
+}
+
+#[cfg(target_os = "windows")]
+fn lingji_edge_transition(state: LingjiButtonState, is_down: bool) -> LingjiEdgeTransition {
+    match (state, is_down) {
+        (LingjiButtonState::Up, true) => LingjiEdgeTransition::Press,
+        (LingjiButtonState::Down, false) => LingjiEdgeTransition::Release,
+        // The receiver emits edge reports, not key-repeat reports. A second
+        // DOWN therefore means the previous UP was lost (or its dispatch was
+        // missed). Re-deliver start idempotently and let the next UP close the
+        // active capture instead of ignoring every future press indefinitely.
+        (LingjiButtonState::Down, true) => LingjiEdgeTransition::RetryPress,
+        (LingjiButtonState::Up, false) => LingjiEdgeTransition::Ignore,
+    }
+}
+
+#[cfg(target_os = "windows")]
 fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     const VID: u16 = 0xABC9;
     const PID: u16 = 0xCA89;
@@ -664,7 +802,8 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
     let generation = VOICE_POLL_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let mut was_down = false;
+        let mut recovery_count = 0_u64;
+        let mut consecutive_failures = 0_u32;
         while VOICE_POLL_GENERATION.load(Ordering::Relaxed) == generation {
             let api = match hidapi::HidApi::new() {
                 Ok(api) => api,
@@ -698,6 +837,14 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
                     })
                 });
             let Some(info) = info else {
+                if consecutive_failures == 0 {
+                    ulog_warn!(
+                        "[global-shortcut] Lingji HID is not present; waiting for VID={:04X} PID={:04X}",
+                        VID,
+                        PID
+                    );
+                }
+                consecutive_failures = consecutive_failures.saturating_add(1);
                 std::thread::sleep(Duration::from_secs(1));
                 continue;
             };
@@ -719,47 +866,217 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
                     continue;
                 }
             };
-            match initialize_lingji_ai(&device) {
-                Ok(()) => ulog_info!("[global-shortcut] initialized Lingji AI HID reporting"),
-                Err(error) => ulog_warn!(
-                    "[global-shortcut] Lingji AI initialization failed; continuing read: {}",
-                    error
-                ),
+            if let Err(error) = initialize_lingji_ai(&device) {
+                consecutive_failures = consecutive_failures.saturating_add(1);
+                recovery_count = recovery_count.saturating_add(1);
+                ulog_warn!(
+                    "[global-shortcut] initialize Lingji AI protocol failed: {}; recovery={} retryMs=1000",
+                    error,
+                    recovery_count
+                );
+                drop(device);
+                std::thread::sleep(Duration::from_secs(1));
+                continue;
             }
-            ulog_info!("[global-shortcut] monitoring Lingji AI HID button");
+            ulog_info!(
+                "[global-shortcut] initialized Lingji AI protocol commands=A0,41,26,52 transport=hid_write"
+            );
+            ulog_info!(
+                "[global-shortcut] monitoring Lingji AI HID button generation={} (awaiting device heartbeat)",
+                generation
+            );
             let mut report = [0_u8; 64];
-            let mut last_unclassified = None;
-            let mut last_valid_report = std::time::Instant::now();
+            let mut logged_unclassified = [false; 256];
+            let mut ai_state = LingjiButtonState::Up;
+            let mut dictation_state = LingjiButtonState::Up;
+            let mut ai_down_since: Option<Instant> = None;
+            let mut dictation_down_since: Option<Instant> = None;
+            let opened_at = Instant::now();
+            let mut next_status_poll_at = opened_at + LINGJI_STATUS_POLL_INTERVAL;
+            let mut last_protocol_at: Option<Instant> = None;
+            let mut last_heartbeat_at: Option<Instant> = None;
+            let mut last_health_log_at = Instant::now();
+            let mut last_loop_at = Instant::now();
+            let mut recovery_deferred_while_down = false;
+            let mut saw_healthy_protocol = false;
+            let mut recovery_reason: Option<String> = None;
             loop {
                 if VOICE_POLL_GENERATION.load(Ordering::Relaxed) != generation {
                     break;
                 }
-                match device.read_timeout(&mut report, 250) {
-                    Ok(0) => {
-                        if lingji_report_stream_is_stale(last_valid_report.elapsed()) {
-                            ulog_warn!(
-                                "[global-shortcut] Lingji HID produced no valid control frames for {}ms; reopening interface",
-                                last_valid_report.elapsed().as_millis()
-                            );
-                            break;
-                        }
+
+                let now = Instant::now();
+                let loop_gap = now.saturating_duration_since(last_loop_at);
+                last_loop_at = now;
+                if loop_gap >= LINGJI_LOOP_GAP_RECOVERY {
+                    recovery_reason = Some(format!(
+                        "monitor loop paused for {}ms (sleep/resume or blocked HID I/O)",
+                        loop_gap.as_millis()
+                    ));
+                    break;
+                }
+                if ai_state == LingjiButtonState::Down
+                    && ai_down_since
+                        .map(|started| started.elapsed() >= LINGJI_MAX_HELD_DURATION)
+                        .unwrap_or(false)
+                {
+                    ulog_warn!(
+                        "[global-shortcut] Lingji AI release was not observed for {}s; synthesizing release",
+                        LINGJI_MAX_HELD_DURATION.as_secs()
+                    );
+                    ai_state = LingjiButtonState::Up;
+                    ai_down_since = None;
+                    let app_for_event = app.clone();
+                    if let Err(error) =
+                        app.run_on_main_thread(move || on_voice_released(&app_for_event))
+                    {
+                        ulog_error!(
+                            "[global-shortcut] dispatch synthesized AI release failed: {}",
+                            error
+                        );
                     }
+                }
+                if dictation_state == LingjiButtonState::Down
+                    && dictation_down_since
+                        .map(|started| started.elapsed() >= LINGJI_MAX_HELD_DURATION)
+                        .unwrap_or(false)
+                {
+                    ulog_warn!(
+                        "[global-shortcut] Lingji dictation release was not observed for {}s; synthesizing release",
+                        LINGJI_MAX_HELD_DURATION.as_secs()
+                    );
+                    dictation_state = LingjiButtonState::Up;
+                    dictation_down_since = None;
+                    let app_for_event = app.clone();
+                    if let Err(error) =
+                        app.run_on_main_thread(move || on_dictation_released(&app_for_event))
+                    {
+                        ulog_error!(
+                            "[global-shortcut] dispatch synthesized dictation release failed: {}",
+                            error
+                        );
+                    }
+                }
+
+                // uMouse emits two phase-shifted A0 flows, totalling roughly
+                // two requests per second. One request per second is sufficient
+                // for Blex's single owner loop and keeps vendor reporting alive
+                // without duplicating the driver's two internal timers.
+                if now >= next_status_poll_at {
+                    if let Err(error) = send_lingji_command(&device, 0xA0) {
+                        ulog_warn!(
+                            "[global-shortcut] Lingji periodic status query failed; supervisor will verify protocol health: {}",
+                            error
+                        );
+                    }
+                    next_status_poll_at = now + LINGJI_STATUS_POLL_INTERVAL;
+                }
+
+                // 0x55 is device-initiated and appears about once per second in
+                // both independent USB captures, including before the first A0
+                // query. If all valid protocol frames stop, the Windows HID
+                // read handle is stale even though PnP and writes can still
+                // look healthy. Drop only this handle, reopen it, and rerun the
+                // required initialization sequence before accepting input.
+                let protocol_silence = last_protocol_at
+                    .map(|instant| instant.elapsed())
+                    .unwrap_or_else(|| opened_at.elapsed());
+                if protocol_silence >= LINGJI_PROTOCOL_SILENCE_TIMEOUT {
+                    if ai_state == LingjiButtonState::Down
+                        || dictation_state == LingjiButtonState::Down
+                    {
+                        if !recovery_deferred_while_down {
+                            ulog_warn!(
+                                "[global-shortcut] Lingji protocol silent for {}ms while a voice key is down; deferring handle recovery until release",
+                                protocol_silence.as_millis()
+                            );
+                            recovery_deferred_while_down = true;
+                        }
+                    } else {
+                        recovery_reason = Some(format!(
+                            "no device protocol frame for {}ms",
+                            protocol_silence.as_millis()
+                        ));
+                        break;
+                    }
+                }
+
+                if last_health_log_at.elapsed() >= LINGJI_HEALTH_LOG_INTERVAL {
+                    let protocol_age_ms = last_protocol_at
+                        .map(|instant| instant.elapsed().as_millis().to_string())
+                        .unwrap_or_else(|| "never".to_string());
+                    let heartbeat_age_ms = last_heartbeat_at
+                        .map(|instant| instant.elapsed().as_millis().to_string())
+                        .unwrap_or_else(|| "never".to_string());
+                    ulog_info!(
+                        "[global-shortcut] Lingji health state={} protocolAgeMs={} heartbeatAgeMs={} recoveries={}",
+                        if saw_healthy_protocol { "healthy" } else { "awaiting-heartbeat" },
+                        protocol_age_ms,
+                        heartbeat_age_ms,
+                        recovery_count
+                    );
+                    last_health_log_at = Instant::now();
+                }
+
+                match device.read_timeout(&mut report, 100) {
+                    // A short timeout is expected between the one-second
+                    // device-initiated status frames. Health is decided by
+                    // observed protocol traffic, never by mouse motion or by
+                    // assuming an output command was acknowledged.
+                    Ok(0) => {}
                     Ok(length) => {
                         let control_code = lingji_control_code(&report[..length]);
                         if let Some(code) = control_code {
-                            last_valid_report = std::time::Instant::now();
+                            let now = Instant::now();
+                            last_protocol_at = Some(now);
+                            if code == 0x55 {
+                                last_heartbeat_at = Some(now);
+                            }
+                            recovery_deferred_while_down = false;
+                            if !saw_healthy_protocol {
+                                saw_healthy_protocol = true;
+                                consecutive_failures = 0;
+                                ulog_info!(
+                                    "[global-shortcut] Lingji HID healthy; first protocol code=0x{:02X}",
+                                    code
+                                );
+                            }
                             match code {
                                 0x21 => {
-                                    let app_for_event = app.clone();
-                                    let _ = app.run_on_main_thread(move || {
-                                        on_dictation_pressed(&app_for_event)
-                                    });
+                                    if dictation_state == LingjiButtonState::Up {
+                                        dictation_state = LingjiButtonState::Down;
+                                        dictation_down_since = Some(now);
+                                        ulog_info!(
+                                            "[global-shortcut] Lingji raw dictation DOWN code=0x21"
+                                        );
+                                        let app_for_event = app.clone();
+                                        if let Err(error) = app.run_on_main_thread(move || {
+                                            on_dictation_pressed(&app_for_event)
+                                        }) {
+                                            ulog_error!(
+                                                "[global-shortcut] dispatch dictation DOWN failed: {}",
+                                                error
+                                            );
+                                        }
+                                    }
                                 }
                                 0x22 => {
-                                    let app_for_event = app.clone();
-                                    let _ = app.run_on_main_thread(move || {
-                                        on_dictation_released(&app_for_event)
-                                    });
+                                    if dictation_state == LingjiButtonState::Down {
+                                        dictation_state = LingjiButtonState::Up;
+                                        dictation_down_since = None;
+                                        ulog_info!(
+                                            "[global-shortcut] Lingji raw dictation UP code=0x22"
+                                        );
+                                        let app_for_event = app.clone();
+                                        if let Err(error) = app.run_on_main_thread(move || {
+                                            on_dictation_released(&app_for_event)
+                                        }) {
+                                            ulog_error!(
+                                                "[global-shortcut] dispatch dictation UP failed: {}",
+                                                error
+                                            );
+                                        }
+                                    }
                                 }
                                 _ => {}
                             }
@@ -767,57 +1084,107 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
                             // other unclassified controls so additional physical
                             // buttons can be mapped without uMouse or guesswork.
                             if !matches!(code, 0x21 | 0x22 | 0x23 | 0x24 | 0x55)
-                                && last_unclassified != Some(code)
+                                && !logged_unclassified[usize::from(code)]
                             {
                                 ulog_info!(
                                     "[global-shortcut] Lingji unclassified control code=0x{:02X} report={:02X?}",
                                     code,
                                     &report[..length.min(16)]
                                 );
-                                last_unclassified = Some(code);
-                            } else if matches!(code, 0x21 | 0x22 | 0x23 | 0x24 | 0x55) {
-                                last_unclassified = None;
+                                logged_unclassified[usize::from(code)] = true;
                             }
-                        }
-                        if control_code.is_none()
-                            && lingji_report_stream_is_stale(last_valid_report.elapsed())
-                        {
-                            ulog_warn!(
-                                "[global-shortcut] Lingji HID is receiving non-control traffic but no valid frames for {}ms; reopening interface",
-                                last_valid_report.elapsed().as_millis()
-                            );
-                            break;
                         }
                         let Some(is_down) = lingji_ai_edge(&report[..length]) else {
                             continue;
                         };
-                        if is_down == was_down {
-                            continue;
-                        }
-                        was_down = is_down;
-                        let app_for_event = app.clone();
-                        let _ = app.run_on_main_thread(move || {
-                            if is_down {
-                                on_voice_pressed(&app_for_event);
-                            } else {
-                                on_voice_released(&app_for_event);
+                        let transition = lingji_edge_transition(ai_state, is_down);
+                        match transition {
+                            LingjiEdgeTransition::Ignore => continue,
+                            LingjiEdgeTransition::Press | LingjiEdgeTransition::RetryPress => {
+                                if transition == LingjiEdgeTransition::RetryPress {
+                                    ulog_warn!(
+                                        "[global-shortcut] Lingji AI DOWN arrived while state was DOWN; retrying start after a lost release/dispatch"
+                                    );
+                                }
+                                ai_state = LingjiButtonState::Down;
+                                ai_down_since = Some(Instant::now());
                             }
-                        });
+                            LingjiEdgeTransition::Release => {
+                                ai_state = LingjiButtonState::Up;
+                                ai_down_since = None;
+                            }
+                        }
+                        ulog_info!(
+                            "[global-shortcut] Lingji raw AI {} code=0x{:02X} transition={:?}",
+                            if is_down { "DOWN" } else { "UP" },
+                            if is_down { 0x23 } else { 0x24 },
+                            transition
+                        );
+                        let app_for_event = app.clone();
+                        if let Err(error) = app.run_on_main_thread(move || {
+                            match transition {
+                                LingjiEdgeTransition::RetryPress => {
+                                    // A second edge-only DOWN means the prior
+                                    // UP vanished. Close the stale capture and
+                                    // immediately establish a new native turn.
+                                    on_voice_released(&app_for_event);
+                                    on_voice_pressed(&app_for_event);
+                                }
+                                LingjiEdgeTransition::Press => on_voice_pressed(&app_for_event),
+                                LingjiEdgeTransition::Release => on_voice_released(&app_for_event),
+                                LingjiEdgeTransition::Ignore => {}
+                            }
+                        }) {
+                            ulog_error!(
+                                "[global-shortcut] dispatch AI {} failed: {}",
+                                if is_down { "DOWN" } else { "UP" },
+                                error
+                            );
+                        }
                     }
                     Err(error) => {
-                        ulog_warn!("[global-shortcut] Lingji HID read interrupted: {}", error);
+                        recovery_reason = Some(format!("HID read interrupted: {error}"));
                         break;
                     }
                 }
             }
-            if was_down {
-                was_down = false;
+            if ai_state == LingjiButtonState::Down {
                 let app_for_release = app.clone();
                 let _ = app.run_on_main_thread(move || on_voice_released(&app_for_release));
             }
-            // Avoid a tight reopen loop when Windows keeps a stale HID interface
-            // visible briefly during receiver sleep, resume, or re-enumeration.
-            std::thread::sleep(Duration::from_millis(250));
+            if dictation_state == LingjiButtonState::Down {
+                let app_for_release = app.clone();
+                let _ = app.run_on_main_thread(move || on_dictation_released(&app_for_release));
+            }
+            if VOICE_POLL_GENERATION.load(Ordering::Relaxed) != generation {
+                break;
+            }
+            recovery_count = recovery_count.saturating_add(1);
+            if saw_healthy_protocol {
+                consecutive_failures = 0;
+            } else {
+                consecutive_failures = consecutive_failures.saturating_add(1);
+            }
+            let backoff_ms = if saw_healthy_protocol {
+                // A formerly healthy handle went stale: reopen almost
+                // immediately so a wake key is not lost during a long idle.
+                100
+            } else {
+                // Bound initial/device-contention retry latency to one second.
+                let backoff_step = consecutive_failures.min(2);
+                250_u64.saturating_mul(1_u64 << backoff_step)
+            };
+            ulog_warn!(
+                "[global-shortcut] Lingji supervisor recovering reason='{}' recovery={} backoffMs={}",
+                recovery_reason.unwrap_or_else(|| "monitor generation changed".to_string()),
+                recovery_count,
+                backoff_ms
+            );
+            // Dropping the device cancels hidapi's pending overlapped ReadFile.
+            // Re-enumeration is the only reliable recovery from a handle that
+            // remains PnP-healthy but has stopped completing input reports.
+            drop(device);
+            std::thread::sleep(Duration::from_millis(backoff_ms));
         }
     });
 }
@@ -980,15 +1347,18 @@ pub fn setup_on_startup<R: Runtime>(app: &AppHandle<R>) {
     let cfg = load_config();
     if !cfg.enabled {
         ulog_info!("[global-shortcut] disabled in config, skipping registration");
-        return;
     }
-    if let Err(e) = register(app, &cfg.accelerator) {
-        ulog_warn!(
-            "[global-shortcut] startup registration of '{}' failed: {} — leaving inactive",
-            cfg.accelerator,
-            e
-        );
+    if cfg.enabled {
+        if let Err(e) = register(app, &cfg.accelerator) {
+            ulog_warn!(
+                "[global-shortcut] startup registration of '{}' failed: {} — leaving inactive",
+                cfg.accelerator,
+                e
+            );
+        }
     }
+    // Voice registration is independent from the summon shortcut. Disabling
+    // the keyboard summon chord must not disable the Lingji HID monitor.
     let voice = load_voice_config();
     if voice.enabled {
         match register_voice(app, &voice.accelerator) {
@@ -1102,7 +1472,7 @@ mod tests {
     #[test]
     fn parses_lingji_ai_press_and_release_reports() {
         let mut report = [0_u8; 41];
-        report[..6].copy_from_slice(&[0x0A, 0xD0, 0x99, 0x5D, 0x01, 0x23]);
+        report[..6].copy_from_slice(&[0x0A, 0xD0, 0x99, 0x5B, 0x01, 0x23]);
         assert_eq!(lingji_ai_edge(&report), Some(true));
         report[3] = 0x5E;
         report[5] = 0x24;
@@ -1116,22 +1486,51 @@ mod tests {
 
     #[cfg(target_os = "windows")]
     #[test]
+    fn accepts_lingji_controls_across_battery_levels() {
+        let mut report = [0_u8; 41];
+        report[..6].copy_from_slice(&[0x0A, 0xD0, 0x99, 0x00, 0x01, 0x55]);
+        for battery_percent in [0_u8, 1, 50, 91, 94, 95, 100] {
+            report[3] = battery_percent;
+            assert_eq!(lingji_control_code(&report), Some(0x55));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
     fn builds_lingji_output_report() {
         let report = lingji_output_report(0xA0);
-        assert_eq!(report.len(), 41);
+        assert_eq!(report.len(), 10);
         assert_eq!(&report[..3], &[0x0A, 0x03, 0xA0]);
         assert!(report[3..].iter().all(|byte| *byte == 0));
     }
 
     #[cfg(target_os = "windows")]
     #[test]
-    fn reconnects_lingji_monitor_when_valid_protocol_frames_stop() {
-        assert!(!lingji_report_stream_is_stale(
-            LINGJI_STALE_REPORT_WINDOW - std::time::Duration::from_millis(1)
-        ));
-        assert!(lingji_report_stream_is_stale(LINGJI_STALE_REPORT_WINDOW));
-        assert!(lingji_report_stream_is_stale(
-            LINGJI_STALE_REPORT_WINDOW + std::time::Duration::from_secs(1)
-        ));
+    fn preserves_captured_lingji_initialization_sequence() {
+        assert_eq!(
+            LINGJI_INIT_STEPS,
+            &[(0xA0, 3), (0x41, 1_300), (0x26, 6), (0x52, 0)]
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn retries_press_when_previous_release_was_lost() {
+        assert_eq!(
+            lingji_edge_transition(LingjiButtonState::Up, true),
+            LingjiEdgeTransition::Press
+        );
+        assert_eq!(
+            lingji_edge_transition(LingjiButtonState::Down, false),
+            LingjiEdgeTransition::Release
+        );
+        assert_eq!(
+            lingji_edge_transition(LingjiButtonState::Down, true),
+            LingjiEdgeTransition::RetryPress
+        );
+        assert_eq!(
+            lingji_edge_transition(LingjiButtonState::Up, false),
+            LingjiEdgeTransition::Ignore
+        );
     }
 }

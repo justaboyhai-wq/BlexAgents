@@ -61,7 +61,7 @@ import {
   isProjectVisibleToUser,
   type Project,
 } from '@/config/types';
-import { type Tab, type InitialMessage, type LaunchSessionBirthHint, type SidecarConfigDisposition, type FilePreviewIntent, createNewTab, getFolderName, buildChatFlipPatch, MAX_TABS } from '@/types/tab';
+import { type Tab, type InitialMessage, type LaunchSessionBirthHint, type SidecarConfigDisposition, type FilePreviewIntent, createNewTab, buildChatFlipPatch, MAX_TABS } from '@/types/tab';
 import { buildRestoredTabs, saveOpenTabs, hydratePersistedState, pickDurableOverride, shouldOfferRestore, planRestoreTabs } from '@/utils/tabPersistence';
 import { persistOpenTabsDurable, loadAndClearOpenTabsDurable, clearOpenTabsDurable } from '@/utils/tabPersistenceDurable';
 import { consumeCleanExitMarker } from '@/utils/lastExitMarker';
@@ -97,9 +97,14 @@ import { applyTerminalSessionToTabs } from '@/utils/sessionTermination';
 import { getSessionDisplayText } from '@/utils/sessionDisplay';
 import { listenWithCleanup } from '@/utils/tauriListen';
 import { migrateFloatingBallSessionBinding } from '@/floating-ball/sessionBinding';
+import {
+  markCapsuleTranscriptReceived,
+  storePendingCapsuleTranscript,
+  type CapsuleTranscriptEnvelope,
+} from '@/voice-capsule/capsuleTranscriptBridge';
 import { CUSTOM_EVENTS, createPendingSessionId, isPendingSessionId } from '../shared/constants';
 import { normalizeOfficialToolIds, type OfficialToolId } from '../shared/official-tools';
-import { workspacePathsEqual } from '../shared/workspacePath';
+import { getWorkspaceDisplayName, workspacePathsEqual } from '../shared/workspacePath';
 import type { CapabilityInitialSelect } from '../shared/skillsTypes';
 import { ensureSelfAwarenessWorkspace, resolveBuiltinSelection, pairBuiltinSelection, isProviderAvailable } from '@/config/configService';
 import { getAgentByWorkspacePath, getAgentById } from '@/config/services/agentConfigService';
@@ -1762,7 +1767,7 @@ export default function App() {
                   agentDir: project.path,
                   sessionId,
                   view: 'chat',
-                  title: project.displayName || getFolderName(project.path),
+                  title: getWorkspaceDisplayName(project.path, project.displayName || project.name),
                   sidecarConfigDisposition: result.isNew ? 'push' : 'adopt',
                 }
                 : t
@@ -1979,7 +1984,7 @@ export default function App() {
       // it); history flips 'pending' until the resolver runs.
       const instantNav = !sessionId;
       const flipInstant = instantNav || (!!sessionId && (await getSessionPort(sessionId)) === null);
-      const flipTitle = project.displayName || getFolderName(project.path);
+      const flipTitle = getWorkspaceDisplayName(project.path, project.displayName || project.name);
       if (flipInstant) {
         perfMark('launch_flip', { tabId: targetTabId });
         console.log(`[App][launch] FLIP(flushSync) target=${targetTabId} active=${activeTabId} (chat shell should paint now)`);
@@ -2122,7 +2127,7 @@ export default function App() {
                 ...t,
                 agentDir: project.path,
                 view: 'chat',
-                title: project.displayName || getFolderName(project.path),
+                title: getWorkspaceDisplayName(project.path, project.displayName || project.name),
                 // Terminal: ensure failed — never leave a mounted chat 'pending'.
                 sidecarConfigDisposition: 'push' as const,
               }
@@ -2350,7 +2355,7 @@ export default function App() {
         setActiveTabId(plan.tabId);
         return;
       }
-      await spawnTabForExistingSession(sessionId, sessionAgentDir, title || getFolderName(sessionAgentDir), {
+      await spawnTabForExistingSession(sessionId, sessionAgentDir, title || getWorkspaceDisplayName(sessionAgentDir), {
         preserveCronActivation: plan.type === 'attach-existing-sidecar',
       });
     } finally {
@@ -2453,7 +2458,7 @@ export default function App() {
       await spawnTabForExistingSession(
         sessionId,
         currentTab.agentDir,
-        currentTab.title || getFolderName(currentTab.agentDir),
+        currentTab.title || getWorkspaceDisplayName(currentTab.agentDir),
       );
       return;
     }
@@ -2503,7 +2508,7 @@ export default function App() {
                 sidecarConfigDisposition: result.isNew ? 'push' : 'adopt',
                 view: 'chat',
                 agentDir: tabAgentDir,
-                title: currentTab.title || getFolderName(tabAgentDir),
+                title: currentTab.title || getWorkspaceDisplayName(tabAgentDir),
               }
               : t
           )
@@ -2550,7 +2555,7 @@ export default function App() {
                 agentDir: currentTabForScenario3.agentDir,
                 sessionId,
                 view: 'chat',
-                title: currentTabForScenario3.title || getFolderName(currentTabForScenario3.agentDir ?? ''),
+                title: currentTabForScenario3.title || getWorkspaceDisplayName(currentTabForScenario3.agentDir ?? ''),
                 sidecarConfigDisposition: result.isNew ? 'push' : 'adopt',
               }
               : t
@@ -2716,7 +2721,7 @@ export default function App() {
               sidecarConfigDisposition: joinedExisting ? 'adopt' : 'push',
               view: 'chat',
               agentDir: tabAgentDir,
-              title: currentTabForScenario4.title || getFolderName(tabAgentDir),
+              title: currentTabForScenario4.title || getWorkspaceDisplayName(tabAgentDir),
             }
             : t
         )
@@ -2998,17 +3003,28 @@ export default function App() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const voiceKeyHeldRef = useRef(false);
+  const latestVoiceWakeRevisionRef = useRef(0);
   const voiceFallbackActiveRef = useRef(false);
   const voiceFallbackCaptureStartedRef = useRef(false);
   useEffect(() => {
     const controller = new AbortController();
-    void listenWithCleanup<{ surface?: 'chat' | 'capsule' }>('global-voice-wake-start', event => {
+    void listenWithCleanup<{ surface?: 'chat' | 'capsule'; revision?: number }>('global-voice-wake-start', event => {
+      const revision = Number(event.payload?.revision ?? 0);
+      if (revision > 0 && revision < latestVoiceWakeRevisionRef.current) return;
+      if (revision > 0) latestVoiceWakeRevisionRef.current = revision;
       voiceKeyHeldRef.current = true;
       // Barge-in owns the audio boundary: stop audible speech immediately and
       // tell mounted chats to invalidate every queued/in-flight TTS segment.
       stopAudio();
       window.dispatchEvent(new CustomEvent('blex:voice-barge-in'));
       const surface = event.payload?.surface === 'capsule' ? 'capsule' : 'chat';
+      if (surface === 'capsule') {
+        // The visible capsule WebView owns capture. A hidden/minimized main
+        // WebView may be background-throttled and must never race it for the
+        // microphone or swallow the eventual key-up event.
+        console.info('[voice-wake] capsule owns ASR; main renderer is routing-only');
+        return;
+      }
       const current = tabsRef.current.find(tab => tab.id === activeTabIdRef.current);
       let switchedChat = false;
       if (current?.view !== 'chat') {
@@ -3018,9 +3034,13 @@ export default function App() {
           voiceFallbackActiveRef.current = true;
           voiceFallbackCaptureStartedRef.current = false;
           setTimeout(() => {
-            if (!voiceKeyHeldRef.current || !voiceFallbackActiveRef.current) return;
+            if (
+              !voiceKeyHeldRef.current
+              || !voiceFallbackActiveRef.current
+              || (revision > 0 && latestVoiceWakeRevisionRef.current !== revision)
+            ) return;
             voiceFallbackCaptureStartedRef.current = true;
-            window.dispatchEvent(new CustomEvent('blex:global-voice-fallback-start'));
+            window.dispatchEvent(new CustomEvent('blex:global-voice-fallback-start', { detail: { revision } }));
           }, 120);
           return;
         }
@@ -3028,28 +3048,78 @@ export default function App() {
         switchedChat = true;
       }
       const forwardStart = () => {
-        if (!voiceKeyHeldRef.current) return;
+        if (
+          !voiceKeyHeldRef.current
+          || (revision > 0 && latestVoiceWakeRevisionRef.current !== revision)
+        ) return;
         console.info(`[voice-wake] forwarding start surface=${surface} switchedChat=${switchedChat}`);
-        window.dispatchEvent(new CustomEvent('blex:global-voice-start', { detail: { surface } }));
+        window.dispatchEvent(new CustomEvent('blex:global-voice-start', { detail: { surface, revision } }));
       };
       // Leave a short acoustic gap so speaker tail does not enter ASR despite
       // browser echo cancellation. The same delay also covers a tab switch.
       setTimeout(forwardStart, 120);
     }, controller.signal);
-    void listenWithCleanup('global-voice-wake-stop', () => {
+    void listenWithCleanup<{ surface?: 'chat' | 'capsule'; revision?: number }>('global-voice-wake-stop', event => {
+      const revision = Number(event.payload?.revision ?? 0);
+      if (revision > 0 && revision < latestVoiceWakeRevisionRef.current) return;
+      if (revision > 0) latestVoiceWakeRevisionRef.current = revision;
       voiceKeyHeldRef.current = false;
+      if (event.payload?.surface === 'capsule') {
+        console.info('[voice-wake] capsule owns ASR stop');
+        return;
+      }
       if (voiceFallbackActiveRef.current) {
         voiceFallbackActiveRef.current = false;
         if (voiceFallbackCaptureStartedRef.current) {
           voiceFallbackCaptureStartedRef.current = false;
-          window.dispatchEvent(new CustomEvent('blex:global-voice-fallback-stop'));
+          window.dispatchEvent(new CustomEvent('blex:global-voice-fallback-stop', { detail: { revision } }));
         } else {
           void emit('voice-capsule-state', { kind: 'ai', phase: 'idle', transcript: '', response: '', audioLevels: [] });
         }
         return;
       }
       console.info('[voice-wake] forwarding stop');
-      window.dispatchEvent(new CustomEvent('blex:global-voice-stop'));
+      window.dispatchEvent(new CustomEvent('blex:global-voice-stop', { detail: { revision } }));
+    }, controller.signal);
+    void listenWithCleanup<CapsuleTranscriptEnvelope>('voice-capsule-transcript', event => {
+      const id = event.payload?.id?.trim();
+      const transcript = event.payload?.transcript?.trim();
+      if (!id || !transcript) return;
+
+      const acknowledge = () => {
+        void emit('voice-capsule-transcript-ack', { id });
+      };
+      if (!markCapsuleTranscriptReceived(id)) {
+        // The capsule retries until acknowledged. Dedupe before routing so a
+        // lost ack cannot create a second user turn.
+        acknowledge();
+        return;
+      }
+
+      const envelope: CapsuleTranscriptEnvelope = { id, transcript };
+      const current = tabsRef.current.find(tab => tab.id === activeTabIdRef.current);
+      const target = current?.view === 'chat' && current.restoreState !== 'cold'
+        ? current
+        : [...tabsRef.current].reverse().find(tab => tab.view === 'chat' && tab.restoreState !== 'cold');
+
+      if (target) {
+        // Persist before switching/dispatching. Passive effects for a newly
+        // activated Chat mount after this callback, so an event alone is not
+        // reliable; the input consumes this journal on activation.
+        storePendingCapsuleTranscript(envelope);
+        if (target.id !== activeTabIdRef.current) {
+          flushSync(() => setActiveTabId(target.id));
+        }
+        window.dispatchEvent(new CustomEvent('blex:voice-capsule-transcript-ready', { detail: envelope }));
+        console.info(`[voice-wake] capsule transcript routed to chat id=${id}`);
+      } else {
+        // Chat.tsx consumes this marker when the ordinary-chat path creates
+        // and mounts a new session, preserving capsule response/TTS ownership.
+        sessionStorage.setItem('blex:pending-voice-capsule-turn', transcript);
+        window.dispatchEvent(new CustomEvent('blex:voice-ordinary-chat', { detail: { transcript } }));
+        console.info(`[voice-wake] capsule transcript routed to new ordinary chat id=${id}`);
+      }
+      acknowledge();
     }, controller.signal);
     return () => controller.abort();
   }, [setActiveTabId]);
@@ -3623,7 +3693,7 @@ export default function App() {
       await spawnTabForExistingSession(
         sessionId,
         workspace?.path ?? workspacePath,
-        workspace?.displayName || getFolderName(workspace?.path ?? workspacePath),
+        getWorkspaceDisplayName(workspace?.path ?? workspacePath, workspace?.displayName || workspace?.name),
         {
           preserveCronActivation: plan.type === 'attach-existing-sidecar',
           pendingFilePreview,

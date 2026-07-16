@@ -31,9 +31,8 @@ import { useTranslation } from 'react-i18next';
 
 import { Popover } from '@/components/ui/Popover';
 import { type Project } from '@/config/types';
-import { getFolderName } from '@/types/tab';
 import { shortenPathForDisplay } from '@/utils/pathDetection';
-import { workspacePathsEqual } from '@/../shared/workspacePath';
+import { getWorkspaceDisplayName, workspacePathsEqual } from '@/../shared/workspacePath';
 import WorkspaceIcon from './WorkspaceIcon';
 
 interface WorkspaceSelectorProps {
@@ -101,7 +100,7 @@ export default function WorkspaceSelector({
             >
                 <WorkspaceIcon icon={selectedProject?.icon} size={16} />
                 <span className="max-w-[120px] truncate">
-                    {selectedProject ? (selectedProject.displayName || getFolderName(selectedProject.path)) : t('workspaceSelector.selectWorkspace')}
+                    {selectedProject ? getWorkspaceDisplayName(selectedProject.path, selectedProject.displayName || selectedProject.name) : t('workspaceSelector.selectWorkspace')}
                 </span>
                 <ChevronUp className={`h-3 w-3 shrink-0 transition-transform ${isOpen ? '' : 'rotate-180'}`} />
             </button>
@@ -178,7 +177,7 @@ function WorkspaceRow({
     onSetDefault,
 }: WorkspaceRowProps) {
     const { t } = useTranslation('launcher');
-    const displayName = project.displayName || getFolderName(project.path);
+    const displayName = getWorkspaceDisplayName(project.path, project.displayName || project.name);
     return (
         <div
             role="button"

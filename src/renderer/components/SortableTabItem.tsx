@@ -14,8 +14,9 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TAB_ITEM_MAX_WIDTH_PX, TAB_ITEM_MIN_WIDTH_PX } from '@/components/tabBarLayout';
-import { type Tab, getFolderName } from '@/types/tab';
+import { type Tab } from '@/types/tab';
 import { getFixedTabChromeTitle } from '@/utils/tabChromeTitle';
+import { getWorkspaceDisplayName } from '@/../shared/workspacePath';
 
 interface SortableTabItemProps {
     tab: Tab;
@@ -59,8 +60,8 @@ export default memo(function SortableTabItem({
     const hasSessionTitle = tab.title && tab.title !== 'New Tab' && tab.title !== 'New Chat';
     const displayTitle = fixedViewTitle ?? (hasSessionTitle
         ? tab.title
-        : (tab.agentDir ? getFolderName(tab.agentDir) : tab.title));
-    const tooltipTitle = tab.agentDir ? getFolderName(tab.agentDir) : undefined;
+        : (tab.agentDir ? getWorkspaceDisplayName(tab.agentDir) : tab.title));
+    const tooltipTitle = tab.agentDir ? getWorkspaceDisplayName(tab.agentDir) : undefined;
 
     return (
         <div

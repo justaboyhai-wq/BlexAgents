@@ -12,6 +12,7 @@ import { initFrontendLogger, setLogServerUrl, setRendererLogLabel } from './util
 import { installMacFunctionKeyGuard } from './utils/macFunctionKeyGuard';
 import { installOverlayScrollbarActivity, isWindowsRendererPlatform } from './utils/overlayScrollbarActivity';
 import { installTextCorrectionPolicy } from './utils/textCorrectionPolicy';
+import { installBackgroundRendererKeepAlive } from './utils/backgroundRendererKeepAlive';
 
 import './i18n';
 import './index.css';
@@ -148,6 +149,10 @@ if (tauriWindowLabel === 'voice-capsule') {
     </AppErrorBoundary>
   );
 } else {
+  // Windows WebView2 can suspend a hidden/minimized document after prolonged
+  // idle. The main renderer owns durable Tauri event routing, so keep it alive
+  // even when the visible voice capsule temporarily owns microphone capture.
+  installBackgroundRendererKeepAlive();
   const App = React.lazy(() => import('./App'));
   // Note: React.StrictMode removed to prevent double-rendering of SSE effects in development
   // StrictMode causes useEffect to run twice, which duplicates SSE events and thinking blocks

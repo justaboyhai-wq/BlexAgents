@@ -14,7 +14,7 @@ import { Popover } from '@/components/ui/Popover';
 import type { Project } from '@/config/types';
 import type { AgentConfig } from '../../../shared/types/agent';
 import type { AgentStatusData } from '@/hooks/useAgentStatuses';
-import { getFolderName } from '@/types/tab';
+import { getWorkspaceDisplayName } from '@/../shared/workspacePath';
 import { shortenPathForDisplay } from '@/utils/pathDetection';
 import WorkspaceIcon from './WorkspaceIcon';
 import { getChannelTypeLabel } from '@/utils/taskCenterUtils';
@@ -95,7 +95,7 @@ export default memo(function WorkspaceCard({
 
     const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
-    const displayName = project.displayName || getFolderName(project.path);
+    const displayName = getWorkspaceDisplayName(project.path, project.displayName || project.name);
     const state = archived ? 'basic' : deriveState(project, agent, agentStatus);
     const isProactive = state !== 'basic';
     const isPinned = Boolean(project.pinnedAt);

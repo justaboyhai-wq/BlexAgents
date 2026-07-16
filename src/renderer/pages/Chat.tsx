@@ -98,7 +98,7 @@ import {
   type OfficialToolId,
 } from '../../shared/official-tools';
 import { isSupportedLocale } from '../../shared/i18n';
-import { workspacePathsEqual } from '../../shared/workspacePath';
+import { getWorkspaceDisplayName, workspacePathsEqual } from '../../shared/workspacePath';
 import { coerceReasoningEffortForRuntime, reasoningEffortChoices } from '../../shared/reasoningEffort';
 import type { ProviderHistoryEnv } from '../../shared/providerHistory';
 import { createConcreteProviderRoute, hasProviderRouteCredential, isConcreteProviderRoute } from '../../shared/providerRoute';
@@ -630,8 +630,10 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
   const capsuleTranscriptRef = useRef('');
   const capsuleResponseRef = useRef('');
   const capsuleSpeechOffsetRef = useRef(0);
+  const capsuleSpeechSynthesisRef = useRef(Promise.resolve());
   const capsuleSpeechQueueRef = useRef(Promise.resolve());
   const capsuleSpeechGenerationRef = useRef(0);
+  const capsuleSpeechSegmentRef = useRef(0);
   const capsuleSpeechEnabledRef = useRef(true);
   const capsuleOwnsWindowRef = useRef(false);
   const suppressNextAutoSpeakRef = useRef(false);
@@ -639,6 +641,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
   useEffect(() => {
     const handleBargeIn = () => {
       capsuleSpeechGenerationRef.current += 1;
+      capsuleSpeechSynthesisRef.current = Promise.resolve();
       capsuleSpeechQueueRef.current = Promise.resolve();
       capsuleTurnActiveRef.current = false;
       capsuleResponseRef.current = '';
@@ -665,6 +668,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
       capsuleResponseRef.current = '';
       capsuleSpeechOffsetRef.current = 0;
       capsuleSpeechGenerationRef.current += 1;
+      capsuleSpeechSynthesisRef.current = Promise.resolve();
       capsuleSpeechQueueRef.current = Promise.resolve();
       stopAudio();
     };
@@ -685,6 +689,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
       capsuleSpeechEnabledRef.current = enabled;
       if (!enabled) {
         capsuleSpeechGenerationRef.current += 1;
+        capsuleSpeechSynthesisRef.current = Promise.resolve();
         capsuleSpeechQueueRef.current = Promise.resolve();
         stopAudio();
       }
@@ -695,30 +700,43 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
   const enqueueCapsuleSpeech = useCallback((segment: string) => {
     if (!segment || !sessionId || !agentPlanSpeechControl.enabled || !capsuleSpeechEnabledRef.current) return;
     const generation = capsuleSpeechGenerationRef.current;
-    // Start synthesising immediately. Playback remains ordered below, but the
-    // next sentence can now be prepared while the previous one is playing.
-    const audioReady = (async (): Promise<string | null> => {
-      if (generation !== capsuleSpeechGenerationRef.current) return null;
-      const response = await apiPost<{ success: boolean; attachment?: ToolAttachment; error?: string }>(
-        '/api/agent-plan/tts',
-        {
-          text: segment,
-          sessionId,
-          messageId: `voice-capsule-${generation}`,
-          speaker: config.speechSynthesisVoice,
-          speed: config.speechSynthesisSpeed,
-          volume: config.speechSynthesisVolume,
-        },
-      );
-      if (!response.attachment || generation !== capsuleSpeechGenerationRef.current) return null;
-      const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
-      if (!url || url.startsWith('error://')) return null;
-      return url;
-    })().catch(() => null);
+    const segmentId = ++capsuleSpeechSegmentRef.current;
+    const identity = `voice-capsule-${generation}-${segmentId}`;
+    // Serialize synthesis to avoid an unbounded request burst when several
+    // sentence boundaries arrive in one streaming update. Playback remains a
+    // separate queue, so synthesis of the next sentence still overlaps the
+    // current sentence's playback.
+    const audioReady = capsuleSpeechSynthesisRef.current.then(async (): Promise<string | null> => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (generation !== capsuleSpeechGenerationRef.current) return null;
+        try {
+          const response = await apiPost<{ success: boolean; attachment?: ToolAttachment; error?: string }>(
+            '/api/agent-plan/tts',
+            {
+              text: segment,
+              sessionId,
+              messageId: identity,
+              speaker: config.speechSynthesisVoice,
+              speed: config.speechSynthesisSpeed,
+              volume: config.speechSynthesisVolume,
+            },
+          );
+          if (!response.attachment || generation !== capsuleSpeechGenerationRef.current) return null;
+          const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
+          if (url && !url.startsWith('error://')) return url;
+        } catch {
+          // A short retry handles transient sidecar handoffs and upstream
+          // throttling without allowing a failed sentence to drop silently.
+        }
+        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      return null;
+    });
+    capsuleSpeechSynthesisRef.current = audioReady.then(() => undefined, () => undefined);
     capsuleSpeechQueueRef.current = capsuleSpeechQueueRef.current.then(async () => {
       const url = await audioReady;
       if (!url || generation !== capsuleSpeechGenerationRef.current) return;
-      await playAudioUrlAndWait(`voice-capsule-${generation}`, url);
+      await playAudioUrlAndWait(identity, url);
     }).catch(() => undefined);
   }, [agentPlanSpeechControl.enabled, apiPost, config.speechSynthesisSpeed, config.speechSynthesisVoice, config.speechSynthesisVolume, sessionId]);
 
@@ -4854,7 +4872,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
             {agentDir && (
               <span className="flex flex-shrink-0 items-center gap-1.5 text-sm font-medium text-[var(--ink)]">
                 <WorkspaceIcon icon={currentProject?.icon} size={16} />
-                {agentDir.split(/[/\\]/).filter(Boolean).pop()}
+                {getWorkspaceDisplayName(agentDir, currentProject?.displayName || currentProject?.name)}
               </span>
             )}
             {/* Session title — click to rename */}
@@ -4944,7 +4962,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
                 aria-label={autoSpeakEnabled ? t('shell.header.autoSpeakOn') : t('shell.header.autoSpeakOff')}
                 title={agentPlanSpeechControl.enabled
                   ? (autoSpeakEnabled ? t('shell.header.autoSpeakOn') : t('shell.header.autoSpeakOff'))
-                  : t('shell.header.autoSpeakUnavailable')}
+                  : t(`input.speech.reasons.${agentPlanSpeechControl.reason ?? 'service-unavailable'}`)}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${autoSpeakEnabled
                   ? 'bg-[var(--paper-inset)] text-[var(--ink)]'
                   : 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
