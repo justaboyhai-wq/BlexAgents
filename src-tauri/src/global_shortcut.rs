@@ -1452,6 +1452,7 @@ pub async fn cmd_set_global_voice_shortcut<R: Runtime>(
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn default_voice_accelerator_uses_native_monitor() {
         assert!(native_voice_button(DEFAULT_VOICE_ACCELERATOR).is_some());
