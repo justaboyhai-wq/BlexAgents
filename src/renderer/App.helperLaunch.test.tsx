@@ -103,6 +103,7 @@ vi.mock('@/api/tauriClient', () => ({
 
 vi.mock('@/api/apiFetch', () => ({
   apiGetJson: vi.fn(async () => ({ success: true })),
+  apiPostJson: vi.fn(async () => ({ success: true })),
 }));
 
 vi.mock('@/api/cronTaskClient', () => ({

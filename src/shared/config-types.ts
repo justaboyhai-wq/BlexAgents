@@ -10,6 +10,7 @@ import type { SubscriptionVerifyFailureKind } from './subscription';
  * Permission mode for agent behavior
  */
 export type PermissionMode = 'auto' | 'plan' | 'fullAgency';
+export type ConversationMode = 'standard' | 'minimal';
 
 /**
  * Background-agent permission policy (issue #264).
@@ -736,6 +737,12 @@ export interface AppConfig {
   floatingBallAppearance?: 'pet' | 'orb';
   /** 当前选中的桌宠资源包。缺省视同内置 Blex（持久化资源 ID 仍为 mino）。 */
   floatingBallPetId?: string;
+  /** Agent Plan TTS 发音角色。缺省使用 Vivi 2.0。 */
+  speechSynthesisVoice?: string;
+  /** Agent Plan TTS 语速倍率，官方支持范围 0.1-2.0。 */
+  speechSynthesisSpeed?: number;
+  /** Agent Plan TTS 音量倍率，官方支持范围 0.5-2.0。 */
+  speechSynthesisVolume?: number;
   /** 桌面渠道持久 session id（伴侣窗自铸 UUID v4；轮换见下两个字段，PRD §6.2）。 */
   floatingBallSessionId?: string;
   /** 上述 session 的铸造日期（本地 YYYY-MM-DD）。与今天不同时轮换新 session。 */
@@ -770,7 +777,7 @@ export interface AppConfig {
     enabled: boolean;
     accelerator: string;
   };
-  /** 全局语音唤醒快捷键，缺省为右 Alt。 */
+  /** 全局语音唤醒快捷键，Windows 缺省为灵玑 AI 键。 */
   globalVoiceShortcut?: {
     enabled: boolean;
     accelerator: string;
@@ -1268,6 +1275,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   teamSpaceEnabled: false, // 默认隐藏未发布的团队 Space 入口
   floatingBallDevGate: true,
   floatingBallEnabled: false,
+  speechSynthesisVoice: 'zh_female_vv_uranus_bigtts',
+  speechSynthesisSpeed: 1,
+  speechSynthesisVolume: 1,
   floatingBallHoverPeekEnabled: true,
   liteLLMModelDataRefresh: true, // 默认开启 LiteLLM 模型数据兜底刷新（开发者可关）
   claudeTranscriptCleanupPeriodDays: DEFAULT_CLAUDE_TRANSCRIPT_CLEANUP_PERIOD_DAYS,
@@ -1281,11 +1291,11 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   globalVoiceShortcut: {
     enabled: true,
-    accelerator: 'AltRight',
+    accelerator: 'LingjiAI',
   },
 };
 
 /** Default accelerator string for the global summon shortcut (PRD 0.2.16).
  *  Mirrors the Rust constant `global_shortcut::DEFAULT_ACCELERATOR`. */
 export const DEFAULT_SUMMON_ACCELERATOR = 'CmdOrCtrl+Shift+M';
-export const DEFAULT_VOICE_ACCELERATOR = 'AltRight';
+export const DEFAULT_VOICE_ACCELERATOR = 'LingjiAI';

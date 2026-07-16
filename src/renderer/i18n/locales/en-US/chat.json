@@ -87,6 +87,10 @@
       "thoughtSoftCap": "Showing the first {{count}} matches. Type a more specific keyword."
     },
     "permissionModes": {
+      "minimal": {
+        "label": "Minimal",
+        "description": "Assistant mode with Skills, web search, and tools available; prioritizes the shortest useful answer"
+      },
       "auto": {
         "label": "Act",
         "description": "Agent works in the workspace and asks before using tools"

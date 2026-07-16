@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useRef, memo, lazy, Suspense } from 'react';
 import { flushSync } from 'react-dom';
+import { emit } from '@tauri-apps/api/event';
 import { useTranslation } from 'react-i18next';
 import ChatBootOverlay from '@/components/ChatBootOverlay';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -21,6 +22,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import BugReportOverlay from '@/components/BugReportOverlay';
 import CustomTitleBar from '@/components/CustomTitleBar';
 import GlobalVoiceWakeOverlay from '@/components/GlobalVoiceWakeOverlay';
+import GlobalDictation from '@/components/GlobalDictation';
 import LinkContextMenuProvider from '@/components/LinkContextMenuProvider';
 import TabBar from '@/components/TabBar';
 import TabProvider from '@/context/TabProvider';
@@ -77,6 +79,7 @@ import { dismissTopmost } from '@/utils/closeLayer';
 import { dispatchAppShortcut } from '@/utils/appShortcuts';
 import { handleSelectAllKeydown } from '@/utils/selectAllRouter';
 import { forceFlushLogs, setLogServerUrl, clearLogServerUrl, setAppActiveTabId } from '@/utils/frontendLogger';
+import { stopAudio } from '@/utils/audioPlayer';
 import { canHotSwapSessionSidecar, normalizeRuntime, resolveEffectiveRuntime, planSessionOpen, sessionRuntimeIdentityFromMetadataForOpen } from '@/utils/sessionOpenPlan';
 import { resolveNotificationClickRoute } from '@/utils/notificationClickRoute';
 import {
@@ -2994,6 +2997,99 @@ export default function App() {
   }, [activeTabId, clearActiveTabUnread]);
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+  const voiceKeyHeldRef = useRef(false);
+  const voiceFallbackActiveRef = useRef(false);
+  const voiceFallbackCaptureStartedRef = useRef(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    void listenWithCleanup<{ surface?: 'chat' | 'capsule' }>('global-voice-wake-start', event => {
+      voiceKeyHeldRef.current = true;
+      // Barge-in owns the audio boundary: stop audible speech immediately and
+      // tell mounted chats to invalidate every queued/in-flight TTS segment.
+      stopAudio();
+      window.dispatchEvent(new CustomEvent('blex:voice-barge-in'));
+      const surface = event.payload?.surface === 'capsule' ? 'capsule' : 'chat';
+      const current = tabsRef.current.find(tab => tab.id === activeTabIdRef.current);
+      let switchedChat = false;
+      if (current?.view !== 'chat') {
+        const target = [...tabsRef.current].reverse().find(tab => tab.view === 'chat' && tab.restoreState !== 'cold');
+        if (!target) {
+          console.info('[voice-wake] using global voice fallback (no mounted chat)');
+          voiceFallbackActiveRef.current = true;
+          voiceFallbackCaptureStartedRef.current = false;
+          setTimeout(() => {
+            if (!voiceKeyHeldRef.current || !voiceFallbackActiveRef.current) return;
+            voiceFallbackCaptureStartedRef.current = true;
+            window.dispatchEvent(new CustomEvent('blex:global-voice-fallback-start'));
+          }, 120);
+          return;
+        }
+        flushSync(() => setActiveTabId(target.id));
+        switchedChat = true;
+      }
+      const forwardStart = () => {
+        if (!voiceKeyHeldRef.current) return;
+        console.info(`[voice-wake] forwarding start surface=${surface} switchedChat=${switchedChat}`);
+        window.dispatchEvent(new CustomEvent('blex:global-voice-start', { detail: { surface } }));
+      };
+      // Leave a short acoustic gap so speaker tail does not enter ASR despite
+      // browser echo cancellation. The same delay also covers a tab switch.
+      setTimeout(forwardStart, 120);
+    }, controller.signal);
+    void listenWithCleanup('global-voice-wake-stop', () => {
+      voiceKeyHeldRef.current = false;
+      if (voiceFallbackActiveRef.current) {
+        voiceFallbackActiveRef.current = false;
+        if (voiceFallbackCaptureStartedRef.current) {
+          voiceFallbackCaptureStartedRef.current = false;
+          window.dispatchEvent(new CustomEvent('blex:global-voice-fallback-stop'));
+        } else {
+          void emit('voice-capsule-state', { kind: 'ai', phase: 'idle', transcript: '', response: '', audioLevels: [] });
+        }
+        return;
+      }
+      console.info('[voice-wake] forwarding stop');
+      window.dispatchEvent(new CustomEvent('blex:global-voice-stop'));
+    }, controller.signal);
+    return () => controller.abort();
+  }, [setActiveTabId]);
+  useEffect(() => {
+    const handleVoiceOrdinaryChat = (rawEvent: Event) => {
+      const transcript = (rawEvent as CustomEvent<{ transcript?: string }>).detail?.transcript?.trim();
+      if (!transcript) return;
+      void (async () => {
+        const projects = configProjectsRef.current.filter(isProjectVisibleToUser);
+        if (projects.length === 0) {
+          console.warn('[voice-wake] no regular workspace is available for ordinary chat');
+          void emit('voice-capsule-state', { kind: 'ai', phase: 'error', transcript, response: '', error: '请先创建一个普通工作区', audioLevels: [] });
+          return;
+        }
+        if (tabsRef.current.length >= MAX_TABS) {
+          void emit('voice-capsule-state', { kind: 'ai', phase: 'error', transcript, response: '', error: '标签页已达上限，请关闭一个标签页后重试', audioLevels: [] });
+          return;
+        }
+        const recentWorkspacePath = [...tabsRef.current].reverse()
+          .find(tab => tab.agentDir && projects.some(project => project.path === tab.agentDir))?.agentDir;
+        const project = projects.find(candidate => candidate.path === recentWorkspacePath) ?? projects[0];
+        const newTab = createNewTab();
+        openLaunchTabNow(newTab);
+        try {
+          await handleLaunchProject(
+            project,
+            undefined,
+            { text: transcript, permissionMode: 'fullAgency', conversationMode: 'minimal' },
+            { surface: 'launcher_input', entryIntent: 'send_message' },
+          );
+        } finally {
+          removeUnusedPrecreatedLaunchTab(newTab.id);
+        }
+      })();
+    };
+    window.addEventListener('blex:voice-ordinary-chat', handleVoiceOrdinaryChat);
+    return () => window.removeEventListener('blex:voice-ordinary-chat', handleVoiceOrdinaryChat);
+    // handleLaunchProject/openLaunchTabNow are intentionally ref-backed launch orchestration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const activeTabView = activeTab?.view ?? null;
   const activeChatSessionId = activeTab?.view === 'chat' ? activeTab.sessionId ?? null : null;
   useEffect(() => {
@@ -3916,7 +4012,10 @@ export default function App() {
       </div>
 
       <GlobalVoiceWakeOverlay
-        appVersion={appVersion}
+        enabled={!!appApiKeys['volcengine-agent-plan']
+          && appProviderVerifyStatus['volcengine-agent-plan']?.status === 'valid'}
+      />
+      <GlobalDictation
         enabled={!!appApiKeys['volcengine-agent-plan']
           && appProviderVerifyStatus['volcengine-agent-plan']?.status === 'valid'}
       />

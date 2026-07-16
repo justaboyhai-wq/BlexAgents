@@ -128,9 +128,11 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSWi
 # - wake-lock power requests below
 # Minimal feature set — version 0.59 is already pulled transitively, so no new lock entry.
 [target.'cfg(windows)'.dependencies]
+hidapi = { version = "2.6.6", default-features = false, features = ["windows-native"] }
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
     "Win32_UI_WindowsAndMessaging",
     # `wake_lock::windows::PlatformImpl` calls `PowerCreateRequest` +
     # `PowerSetRequest` (PowerRequestSystemRequired | PowerRequestAwayModeRequired)

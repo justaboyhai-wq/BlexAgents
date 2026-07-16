@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>灵玑鼠标 AI 键检测</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, "Microsoft YaHei", sans-serif; }
+    body { margin: 0; background: #f7f4ee; color: #201a17; }
+    main { width: min(920px, calc(100% - 32px)); margin: 36px auto; }
+    .card { background: #fffdf8; border: 1px solid #ded7cd; border-radius: 18px; padding: 24px; box-shadow: 0 10px 30px #3b2d2012; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p { color: #6f6156; margin: 0 0 18px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    button { border: 1px solid #c9bdb1; border-radius: 10px; background: #fff; padding: 9px 14px; cursor: pointer; }
+    button.primary { border-color: #b45f32; background: #c26d3a; color: white; }
+    .status { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .pill { border: 1px solid #ded7cd; border-radius: 12px; padding: 12px; background: #faf7f1; }
+    .pill strong { display: block; margin-top: 4px; }
+    .down { color: #b54724; }
+    .up { color: #267052; }
+    #log { box-sizing: border-box; width: 100%; height: 440px; overflow: auto; margin: 0; padding: 14px; border-radius: 12px; background: #171411; color: #eee8df; font: 12px/1.55 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    @media (max-width: 650px) { .status { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>灵玑鼠标 AI 键检测</h1>
+      <p>目标设备：VID ABC9 / PID CA89。首次使用需点击连接，并在浏览器设备列表中选择鼠标。</p>
+      <div class="toolbar">
+        <button id="connect" class="primary">连接设备</button>
+        <button id="reselect">重新选择设备</button>
+        <button id="initialize">初始化鼠标</button>
+        <button id="verbose">显示原始报告：关</button>
+        <button id="clear">清空日志</button>
+      </div>
+      <div class="status">
+        <div class="pill">设备状态<strong id="deviceState">未连接</strong></div>
+        <div class="pill">AI 键状态<strong id="keyState">等待连接</strong></div>
+        <div class="pill">最近事件码<strong id="eventCode">—</strong></div>
+      </div>
+      <pre id="log" aria-live="polite"></pre>
+    </section>
+  </main>
+  <script>
+    const VID = 0xABC9;
+    const PID = 0xCA89;
+    const REPORT_ID = 0x0A;
+    const VENDOR_USAGE_PAGE = 0xFF03;
+    const AI_DOWN = 0x23;
+    const AI_UP = 0x24;
+    let device = null;
+    let verboseReports = false;
+
+    const $ = (id) => document.getElementById(id);
+    const hex = (value, width = 2) => value.toString(16).toUpperCase().padStart(width, '0');
+    const timestamp = () => new Date().toLocaleTimeString('zh-CN', { hour12: false });
+
+    function log(message) {
+      $('log').textContent += `[${timestamp()}] ${message}\n`;
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+
+    function setKeyState(isDown) {
+      $('keyState').textContent = isDown ? 'AI 键已按下' : 'AI 键已松开';
+      $('keyState').className = isDown ? 'down' : 'up';
+    }
+
+    function isLingjiControlPacket(bytes) {
+      return bytes.length >= 5 && bytes[0] === 0xD0 && bytes[1] === 0x99
+        && (bytes[2] === 0x5D || bytes[2] === 0x5E || bytes[2] === 0x5F) && bytes[3] === 0x01;
+    }
+
+    function hasVendorCollection(candidate) {
+      return candidate.collections?.some((collection) => collection.usagePage === VENDOR_USAGE_PAGE) ?? false;
+    }
+
+    function chooseVendorDevice(devices) {
+      const matching = devices.filter((item) => item.vendorId === VID && item.productId === PID);
+      return matching.find(hasVendorCollection) ?? matching[0];
+    }
+
+    function onInputReport(event) {
+      const bytes = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength);
+      const data = [...bytes].map((value) => hex(value)).join(' ');
+      if (verboseReports) log(`reportId=0x${hex(event.reportId)} data=${data}`);
+      if (event.reportId !== REPORT_ID || !isLingjiControlPacket(bytes)) return;
+      const code = bytes[4];
+      if (code !== AI_DOWN && code !== AI_UP) return;
+      if (!verboseReports) log(`reportId=0x${hex(event.reportId)} data=${data}`);
+      $('eventCode').textContent = `0x${hex(code)}`;
+      setKeyState(code === AI_DOWN);
+      log(`>>> ${code === AI_DOWN ? 'AI_DOWN' : 'AI_UP'} (0x${hex(code)})`);
+    }
+
+    async function openDevice(selected) {
+      if (device && device !== selected && device.opened) await device.close();
+      device = selected;
+      if (!device.opened) await device.open();
+      device.removeEventListener('inputreport', onInputReport);
+      device.addEventListener('inputreport', onInputReport);
+      $('deviceState').textContent = `已连接：${device.productName || 'HID 设备'}`;
+      $('keyState').textContent = '等待 AI 键';
+      $('keyState').className = '';
+      log(`已连接 VID=0x${hex(device.vendorId, 4)} PID=0x${hex(device.productId, 4)}`);
+      const usages = (device.collections ?? []).map((item) => `0x${hex(item.usagePage, 4)}/0x${hex(item.usage, 4)}`);
+      log(`collections=${usages.join(', ') || '未知'}`);
+      const reportSummary = (device.collections ?? []).flatMap((collection) => [
+        ...(collection.inputReports ?? []).map((report) => `IN:0x${hex(report.reportId)}`),
+        ...(collection.outputReports ?? []).map((report) => `OUT:0x${hex(report.reportId)}`),
+        ...(collection.featureReports ?? []).map((report) => `FEATURE:0x${hex(report.reportId)}`),
+      ]);
+      log(`reports=${reportSummary.join(', ') || '未暴露'}`);
+    }
+
+    async function connect(forcePicker = false, allowPicker = true) {
+      if (!('hid' in navigator)) {
+        throw new Error('当前浏览器不支持 WebHID，请使用 Chrome 或 Edge，并通过 localhost 打开页面。');
+      }
+      let selected;
+      if (!forcePicker) {
+        const permitted = await navigator.hid.getDevices();
+        selected = chooseVendorDevice(permitted);
+      }
+      if (!selected && allowPicker) {
+        const devices = await navigator.hid.requestDevice({
+          filters: [{ vendorId: VID, productId: PID, usagePage: VENDOR_USAGE_PAGE }],
+        });
+        selected = chooseVendorDevice(devices);
+      }
+      if (!selected) {
+        $('deviceState').textContent = '未连接（请点击连接设备）';
+        return;
+      }
+      await openDevice(selected);
+    }
+
+    async function safeConnect(forcePicker, allowPicker = true) {
+      try { await connect(forcePicker, allowPicker); }
+      catch (error) {
+        $('deviceState').textContent = '连接失败';
+        log(`ERROR: ${error?.message || error}`);
+      }
+    }
+
+    const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+    async function sendMouseCommand(command) {
+      if (!device?.opened) throw new Error('请先连接设备');
+      // USBPcap's 49-byte packet length includes the 8-byte control setup.
+      // SET_REPORT wLength is 41: report ID 0x0A + a 40-byte WebHID payload.
+      const payload = new Uint8Array(40);
+      payload[0] = 0x03;
+      payload[1] = command;
+      await device.sendReport(REPORT_ID, payload);
+      log(`OUT reportId=0x0A data=03 ${hex(command)} + 38×00`);
+    }
+
+    async function initializeMouse() {
+      try {
+        $('initialize').disabled = true;
+        log('开始重放 uMouse 固定初始化序列');
+        // uMouse polls with A0 while starting, then switches the device with 41.
+        for (let index = 0; index < 3; index += 1) {
+          await sendMouseCommand(0xA0);
+          await delay(120);
+        }
+        await sendMouseCommand(0x41);
+        await delay(1050);
+        await sendMouseCommand(0x26);
+        await delay(10);
+        await sendMouseCommand(0x52);
+        log('初始化序列发送完成，请按 AI 键');
+      } catch (error) {
+        log(`初始化失败：${error?.message || error}`);
+      } finally {
+        $('initialize').disabled = false;
+      }
+    }
+
+    $('connect').addEventListener('click', () => safeConnect(false));
+    $('reselect').addEventListener('click', () => safeConnect(true));
+    $('initialize').addEventListener('click', initializeMouse);
+    $('verbose').addEventListener('click', () => {
+      verboseReports = !verboseReports;
+      $('verbose').textContent = `显示原始报告：${verboseReports ? '开' : '关'}`;
+      log(`原始报告日志已${verboseReports ? '开启' : '关闭'}`);
+    });
+    $('clear').addEventListener('click', () => { $('log').textContent = ''; });
+    navigator.hid?.addEventListener('disconnect', (event) => {
+      if (event.device !== device) return;
+      $('deviceState').textContent = '设备已断开';
+      $('keyState').textContent = '等待连接';
+      log('设备已断开');
+    });
+    // Page load is not a user gesture, so it may only reopen an already-authorized device.
+    safeConnect(false, false);
+  </script>
+</body>
+</html>

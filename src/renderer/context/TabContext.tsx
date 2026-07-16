@@ -190,7 +190,7 @@ export interface TabContextValue extends TabState {
     isConnected: boolean;
 
     // Chat actions
-    sendMessage: (text: string, images?: ImageAttachment[], permissionMode?: PermissionMode, model?: string, providerEnv?: ChatProviderEnv, isCron?: boolean, reasoningEffort?: string, providerRoute?: ProviderRoute) => Promise<boolean>;
+    sendMessage: (text: string, images?: ImageAttachment[], permissionMode?: PermissionMode, model?: string, providerEnv?: ChatProviderEnv, isCron?: boolean, reasoningEffort?: string, providerRoute?: ProviderRoute, conversationMode?: import('../../shared/config-types').ConversationMode) => Promise<boolean>;
     stopResponse: () => Promise<boolean>;
     loadSession: (sessionId: string, options?: { skipLoadingReset?: boolean }) => Promise<boolean>;
     /** Prepend the next page of older messages. Safe to call repeatedly — guarded internally. */

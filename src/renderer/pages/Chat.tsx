@@ -44,7 +44,8 @@ import { useCronTask } from '@/hooks/useCronTask';
 import { useWorkspaceFileService } from '@/hooks/useWorkspaceFileService';
 import { useAgentPlanSpeechCapabilities } from '@/hooks/useAgentPlanSpeechCapabilities';
 import { resolveToolAttachmentUrl } from '@/utils/toolAttachment';
-import { playAudioUrl, stopAudio } from '@/utils/audioPlayer';
+import { playAudioUrl, playAudioUrlAndWait, stopAudio } from '@/utils/audioPlayer';
+import { emit } from '@tauri-apps/api/event';
 import type { ToolAttachment } from '../../shared/types/tool-attachment';
 import { useWorkspaceChangeSignal } from '@/hooks/useWorkspaceChangeSignal';
 import { isIntroductionAbsentError, shouldShowIntroductionOverlay, useIntroductionContent } from '@/hooks/useIntroductionContent';
@@ -61,10 +62,23 @@ import { projectCronExecutionOverrides } from '@/utils/cronExecutionProjection';
 import type { CronSettingsResult, CronInitialConfig } from '@/components/cron/CronTaskSettingsModal';
 import { isTauriEnvironment } from '@/utils/browserMock';
 import { isDebugMode } from '@/utils/debug';
+import { listenWithCleanup } from '@/utils/tauriListen';
 import { getChannelTypeLabel } from '@/utils/taskCenterUtils';
 import { appendCronPromptToDraft } from '@/utils/cronComposerRecovery';
+import { completedSpeechPrefix } from '@/utils/voiceStreaming';
+
+function voiceMessageText(message: { content: unknown } | null | undefined): string {
+  if (!message) return '';
+  if (typeof message.content === 'string') return message.content;
+  if (!Array.isArray(message.content)) return '';
+  return message.content
+    .filter((block): block is { type: 'text'; text?: string } => typeof block === 'object' && block !== null && (block as { type?: string }).type === 'text')
+    .map(block => block.text || '')
+    .join('\n\n');
+}
+
 import { launchSupportDiagnostics } from '@/utils/supportDiagnostics';
-import { CODEX_SUBSCRIPTION_PROVIDER_ID, type PermissionMode, type McpServerDefinition, type Provider, getEffectiveModelAliases } from '@/config/types';
+import { CODEX_SUBSCRIPTION_PROVIDER_ID, type ConversationMode, type PermissionMode, type McpServerDefinition, type Provider, getEffectiveModelAliases } from '@/config/types';
 import { syncMcpServerNames } from '@/components/tools/toolBadgeConfig';
 import {
   getAllMcpServers,
@@ -589,7 +603,14 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
         success: boolean;
         attachment?: ToolAttachment;
         error?: string;
-      }>('/api/agent-plan/tts', { text, sessionId, messageId });
+      }>('/api/agent-plan/tts', {
+        text,
+        sessionId,
+        messageId,
+        speaker: config.speechSynthesisVoice,
+        speed: config.speechSynthesisSpeed,
+        volume: config.speechSynthesisVolume,
+      });
       if (!response.attachment) throw new Error(response.error || 'Agent Plan TTS did not return audio.');
       const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
       if (!url || url.startsWith('error://')) throw new Error('Agent Plan TTS audio is unavailable.');
@@ -602,7 +623,132 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
       refreshAgentPlanSpeech();
       throw error;
     }
-  }, [agentPlanSpeechControl.enabled, apiPost, refreshAgentPlanSpeech, refreshProviderData, sessionId, t, toast]);
+  }, [agentPlanSpeechControl.enabled, apiPost, config.speechSynthesisSpeed, config.speechSynthesisVoice, config.speechSynthesisVolume, refreshAgentPlanSpeech, refreshProviderData, sessionId, t, toast]);
+
+  const capsuleTurnActiveRef = useRef(false);
+  const voiceTurnSurfaceRef = useRef<'chat' | 'capsule'>('capsule');
+  const capsuleTranscriptRef = useRef('');
+  const capsuleResponseRef = useRef('');
+  const capsuleSpeechOffsetRef = useRef(0);
+  const capsuleSpeechQueueRef = useRef(Promise.resolve());
+  const capsuleSpeechGenerationRef = useRef(0);
+  const capsuleSpeechEnabledRef = useRef(true);
+  const capsuleOwnsWindowRef = useRef(false);
+  const suppressNextAutoSpeakRef = useRef(false);
+
+  useEffect(() => {
+    const handleBargeIn = () => {
+      capsuleSpeechGenerationRef.current += 1;
+      capsuleSpeechQueueRef.current = Promise.resolve();
+      capsuleTurnActiveRef.current = false;
+      capsuleResponseRef.current = '';
+      capsuleSpeechOffsetRef.current = 0;
+      capsuleOwnsWindowRef.current = false;
+      // A voice interruption starts a new conversational turn; the answer it
+      // interrupted must never be auto-spoken again when its state settles.
+      suppressNextAutoSpeakRef.current = true;
+      stopAudio();
+    };
+    window.addEventListener('blex:voice-barge-in', handleBargeIn);
+    return () => window.removeEventListener('blex:voice-barge-in', handleBargeIn);
+  }, []);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const beginTurn = (event: Event) => {
+      capsuleTurnActiveRef.current = true;
+      suppressNextAutoSpeakRef.current = true;
+      const detail = (event as CustomEvent<{ transcript?: string; surface?: 'chat' | 'capsule' }>).detail;
+      capsuleTranscriptRef.current = detail?.transcript || '';
+      voiceTurnSurfaceRef.current = detail?.surface === 'chat' ? 'chat' : 'capsule';
+      capsuleOwnsWindowRef.current = voiceTurnSurfaceRef.current === 'capsule';
+      capsuleResponseRef.current = '';
+      capsuleSpeechOffsetRef.current = 0;
+      capsuleSpeechGenerationRef.current += 1;
+      capsuleSpeechQueueRef.current = Promise.resolve();
+      stopAudio();
+    };
+    window.addEventListener('blex:voice-capsule-turn', beginTurn);
+    const pendingTranscript = sessionStorage.getItem('blex:pending-voice-capsule-turn');
+    if (pendingTranscript) {
+      sessionStorage.removeItem('blex:pending-voice-capsule-turn');
+      beginTurn(new CustomEvent('blex:voice-capsule-turn', { detail: { transcript: pendingTranscript } }));
+    }
+    return () => window.removeEventListener('blex:voice-capsule-turn', beginTurn);
+  }, [isActive]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void listenWithCleanup<{ enabled?: boolean }>('voice-capsule-speech-toggle', event => {
+      if (!capsuleOwnsWindowRef.current) return;
+      const enabled = event.payload?.enabled !== false;
+      capsuleSpeechEnabledRef.current = enabled;
+      if (!enabled) {
+        capsuleSpeechGenerationRef.current += 1;
+        capsuleSpeechQueueRef.current = Promise.resolve();
+        stopAudio();
+      }
+    }, controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  const enqueueCapsuleSpeech = useCallback((segment: string) => {
+    if (!segment || !sessionId || !agentPlanSpeechControl.enabled || !capsuleSpeechEnabledRef.current) return;
+    const generation = capsuleSpeechGenerationRef.current;
+    // Start synthesising immediately. Playback remains ordered below, but the
+    // next sentence can now be prepared while the previous one is playing.
+    const audioReady = (async (): Promise<string | null> => {
+      if (generation !== capsuleSpeechGenerationRef.current) return null;
+      const response = await apiPost<{ success: boolean; attachment?: ToolAttachment; error?: string }>(
+        '/api/agent-plan/tts',
+        {
+          text: segment,
+          sessionId,
+          messageId: `voice-capsule-${generation}`,
+          speaker: config.speechSynthesisVoice,
+          speed: config.speechSynthesisSpeed,
+          volume: config.speechSynthesisVolume,
+        },
+      );
+      if (!response.attachment || generation !== capsuleSpeechGenerationRef.current) return null;
+      const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
+      if (!url || url.startsWith('error://')) return null;
+      return url;
+    })().catch(() => null);
+    capsuleSpeechQueueRef.current = capsuleSpeechQueueRef.current.then(async () => {
+      const url = await audioReady;
+      if (!url || generation !== capsuleSpeechGenerationRef.current) return;
+      await playAudioUrlAndWait(`voice-capsule-${generation}`, url);
+    }).catch(() => undefined);
+  }, [agentPlanSpeechControl.enabled, apiPost, config.speechSynthesisSpeed, config.speechSynthesisVoice, config.speechSynthesisVolume, sessionId]);
+
+  useEffect(() => {
+    if (!capsuleTurnActiveRef.current) return;
+    const text = voiceMessageText(streamingMessage);
+    if (!text || text === capsuleResponseRef.current) return;
+    capsuleResponseRef.current = text;
+    if (voiceTurnSurfaceRef.current === 'capsule') {
+      void emit('voice-capsule-state', { kind: 'ai', phase: 'answering', transcript: capsuleTranscriptRef.current, response: text, audioLevels: [] });
+    }
+    const completed = completedSpeechPrefix(text, capsuleSpeechOffsetRef.current);
+    if (completed.segment) {
+      capsuleSpeechOffsetRef.current = completed.nextOffset;
+      enqueueCapsuleSpeech(completed.segment);
+    }
+  }, [enqueueCapsuleSpeech, streamingMessage]);
+
+  useEffect(() => {
+    if (isLoading || !capsuleTurnActiveRef.current || !capsuleResponseRef.current) return;
+    const remaining = capsuleResponseRef.current.slice(capsuleSpeechOffsetRef.current).trim();
+    if (remaining) enqueueCapsuleSpeech(remaining);
+    if (voiceTurnSurfaceRef.current === 'capsule') {
+      void emit('voice-capsule-state', { kind: 'ai', phase: 'complete', transcript: capsuleTranscriptRef.current, response: capsuleResponseRef.current, audioLevels: [] });
+    }
+    capsuleTurnActiveRef.current = false;
+  // The final message payload and `isLoading = false` arrive through separate
+  // state updates. Re-run when the payload changes as well, otherwise a turn
+  // whose loading flag settles first can strand the final, unpunctuated tail.
+  }, [enqueueCapsuleSpeech, isLoading, streamingMessage]);
 
   // Auto-speak only on the loading -> complete transition. This deliberately
   // ignores history hydration and streaming updates, so opening a chat never
@@ -614,6 +760,10 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     }
     if (!autoSpeakWasLoadingRef.current) return;
     autoSpeakWasLoadingRef.current = false;
+    if (suppressNextAutoSpeakRef.current) {
+      suppressNextAutoSpeakRef.current = false;
+      return;
+    }
     if (!autoSpeakEnabled || !agentPlanSpeechControl.enabled || !sessionId) return;
 
     const latestAssistant = [...messages].reverse().find(message => message.role === 'assistant');
@@ -1092,6 +1242,17 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(
     (currentAgent?.permissionMode as PermissionMode | undefined) ?? currentProject?.permissionMode ?? 'auto'
   );
+  const [conversationMode, setConversationMode] = useState<ConversationMode>(() => initialMessage?.conversationMode ?? 'standard');
+  useEffect(() => {
+    if (!sessionId) return;
+    const storageKey = `blex:conversation-mode:${sessionId}`;
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored === 'minimal' || stored === 'standard') setConversationMode(stored);
+  }, [sessionId]);
+  const handleConversationModeChange = useCallback((mode: ConversationMode) => {
+    setConversationMode(mode);
+    if (sessionId) sessionStorage.setItem(`blex:conversation-mode:${sessionId}`, mode);
+  }, [sessionId]);
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
     currentAgent?.model ?? currentProject?.model ?? currentProvider?.primaryModel
   );
@@ -1835,6 +1996,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
             // message must already carry the launcher's choice.
             isExternalRuntime ? undefined : (launchMessage.reasoningEffort ?? reasoningEffort),
             isExternalRuntime ? undefined : providerRoute,
+            launchMessage.conversationMode ?? conversationMode,
           );
         }
 
@@ -3700,7 +3862,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
       await sendMessage(text, images, effectivePermissionMode, effectiveModel, isExternalRuntime ? undefined : providerEnv, undefined,
         // #324 — builtin only: external runtimes apply effort via /api/reasoning-effort/set
         isExternalRuntime ? undefined : reasoningEffort,
-        isExternalRuntime ? undefined : providerRoute);
+        isExternalRuntime ? undefined : providerRoute, conversationMode);
     } catch (error) {
       const errorMessage = {
         id: `error-${crypto.randomUUID()}`,
@@ -5062,6 +5224,8 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
             contextIndicator={contextIndicatorSlot}
             permissionMode={inputChromePermissionMode}
             onPermissionModeChange={handleInputPermissionModeChange}
+            conversationMode={conversationMode}
+            onConversationModeChange={handleConversationModeChange}
             apiKeys={apiKeys}
             providerVerifyStatus={providerVerifyStatus}
             agentPlanSpeechControl={agentPlanSpeechControl}

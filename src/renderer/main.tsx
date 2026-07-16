@@ -94,7 +94,17 @@ try {
   tauriWindowLabel = undefined; // browser dev mode — no Tauri runtime
 }
 
-if (tauriWindowLabel === 'fb-ball') {
+if (tauriWindowLabel === 'voice-capsule') {
+  setRendererLogLabel('voice-capsule');
+  bootstrapFloatingWindowLogSink('voice-capsule');
+  const VoiceCapsuleWindow = React.lazy(() => import('./voice-capsule/VoiceCapsuleWindow'));
+  document.documentElement.classList.add('voice-capsule-transparent');
+  root.render(
+    <AppErrorBoundary>
+      <React.Suspense fallback={null}><VoiceCapsuleWindow /></React.Suspense>
+    </AppErrorBoundary>
+  );
+} else if (tauriWindowLabel === 'fb-ball') {
   setRendererLogLabel('fb-ball');
   bootstrapFloatingWindowLogSink('fb-ball');
   const BallWindow = React.lazy(() => import('./floating-ball/BallWindow'));

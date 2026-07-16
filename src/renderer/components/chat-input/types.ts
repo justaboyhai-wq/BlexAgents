@@ -16,6 +16,7 @@ import type {
   RuntimeType,
 } from '../../../shared/types/runtime';
 import type { AgentPlanSpeechControl } from '../../../shared/agent-plan-capabilities';
+import type { ConversationMode } from '../../../shared/config-types';
 
 export interface ImageAttachment {
   id: string;
@@ -57,6 +58,8 @@ export interface SimpleChatInputProps {
   onReasoningEffortChange?: (effort: string) => void;
   permissionMode?: PermissionMode;
   onPermissionModeChange?: (mode: PermissionMode) => void;
+  conversationMode?: ConversationMode;
+  onConversationModeChange?: (mode: ConversationMode) => void;
   apiKeys?: Record<string, string>;
   providerVerifyStatus?: Record<string, ProviderVerifyStatus>;
   agentPlanSpeechControl?: AgentPlanSpeechControl;

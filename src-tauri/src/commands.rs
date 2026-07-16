@@ -1206,7 +1206,7 @@ pub fn cmd_sync_cli<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String
 // matching exclusion list in src/server/index.ts::seedBundledSkills
 // MUST be kept in sync (comment there points back here).
 
-const SYSTEM_SKILLS_VERSION: &str = "29";
+const SYSTEM_SKILLS_VERSION: &str = "30";
 
 /// Skills that ship with the app and MUST stay at the bundled version —
 /// the app's flows depend on them, users are not meant to customise.
@@ -1252,6 +1252,11 @@ const SYSTEM_SKILLS: &[&str] = &[
     // improvements. System status trades user customisation (overwritten on
     // every version bump) for keeping the methodology current.
     "prompt-writer",
+    // v30: SkillHub marketplace integration. The bundled skill makes
+    // SkillHub the preferred discovery/install source and self-installs the
+    // official CLI on first use. Keep force-synced so source policy and the
+    // required BlexAgent --dir target remain current.
+    "skillhub",
 ];
 
 /// Skills unavailable on certain platforms due to upstream bugs.

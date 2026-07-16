@@ -1176,6 +1176,9 @@ const SYSTEM_SKILLS: readonly string[] = [
   // v29: prompt-writer promoted from utility → system skill so content
   // improvements reach existing installs (seed-once never updates).
   'prompt-writer',
+  // v30: SkillHub marketplace policy and first-use official CLI installer.
+  // Force-sync so installs always target BlexAgent's recognized skills dir.
+  'skillhub',
 ];
 
 /**
@@ -4555,6 +4558,45 @@ async function main() {
         });
       }
 
+      // Settings runs on the global sidecar and has no chat attachment owner.
+      // Return its short preview inline instead of creating a tool-attachment
+      // URL that the Tauri protocol cannot route to a session sidecar.
+      if (pathname === '/api/agent-plan/tts/preview' && request.method === 'POST') {
+        try {
+          const body = await request.json() as {
+            text?: string;
+            speaker?: string;
+            speed?: number;
+            volume?: number;
+          };
+          const text = body.text?.trim();
+          if (!text || text.length > 500) {
+            return jsonResponse({ success: false, error: 'Preview text must contain 1-500 characters.' }, 400);
+          }
+          const { synthesizeAgentPlanTts } = await import('./agent-plan/tts');
+          const result = await synthesizeAgentPlanTts({
+            text,
+            speaker: body.speaker,
+            speed: body.speed,
+            volume: body.volume,
+            signal: request.signal,
+          });
+          return jsonResponse({
+            success: true,
+            audioBase64: readFileSync(result.filePath).toString('base64'),
+            mimeType: result.mimeType,
+            cached: result.cached,
+          });
+        } catch (error) {
+          const { AgentPlanTtsError } = await import('./agent-plan/tts');
+          if (error instanceof AgentPlanTtsError) {
+            return jsonResponse({ success: false, code: error.code, error: error.message }, error.status);
+          }
+          console.error('[agent-plan/tts/preview] Synthesis failed:', error);
+          return jsonResponse({ success: false, code: 'upstream', error: 'Agent Plan TTS preview failed.' }, 502);
+        }
+      }
+
       if (pathname === '/api/agent-plan/tts' && request.method === 'POST') {
         try {
           const body = await request.json() as {
@@ -4562,6 +4604,8 @@ async function main() {
             sessionId?: string;
             messageId?: string;
             speaker?: string;
+            speed?: number;
+            volume?: number;
           };
           const text = body.text?.trim();
           const sessionId = body.sessionId?.trim();
@@ -4574,7 +4618,13 @@ async function main() {
           }
 
           const { synthesizeAgentPlanTts } = await import('./agent-plan/tts');
-          const result = await synthesizeAgentPlanTts({ text, speaker: body.speaker, signal: request.signal });
+          const result = await synthesizeAgentPlanTts({
+            text,
+            speaker: body.speaker,
+            speed: body.speed,
+            volume: body.volume,
+            signal: request.signal,
+          });
           const attachment = await saveToolAttachment(
             { kind: 'externalPath', sourcePath: result.filePath },
             {

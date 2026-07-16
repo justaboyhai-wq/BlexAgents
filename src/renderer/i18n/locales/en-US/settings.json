@@ -143,16 +143,17 @@
       "title": "Global voice wake shortcut",
       "description": "Press the shortcut from any app to open a compact voice window, transcribe speech, and get a concise answer or open the full chat.",
       "enableTitle": "Enable voice wake",
-      "enableDescription": "Uses Right Alt by default",
+      "enableDescription": "Uses the Lingji AI key by default on Windows",
       "currentTitle": "Current voice shortcut",
-      "currentDescription": "Click the key recorder to change it",
-      "resetDefault": "Use Right Alt"
+      "currentDescription": "Record a keyboard or mouse shortcut, or select the Lingji AI key",
+      "resetDefault": "Restore default"
     },
     "recorder": {
       "cancelled": "Cancelled",
       "recordingDisplay": "Press shortcut... (Esc cancels)",
       "recordingTitle": "Recording: press a shortcut or press Esc to cancel",
       "idleTitle": "Click to change shortcut",
+      "useLingjiAi": "Use Lingji AI key",
       "errors": {
         "missingMainKey": "Choose a regular key",
         "blockedKey": "This key cannot be used as a shortcut",
@@ -1733,6 +1734,14 @@
     "enableTitle": "Enable",
     "enableDescription": "Show the floating desktop entry point and companion window.",
     "generalTitle": "General Settings",
+    "voiceTitle": "Voice",
+    "voiceDescription": "Choose the character, speaking rate, and loudness used for Desktop Pet and chat voice replies. Changes apply to the next synthesis.",
+    "voiceRole": "Character",
+    "voiceSpeed": "Speed",
+    "voiceVolume": "Volume",
+    "voiceRatio": "{{value}}×",
+    "voicePreview": "Preview",
+    "voicePreviewText": "Preview text: 明日复明日，明日何其多。",
     "workspaceBindingTitle": "Bound Workspace",
     "workspaceBindingDescription": "Follow the launcher workspace by default, or pin the pet to a specific project.",
     "followDefaultWorkspace": "Follow default workspace",
@@ -1790,7 +1799,8 @@
       "chooseFileFailed": "Failed to choose file: {{message}}",
       "workspaceBindingUpdated": "Workspace binding updated",
       "hoverPeekEnabled": "Hover preview window enabled",
-      "hoverPeekDisabled": "Hover preview window disabled"
+      "hoverPeekDisabled": "Hover preview window disabled",
+      "voicePreviewFailed": "Voice preview failed: {{message}}"
     }
   },
   "about": {

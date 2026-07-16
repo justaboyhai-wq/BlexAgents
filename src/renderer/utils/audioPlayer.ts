@@ -70,6 +70,7 @@ let audio: HTMLAudioElement | null = null;
 let currentPath: string | null = null;
 let currentBlobUrl: string | null = null;
 let playGeneration = 0; // monotonic counter to detect stale async completions
+let cancelActiveWait: (() => void) | null = null;
 const listeners = new Set<StateListener>();
 
 // Throttle timeupdate notifications to ~4 updates/sec max
@@ -182,9 +183,76 @@ export async function playAudioUrl(identity: string, url: string): Promise<void>
   }
 }
 
+/** Play inline base64 audio without relying on a session attachment route. */
+export async function playAudioBase64(identity: string, base64: string, mimeType = 'audio/mpeg'): Promise<void> {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+
+  stopAudio();
+  const gen = ++playGeneration;
+  currentPath = identity;
+  currentBlobUrl = url;
+  notify();
+
+  try {
+    if (gen !== playGeneration) return;
+    audio = new Audio(url);
+    audio.addEventListener('play', notify);
+    audio.addEventListener('pause', notify);
+    audio.addEventListener('ended', onEnded);
+    audio.addEventListener('timeupdate', notifyProgress);
+    audio.addEventListener('error', onError);
+    await audio.play();
+  } catch (err) {
+    if (gen === playGeneration) {
+      console.error('[audioPlayer] base64 playback failed:', err);
+      currentPath = null;
+      revokeBlobUrl();
+      notify();
+    }
+    throw err;
+  }
+}
+
+/** Play one speech segment and resolve only after it finishes, for ordered streaming TTS. */
+export async function playAudioUrlAndWait(identity: string, url: string): Promise<void> {
+  stopAudio();
+  const gen = ++playGeneration;
+  currentPath = identity;
+  notify();
+  await new Promise<void>((resolve, reject) => {
+    if (gen !== playGeneration) { resolve(); return; }
+    audio = new Audio(url);
+    const waitingAudio = audio;
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      waitingAudio.removeEventListener('ended', handleEnded);
+      waitingAudio.removeEventListener('error', handleError);
+      if (cancelActiveWait === cancelWait) cancelActiveWait = null;
+      if (error) reject(error);
+      else resolve();
+    };
+    const handleEnded = () => { onEnded(); finish(); };
+    const handleError = () => { onError(); finish(new Error('Audio playback failed.')); };
+    const cancelWait = () => finish();
+    cancelActiveWait = cancelWait;
+    audio.addEventListener('play', notify);
+    audio.addEventListener('pause', notify);
+    audio.addEventListener('timeupdate', notifyProgress);
+    audio.addEventListener('ended', handleEnded, { once: true });
+    audio.addEventListener('error', handleError, { once: true });
+    void audio.play().catch(error => finish(error instanceof Error ? error : new Error(String(error))));
+  });
+}
+
 /** Stop currently playing audio (also cancels any pending async play). */
 export function stopAudio(): void {
   ++playGeneration; // invalidate any in-flight playAudio
+  cancelActiveWait?.();
   if (audio) {
     detachListeners(audio);
     audio.pause();

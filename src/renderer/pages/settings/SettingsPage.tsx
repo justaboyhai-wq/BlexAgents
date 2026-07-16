@@ -98,6 +98,7 @@ import { formatSubscriptionVerifyError } from '../../../shared/subscription';
 import type { UiLanguage } from '../../../shared/i18n';
 import ProviderEnableOrderDialog from '@/components/ProviderEnableOrderDialog';
 import FloatingBallPetSettings from '@/components/FloatingBallPetSettings';
+import SpeechSynthesisSettings from '@/components/SpeechSynthesisSettings';
 import {
     describeNativeFloatingBallError,
     setNativeFloatingBallEnabled,
@@ -4043,7 +4044,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                 </div>
                                 <div className="mt-4 flex items-center justify-between">
                                     <div className="flex-1 pr-4"><p className="text-sm font-medium text-[var(--ink)]">{tSettings('shortcuts.voice.currentTitle')}</p><p className="text-xs text-[var(--ink-muted)]">{tSettings('shortcuts.voice.currentDescription')}</p></div>
-                                    <div className="flex items-center gap-2"><ShortcutRecorder value={voiceAccelerator} allowBareModifier onChange={(accel) => void applyVoiceShortcut({ enabled: voiceEnabled, accelerator: accel })} disabled={!isTauriEnvironment() || !voiceEnabled} /><button type="button" onClick={() => void applyVoiceShortcut({ enabled: voiceEnabled, accelerator: DEFAULT_VOICE_ACCELERATOR })} disabled={!isTauriEnvironment() || !voiceEnabled || voiceAccelerator === DEFAULT_VOICE_ACCELERATOR} className="text-xs text-[var(--ink-muted)] disabled:opacity-40">{tSettings('shortcuts.voice.resetDefault')}</button></div>
+                                    <div className="flex items-center gap-2"><ShortcutRecorder value={voiceAccelerator} allowBareModifier allowMouseButtons allowLingjiAi onChange={(accel) => void applyVoiceShortcut({ enabled: voiceEnabled, accelerator: accel })} disabled={!isTauriEnvironment() || !voiceEnabled} /><button type="button" onClick={() => void applyVoiceShortcut({ enabled: voiceEnabled, accelerator: DEFAULT_VOICE_ACCELERATOR })} disabled={!isTauriEnvironment() || !voiceEnabled || voiceAccelerator === DEFAULT_VOICE_ACCELERATOR} className="text-xs text-[var(--ink-muted)] disabled:opacity-40">{tSettings('shortcuts.voice.resetDefault')}</button></div>
                                 </div>
                             </div>
 
@@ -4076,6 +4077,8 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                     {tSettings('general.description')}
                                 </p>
                             </div>
+
+                            <SpeechSynthesisSettings />
 
                             <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
                                 <h3 className="text-base font-medium text-[var(--ink)]">{tSettings('general.appearanceTitle')}</h3>

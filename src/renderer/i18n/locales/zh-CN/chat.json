@@ -87,6 +87,10 @@
       "thoughtSoftCap": "已显示前 {{count}} 条匹配，请输入更精确的关键词"
     },
     "permissionModes": {
+      "minimal": {
+        "label": "极简",
+        "description": "助手模式；可调用 Skill、联网搜索和工具，并优先最短有用回答"
+      },
       "auto": {
         "label": "行动",
         "description": "Agent 在工作区内行动，使用工具需确认"

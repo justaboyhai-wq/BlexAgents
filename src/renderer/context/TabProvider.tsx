@@ -53,6 +53,7 @@ import type { TerminalReason } from '../../shared/terminalReason';
 import type { SlashCommand } from '../../shared/slashCommands';
 import type { LogEntry } from '@/types/log';
 import type { ProviderRoute } from '../../shared/providerRoute';
+import { buildMinimalResponseReminder } from '../../shared/systemReminder';
 import { parsePartialJson } from '@/utils/parsePartialJson';
 import { enqueuePermissionRequest, peekPermissionRequest, removePermissionRequest } from '@/utils/permissionQueue';
 import { i18n } from '@/i18n';
@@ -1242,6 +1243,20 @@ export default function TabProvider({
         if (revealRafRef.current != null) return; // already running
         const loopMsgId = streamingMessageRef.current?.id;
         if (!loopMsgId) return; // no streaming message to reveal into yet
+        // A minimized/hidden WebView has its animation frames heavily throttled
+        // by Windows. The voice capsule lives in another visible WebView but
+        // receives text from this state, so pacing here would make capsule text
+        // trail the actual stream by seconds. In the background, commit each
+        // coalesced SSE batch immediately; foreground chat keeps the smooth
+        // typewriter animation below.
+        if (document.visibilityState !== 'visible') {
+            const all = pendingTextRef.current;
+            pendingTextRef.current = '';
+            revealAccRef.current = 0;
+            revealLastRef.current = 0;
+            if (all) commitText(all, loopMsgId);
+            return;
+        }
         const TAU = 0.32;       // steady-state trailing latency / cushion (s); larger = lazier
         const MIN_CPS = 8;      // chars/s floor — only bites at a burst's tail
         const COMMIT_MS = 33;   // ~30fps commit throttle
@@ -3563,6 +3578,7 @@ export default function TabProvider({
         // net mirroring `model` (the /api/reasoning-effort/set push is primary).
         reasoningEffort?: string,
         providerRoute?: ProviderRoute,
+        conversationMode: import('../../shared/config-types').ConversationMode = 'standard',
     ): Promise<boolean> => {
         const trimmed = text.trim();
         if (!trimmed && (!images || images.length === 0)) return false;
@@ -3630,7 +3646,7 @@ export default function TabProvider({
         // so enqueueUserMessage knows this is an intentional switch, not "I don't know".
         // IM/Cron callers omit the field entirely (undefined = "keep current provider").
         const sendPayload = {
-            text: trimmed,
+            text: conversationMode === 'minimal' ? buildMinimalResponseReminder(trimmed) : trimmed,
             images: imageData,
             sessionId: sessionIdForSend,
             permissionMode: permissionMode ?? 'auto',

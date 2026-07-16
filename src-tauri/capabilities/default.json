@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "fb-ball",
-    "fb-companion"
+    "fb-companion",
+    "voice-capsule"
   ],
   "permissions": [
     "core:default",

@@ -8,13 +8,17 @@ import { once } from 'node:events';
 import { fetch as undiciFetch, ProxyAgent, type Dispatcher } from 'undici';
 
 import { AGENT_PLAN_PROVIDER_ID, deriveAgentPlanCapabilityStatus } from '../../shared/agent-plan-capabilities';
+import {
+  DEFAULT_SPEECH_SYNTHESIS_VOICE,
+  normalizeSpeechSynthesisSpeed,
+  normalizeSpeechSynthesisVolume,
+} from '../../shared/speech-synthesis';
 import { atomicModifyConfig, loadConfig, resolveProviderEnv } from '../utils/admin-config';
 import { withAbortSignal } from '../utils/cancellation';
 import { getProxyForProviderUrl } from '../proxy-state';
 
 const TTS_URL = 'https://openspeech.bytedance.com/api/v3/plan/tts/unidirectional';
 const TTS_RESOURCE_ID = 'seed-tts-2.0';
-const DEFAULT_SPEAKER = 'zh_female_vv_uranus_bigtts';
 const MAX_TEXT_LENGTH = 10_000;
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -65,9 +69,9 @@ export function normalizeTextForSpeech(text: string): string {
     .trim();
 }
 
-function cacheKeyFor(text: string, speaker: string): string {
+function cacheKeyFor(text: string, speaker: string, speed: number, volume: number): string {
   return createHash('sha256')
-    .update(JSON.stringify({ model: 'doubao-seed-tts-2.0', speaker, format: 'mp3', sampleRate: 24_000, text }))
+    .update(JSON.stringify({ model: 'doubao-seed-tts-2.0', speedSemantics: 3, speaker, speed, volume, format: 'mp3', sampleRate: 24_000, text }))
     .digest('hex');
 }
 
@@ -156,7 +160,14 @@ export async function consumeAgentPlanTtsResponse(
   }
 }
 
-async function synthesizeUncached(text: string, speaker: string, cacheKey: string, signal?: AbortSignal): Promise<AgentPlanTtsResult> {
+async function synthesizeUncached(
+  text: string,
+  speaker: string,
+  speed: number,
+  volume: number,
+  cacheKey: string,
+  signal?: AbortSignal,
+): Promise<AgentPlanTtsResult> {
   const config = loadConfig();
   const capability = deriveAgentPlanCapabilityStatus({
     apiKey: config.providerApiKeys?.[AGENT_PLAN_PROVIDER_ID],
@@ -188,7 +199,12 @@ async function synthesizeUncached(text: string, speaker: string, cacheKey: strin
           req_params: {
             text,
             speaker,
-            audio_params: { format: 'mp3', sample_rate: 24_000 },
+            audio_params: {
+              format: 'mp3',
+              sample_rate: 24_000,
+              speed_ratio: speed,
+              loudness_ratio: volume,
+            },
           },
         }),
       };
@@ -236,6 +252,8 @@ export async function invalidateAgentPlanVerification(): Promise<void> {
 export async function synthesizeAgentPlanTts(input: {
   text: string;
   speaker?: string;
+  speed?: number;
+  volume?: number;
   signal?: AbortSignal;
 }): Promise<AgentPlanTtsResult> {
   const text = normalizeTextForSpeech(input.text);
@@ -243,14 +261,16 @@ export async function synthesizeAgentPlanTts(input: {
   if (text.length > MAX_TEXT_LENGTH) {
     throw new AgentPlanTtsError('invalid-response', `Text exceeds ${MAX_TEXT_LENGTH} characters.`, 400);
   }
-  const speaker = input.speaker?.trim() || DEFAULT_SPEAKER;
-  const cacheKey = cacheKeyFor(text, speaker);
+  const speaker = input.speaker?.trim() || DEFAULT_SPEECH_SYNTHESIS_VOICE;
+  const speed = normalizeSpeechSynthesisSpeed(input.speed);
+  const volume = normalizeSpeechSynthesisVolume(input.volume);
+  const cacheKey = cacheKeyFor(text, speaker, speed, volume);
   const cached = await existingResult(cacheKey);
   if (cached) return cached;
 
   const active = inFlight.get(cacheKey);
   if (active) return active;
-  const promise = synthesizeUncached(text, speaker, cacheKey, input.signal)
+  const promise = synthesizeUncached(text, speaker, speed, volume, cacheKey, input.signal)
     .finally(() => inFlight.delete(cacheKey));
   inFlight.set(cacheKey, promise);
   return promise;

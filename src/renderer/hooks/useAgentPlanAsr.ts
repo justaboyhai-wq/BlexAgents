@@ -17,6 +17,23 @@ interface AsrResponse {
 
 export type AgentPlanAsrState = 'idle' | 'starting' | 'recording' | 'stopping';
 
+const AUDIO_LEVEL_BARS = 21;
+
+export function computeAudioLevels(samples: Float32Array, barCount = AUDIO_LEVEL_BARS): number[] {
+  if (barCount <= 0) return [];
+  if (samples.length === 0) return Array.from({ length: barCount }, () => 0);
+  return Array.from({ length: barCount }, (_, barIndex) => {
+    const start = Math.floor((barIndex * samples.length) / barCount);
+    const end = Math.max(start + 1, Math.floor(((barIndex + 1) * samples.length) / barCount));
+    let squared = 0;
+    for (let index = start; index < Math.min(end, samples.length); index++) {
+      squared += samples[index] * samples[index];
+    }
+    const rms = Math.sqrt(squared / Math.max(1, Math.min(end, samples.length) - start));
+    return Math.min(1, rms * 5.5);
+  });
+}
+
 export function resampleToPcm16(input: Float32Array, inputRate: number, outputRate = 16_000): Uint8Array {
   if (inputRate <= 0 || outputRate <= 0 || input.length === 0) return new Uint8Array();
   const ratio = inputRate / outputRate;
@@ -55,6 +72,8 @@ export function useAgentPlanAsr(input: {
   const { enabled, scopeKey, apiPost, getComposerText, setComposerText } = input;
   const [state, setState] = useState<AgentPlanAsrState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [audioLevels, setAudioLevels] = useState<number[]>(() => Array.from({ length: AUDIO_LEVEL_BARS }, () => 0));
+  const lastAudioLevelUpdateRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
   const baseTextRef = useRef('');
   const streamRef = useRef<MediaStream | null>(null);
@@ -65,16 +84,20 @@ export function useAgentPlanAsr(input: {
   const pendingPcmRef = useRef<Uint8Array[]>([]);
   const pendingBytesRef = useRef(0);
   const sendQueueRef = useRef(Promise.resolve());
+  const transcriptRef = useRef('');
   const scopeKeyRef = useRef(scopeKey);
   const apiPostRef = useRef(apiPost);
   apiPostRef.current = apiPost;
   const setComposerTextRef = useRef(setComposerText);
   setComposerTextRef.current = setComposerText;
 
-  const applyTranscript = useCallback((update?: AsrUpdate) => {
-    if (!update?.text) return;
+  const applyTranscript = useCallback((update?: AsrUpdate): string => {
+    if (!update?.text) return transcriptRef.current;
     const base = baseTextRef.current.trimEnd();
-    setComposerTextRef.current(base ? `${base}\n${update.text}` : update.text);
+    const value = base ? `${base}\n${update.text}` : update.text;
+    transcriptRef.current = value;
+    setComposerTextRef.current(value);
+    return value;
   }, []);
 
   const teardownAudio = useCallback(() => {
@@ -91,6 +114,7 @@ export function useAgentPlanAsr(input: {
     silentGainRef.current = null;
     streamRef.current = null;
     audioContextRef.current = null;
+    lastAudioLevelUpdateRef.current = 0;
   }, []);
 
   const enqueuePendingAudio = useCallback((force: boolean) => {
@@ -104,6 +128,7 @@ export function useAgentPlanAsr(input: {
     }
     pendingPcmRef.current = [];
     pendingBytesRef.current = 0;
+    setAudioLevels(Array.from({ length: AUDIO_LEVEL_BARS }, () => 0));
     const capturedSessionId = sessionIdRef.current;
     if (!capturedSessionId) return;
 
@@ -132,29 +157,33 @@ export function useAgentPlanAsr(input: {
     setState('idle');
   }, [teardownAudio]);
 
-  const stop = useCallback(async () => {
+  const stop = useCallback(async (): Promise<string> => {
     const sessionId = sessionIdRef.current;
-    if (!sessionId) return;
+    if (!sessionId) return transcriptRef.current;
     setState('stopping');
     teardownAudio();
     enqueuePendingAudio(true);
     await sendQueueRef.current;
     try {
       const response = await apiPostRef.current<AsrResponse>('/api/agent-plan/asr/stop', { sessionId });
-      applyTranscript(response.update);
+      return applyTranscript(response.update);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Agent Plan ASR failed.');
     } finally {
       sessionIdRef.current = null;
+      setAudioLevels(Array.from({ length: AUDIO_LEVEL_BARS }, () => 0));
       setState('idle');
     }
+    return transcriptRef.current;
   }, [applyTranscript, enqueuePendingAudio, teardownAudio]);
 
   const start = useCallback(async () => {
     if (!enabled || sessionIdRef.current) return;
     setState('starting');
     setError(null);
+    setAudioLevels(Array.from({ length: AUDIO_LEVEL_BARS }, () => 0));
     baseTextRef.current = getComposerText();
+    transcriptRef.current = baseTextRef.current;
     try {
       const media = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -171,6 +200,11 @@ export function useAgentPlanAsr(input: {
       silentGain.gain.value = 0;
       processor.onaudioprocess = event => {
         const sourceSamples = event.inputBuffer.getChannelData(0);
+        const now = performance.now();
+        if (now - lastAudioLevelUpdateRef.current >= 70) {
+          lastAudioLevelUpdateRef.current = now;
+          setAudioLevels(computeAudioLevels(sourceSamples));
+        }
         const samples = new Float32Array(sourceSamples.length);
         samples.set(sourceSamples);
         const pcm = resampleToPcm16(samples, audioContext.sampleRate);
@@ -214,5 +248,5 @@ export function useAgentPlanAsr(input: {
     if (sessionId) void apiPostRef.current('/api/agent-plan/asr/cancel', { sessionId }).catch(() => undefined);
   }, [teardownAudio]);
 
-  return { state, error, toggle, stop, cancel };
+  return { state, error, audioLevels, start, toggle, stop, cancel };
 }
