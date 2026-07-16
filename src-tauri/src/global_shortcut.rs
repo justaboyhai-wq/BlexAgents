@@ -81,7 +81,8 @@ fn on_dictation_pressed<R: Runtime>(app: &AppHandle<R>) {
     use windows_sys::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
     let target = unsafe { GetForegroundWindow() };
     DICTATION_TARGET_WINDOW.store(target as isize, Ordering::Relaxed);
-    if let Err(error) = ensure_voice_capsule(app) {
+    emit_voice_capsule_recording_state(app, "dictation");
+    if let Err(error) = ensure_voice_capsule(app, "dictation") {
         ulog_error!("{}", error);
     }
     let _ = app.emit("global-dictation-start", ());
@@ -386,11 +387,28 @@ fn on_summon_pressed<R: Runtime>(app: &AppHandle<R>) {
     crate::tray::show_main_window(app);
 }
 
-fn ensure_voice_capsule<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
+fn emit_voice_capsule_recording_state<R: Runtime>(app: &AppHandle<R>, kind: &'static str) {
+    let _ = app.emit(
+        "voice-capsule-state",
+        serde_json::json!({
+            "kind": kind,
+            "phase": "recording",
+            "transcript": "",
+            "response": "",
+            "audioLevels": []
+        }),
+    );
+}
+
+fn ensure_voice_capsule<R: Runtime>(
+    app: &AppHandle<R>,
+    initial_kind: &'static str,
+) -> Result<(), String> {
     let window = if let Some(window) = app.get_webview_window("voice-capsule") {
         window
     } else {
-        WebviewWindowBuilder::new(app, "voice-capsule", WebviewUrl::default())
+        let url = WebviewUrl::App(format!("index.html?voiceCapsuleKind={initial_kind}").into());
+        WebviewWindowBuilder::new(app, "voice-capsule", url)
             .title("BlexAgent Voice")
             .inner_size(400.0, 190.0)
             .resizable(false)
@@ -462,7 +480,8 @@ fn on_voice_pressed<R: Runtime>(app: &AppHandle<R>) {
         })
         .unwrap_or("capsule");
     if surface == "capsule" {
-        if let Err(error) = ensure_voice_capsule(app) {
+        emit_voice_capsule_recording_state(app, "ai");
+        if let Err(error) = ensure_voice_capsule(app, "ai") {
             ulog_error!("{}", error);
         }
     }
@@ -597,6 +616,14 @@ fn lingji_output_report(command: u8) -> [u8; 41] {
 }
 
 #[cfg(target_os = "windows")]
+const LINGJI_STALE_REPORT_WINDOW: std::time::Duration = std::time::Duration::from_secs(10);
+
+#[cfg(target_os = "windows")]
+fn lingji_report_stream_is_stale(elapsed_since_valid_report: std::time::Duration) -> bool {
+    elapsed_since_valid_report >= LINGJI_STALE_REPORT_WINDOW
+}
+
+#[cfg(target_os = "windows")]
 fn initialize_lingji_ai(device: &hidapi::HidDevice) -> Result<(), String> {
     use std::time::Duration;
 
@@ -702,14 +729,25 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
             ulog_info!("[global-shortcut] monitoring Lingji AI HID button");
             let mut report = [0_u8; 64];
             let mut last_unclassified = None;
+            let mut last_valid_report = std::time::Instant::now();
             loop {
                 if VOICE_POLL_GENERATION.load(Ordering::Relaxed) != generation {
                     break;
                 }
                 match device.read_timeout(&mut report, 250) {
-                    Ok(0) => {}
+                    Ok(0) => {
+                        if lingji_report_stream_is_stale(last_valid_report.elapsed()) {
+                            ulog_warn!(
+                                "[global-shortcut] Lingji HID produced no valid control frames for {}ms; reopening interface",
+                                last_valid_report.elapsed().as_millis()
+                            );
+                            break;
+                        }
+                    }
                     Ok(length) => {
-                        if let Some(code) = lingji_control_code(&report[..length]) {
+                        let control_code = lingji_control_code(&report[..length]);
+                        if let Some(code) = control_code {
+                            last_valid_report = std::time::Instant::now();
                             match code {
                                 0x21 => {
                                     let app_for_event = app.clone();
@@ -741,6 +779,15 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
                                 last_unclassified = None;
                             }
                         }
+                        if control_code.is_none()
+                            && lingji_report_stream_is_stale(last_valid_report.elapsed())
+                        {
+                            ulog_warn!(
+                                "[global-shortcut] Lingji HID is receiving non-control traffic but no valid frames for {}ms; reopening interface",
+                                last_valid_report.elapsed().as_millis()
+                            );
+                            break;
+                        }
                         let Some(is_down) = lingji_ai_edge(&report[..length]) else {
                             continue;
                         };
@@ -768,6 +815,9 @@ fn start_lingji_ai_monitor<R: Runtime>(app: &AppHandle<R>) {
                 let app_for_release = app.clone();
                 let _ = app.run_on_main_thread(move || on_voice_released(&app_for_release));
             }
+            // Avoid a tight reopen loop when Windows keeps a stale HID interface
+            // visible briefly during receiver sleep, resume, or re-enumeration.
+            std::thread::sleep(Duration::from_millis(250));
         }
     });
 }
@@ -1071,5 +1121,17 @@ mod tests {
         assert_eq!(report.len(), 41);
         assert_eq!(&report[..3], &[0x0A, 0x03, 0xA0]);
         assert!(report[3..].iter().all(|byte| *byte == 0));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn reconnects_lingji_monitor_when_valid_protocol_frames_stop() {
+        assert!(!lingji_report_stream_is_stale(
+            LINGJI_STALE_REPORT_WINDOW - std::time::Duration::from_millis(1)
+        ));
+        assert!(lingji_report_stream_is_stale(LINGJI_STALE_REPORT_WINDOW));
+        assert!(lingji_report_stream_is_stale(
+            LINGJI_STALE_REPORT_WINDOW + std::time::Duration::from_secs(1)
+        ));
     }
 }

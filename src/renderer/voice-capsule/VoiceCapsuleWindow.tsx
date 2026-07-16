@@ -19,7 +19,20 @@ interface CapsuleState {
 
 const BAR_COUNT = 21;
 const EMPTY_LEVELS = Array.from({ length: BAR_COUNT }, () => 0);
-const INITIAL_STATE: CapsuleState = { kind: 'ai', phase: 'idle', transcript: '', response: '', audioLevels: EMPTY_LEVELS };
+
+function initialCapsuleKind(): CapsuleKind {
+  return new URLSearchParams(window.location.search).get('voiceCapsuleKind') === 'dictation'
+    ? 'dictation'
+    : 'ai';
+}
+
+const INITIAL_STATE: CapsuleState = {
+  kind: initialCapsuleKind(),
+  phase: 'recording',
+  transcript: '',
+  response: '',
+  audioLevels: EMPTY_LEVELS,
+};
 
 function normalizeLevels(levels: number[] | undefined): number[] {
   if (!levels || levels.length === 0) return EMPTY_LEVELS;
