@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
-import { ArrowUpRight, Volume2, VolumeX } from 'lucide-react';
+import { ArrowUpRight, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { listenWithCleanup } from '@/utils/tauriListen';
@@ -78,6 +78,14 @@ export default function VoiceCapsuleWindow() {
             onPointerDown={event => { event.stopPropagation(); toggleSpeech(); }}
           >
             {speechEnabled ? <Volume2 className={state.phase === 'answering' ? 'is-speaking' : ''} /> : <VolumeX />}
+          </button>
+          <button
+            type="button"
+            aria-label="关闭语音交互"
+            title="关闭"
+            onPointerDown={event => { event.stopPropagation(); void invoke('cmd_hide_voice_capsule'); }}
+          >
+            <X />
           </button>
         </div>
       </section>

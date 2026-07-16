@@ -34,7 +34,7 @@ html.voice-capsule-transparent body::before { display: none !important; }
   width: 344px;
   min-height: 72px;
   max-height: 138px;
-  padding: 12px 43px 12px 15px;
+  padding: 12px 96px 12px 15px;
   border: 1px solid var(--voice-line);
   border-radius: 22px;
   background: var(--voice-paper);
@@ -65,7 +65,7 @@ html.voice-capsule-transparent body::before { display: none !important; }
   right: 9px;
   z-index: 2;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 5px;
 }
