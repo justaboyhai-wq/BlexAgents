@@ -43,6 +43,11 @@ import { ThoughtPickerRow } from './components/ThoughtPickerRow';
 import { useAttachmentHandling } from './hooks/useAttachmentHandling';
 import { useAgentPlanAsr } from '@/hooks/useAgentPlanAsr';
 import { emit } from '@tauri-apps/api/event';
+import {
+  clearPendingCapsuleTranscript,
+  readPendingCapsuleTranscript,
+  type CapsuleTranscriptEnvelope,
+} from '@/voice-capsule/capsuleTranscriptBridge';
 
 // ===== Module-level pure helpers (extracted from render body) =====
 
@@ -235,71 +240,140 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
   // Keep the rendered control in lockstep with the hook. A verified provider
   // is not enough if the speech transport is unavailable in this runtime.
   const asrEnabled = agentPlanSpeechControl?.enabled === true && Boolean(speechApiPost);
-  const { state: asrState, error: asrError, audioLevels: asrAudioLevels, start: startAsr, stop: stopAsr, toggle: toggleAsr, cancel: cancelAsr } = asr;
+  const { state: asrState, error: asrError, start: startAsr, stop: stopAsr, toggle: toggleAsr, cancel: cancelAsr } = asr;
   const onSendRef = useRef(onSend);
   onSendRef.current = onSend;
-  const globalVoiceSurfaceRef = useRef<'chat' | 'capsule' | null>(null);
+  const globalVoiceSurfaceRef = useRef<'chat' | null>(null);
   const globalVoiceStartRef = useRef<Promise<void> | null>(null);
+  const globalVoiceDesiredHeldRef = useRef(false);
+  const globalVoiceDesiredRevisionRef = useRef(0);
+  const globalVoiceActiveRevisionRef = useRef<number | null>(null);
+  const handledCapsuleTranscriptIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     if (!active || mode !== 'chat') return;
+    const beginChatCapture = () => {
+      if (!globalVoiceDesiredHeldRef.current || globalVoiceStartRef.current) return;
+      console.info('[voice-wake] chat input starting ASR surface=chat');
+      globalVoiceSurfaceRef.current = 'chat';
+      globalVoiceActiveRevisionRef.current = globalVoiceDesiredRevisionRef.current;
+      globalVoiceStartRef.current = startAsr();
+    };
+    const finishChatCapture = () => {
+      const surface = globalVoiceSurfaceRef.current;
+      if (!surface) return;
+      console.info(`[voice-wake] chat input finalizing ASR surface=${surface}`);
+      globalVoiceSurfaceRef.current = null;
+      void (async () => {
+        try {
+          await globalVoiceStartRef.current;
+          const transcript = (await stopAsr()).trim();
+          if (transcript) {
+            window.dispatchEvent(new CustomEvent('blex:voice-capsule-turn', { detail: { transcript, surface } }));
+            const sent = await onSendRef.current(transcript);
+            if (sent !== false) setInputValue('');
+          }
+        } catch (cause) {
+          console.error('[voice-wake] chat ASR finalization failed:', cause);
+        } finally {
+          globalVoiceActiveRevisionRef.current = null;
+          globalVoiceStartRef.current = null;
+          // Honor a newer DOWN that arrived while the stale capture was
+          // finalizing, without letting the old stop close the new ASR.
+          beginChatCapture();
+        }
+      })();
+    };
     const handleStart = (rawEvent: Event) => {
+      const event = rawEvent as CustomEvent<{ surface?: 'chat' | 'capsule'; revision?: number }>;
+      if (event.detail?.surface === 'capsule') {
+        console.warn('[voice-wake] ignored capsule ASR start in main renderer');
+        return;
+      }
       if (!asrEnabled) {
         console.warn('[voice-wake] active chat cannot start ASR: speech capability unavailable');
         void emit('voice-capsule-state', { kind: 'ai', phase: 'error', transcript: '', response: '', error: '当前语音服务不可用，请检查语音模型配置', audioLevels: [] });
         return;
       }
-      const event = rawEvent as CustomEvent<{ surface?: 'chat' | 'capsule' }>;
-      const surface = event.detail?.surface === 'capsule' ? 'capsule' : 'chat';
-      console.info(`[voice-wake] chat input received start surface=${surface}`);
-      globalVoiceSurfaceRef.current = surface;
-      if (surface === 'capsule') setInputValue('');
-      const start = startAsr();
-      globalVoiceStartRef.current = start;
-      if (surface === 'capsule') {
-        void emit('voice-capsule-state', { kind: 'ai', phase: 'recording', transcript: '', response: '', audioLevels: [] });
+      console.info('[voice-wake] chat input received start surface=chat');
+      globalVoiceDesiredHeldRef.current = true;
+      const revision = Number(event.detail?.revision ?? 0);
+      if (revision > 0) globalVoiceDesiredRevisionRef.current = revision;
+      if (
+        globalVoiceStartRef.current
+        && globalVoiceActiveRevisionRef.current !== null
+        && globalVoiceActiveRevisionRef.current !== globalVoiceDesiredRevisionRef.current
+      ) {
+        finishChatCapture();
+        return;
       }
+      beginChatCapture();
     };
-    const handleStop = () => {
-      const surface = globalVoiceSurfaceRef.current;
-      if (!surface) return;
-      console.info(`[voice-wake] chat input received stop surface=${surface}`);
-      globalVoiceSurfaceRef.current = null;
-      void (async () => {
-        await globalVoiceStartRef.current;
-        const transcript = (await stopAsr()).trim();
-        globalVoiceStartRef.current = null;
-        if (surface === 'capsule') {
-          await emit('voice-capsule-state', { kind: 'ai', phase: transcript ? 'thinking' : 'idle', transcript, response: '', audioLevels: [] });
-        }
-        if (transcript) {
-          window.dispatchEvent(new CustomEvent('blex:voice-capsule-turn', { detail: { transcript, surface } }));
-        }
-        if (transcript) {
-          const sent = await onSendRef.current(transcript);
-          if (sent !== false) setInputValue('');
-        }
-      })();
+    const handleStop = (rawEvent: Event) => {
+      globalVoiceDesiredHeldRef.current = false;
+      const revision = Number((rawEvent as CustomEvent<{ revision?: number }>).detail?.revision ?? 0);
+      if (revision > 0) globalVoiceDesiredRevisionRef.current = revision;
+      finishChatCapture();
     };
     window.addEventListener('blex:global-voice-start', handleStart);
     window.addEventListener('blex:global-voice-stop', handleStop);
     return () => {
+      globalVoiceDesiredHeldRef.current = false;
       window.removeEventListener('blex:global-voice-start', handleStart);
       window.removeEventListener('blex:global-voice-stop', handleStop);
     };
   }, [active, asrEnabled, mode, startAsr, stopAsr]);
 
   useEffect(() => {
-    if (globalVoiceSurfaceRef.current !== 'capsule') return;
-    void emit('voice-capsule-state', {
-      phase: asrState === 'recording' || asrState === 'starting' ? 'recording' : 'thinking',
-      kind: 'ai',
-      transcript: inputValue,
-      response: '',
-      audioLevels: asrAudioLevels,
-      error: asrError ?? undefined,
-    });
-  }, [asrAudioLevels, asrError, asrState, inputValue]);
+    if (!active || mode !== 'chat') return;
+    let activationTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const submitTranscript = (envelope: CapsuleTranscriptEnvelope) => {
+      const id = envelope.id.trim();
+      const transcript = envelope.transcript.trim();
+      if (!id || !transcript || handledCapsuleTranscriptIdsRef.current.has(id)) return;
+      handledCapsuleTranscriptIdsRef.current.add(id);
+      // Chat owns response streaming and capsule TTS. Mark the turn before
+      // sending so the first streamed token cannot race past that ownership.
+      window.dispatchEvent(new CustomEvent('blex:voice-capsule-turn', {
+        detail: { transcript, surface: 'capsule' },
+      }));
+      void (async () => {
+        try {
+          const sent = await onSendRef.current(transcript);
+          if (sent === false) {
+            handledCapsuleTranscriptIdsRef.current.delete(id);
+            console.warn(`[voice-wake] capsule transcript was not accepted id=${id}`);
+            return;
+          }
+          clearPendingCapsuleTranscript(id);
+          setInputValue('');
+        } catch (cause) {
+          handledCapsuleTranscriptIdsRef.current.delete(id);
+          console.error(`[voice-wake] capsule transcript send failed id=${id}:`, cause);
+        }
+      })();
+    };
+
+    const handleTranscript = (rawEvent: Event) => {
+      const envelope = (rawEvent as CustomEvent<CapsuleTranscriptEnvelope>).detail;
+      if (envelope) submitTranscript(envelope);
+    };
+    window.addEventListener('blex:voice-capsule-transcript-ready', handleTranscript);
+
+    const pending = readPendingCapsuleTranscript();
+    if (pending) {
+      // On an App-level tab switch, child passive effects can run before the
+      // Chat parent installs its capsule-turn listener. Defer one task so all
+      // effects are attached before announcing and sending the turn.
+      activationTimer = setTimeout(() => submitTranscript(pending), 0);
+    }
+
+    return () => {
+      window.removeEventListener('blex:voice-capsule-transcript-ready', handleTranscript);
+      if (activationTimer) clearTimeout(activationTimer);
+    };
+  }, [active, mode]);
 
   useEffect(() => {
     if (!asrError) return;

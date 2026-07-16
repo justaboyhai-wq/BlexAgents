@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync } from 'fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, rmSync, rmdirSync, symlinkSync } from 'fs';
 import type { Stats } from 'fs';
 import { isAbsolute, join, relative, resolve } from 'path';
 
@@ -116,8 +116,21 @@ export function syncProjectUserConfigFiles(
       try {
         const linkMeta = lstatIfPresent(linkPath);
         if (linkMeta) {
-          if (!linkMeta.isSymbolicLink()) continue;
-          removeSymlinkPath(linkPath);
+          if (!linkMeta.isSymbolicLink()) {
+            // Failed/partial installs can leave an empty real directory with
+            // the same name as a global skill. It contains no project-owned
+            // data, but would otherwise shadow the managed skill forever.
+            // rmdirSync is deliberately non-recursive: a concurrent writer or
+            // any real content makes it fail, preserving the project entry.
+            if (!linkMeta.isDirectory()) continue;
+            try {
+              rmdirSync(linkPath);
+            } catch {
+              continue;
+            }
+          } else {
+            removeSymlinkPath(linkPath);
+          }
         }
       } catch {
         // Missing or racing path; recreate below.

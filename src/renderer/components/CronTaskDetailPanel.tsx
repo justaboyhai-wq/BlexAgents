@@ -12,8 +12,7 @@ import {
     getCronStatusColor,
     MIN_CRON_INTERVAL,
 } from '@/types/cronTask';
-import { getFolderName } from '@/utils/taskCenterUtils';
-import { workspacePathsEqual } from '@/../shared/workspacePath';
+import { getWorkspaceDisplayName, workspacePathsEqual } from '@/../shared/workspacePath';
 import { isSupportedLocale } from '@/../shared/i18n';
 import WorkspaceIcon from './launcher/WorkspaceIcon';
 import { useToast } from './Toast';
@@ -345,7 +344,7 @@ export default function CronTaskDetailPanel({ task, botInfo, onClose, onDelete, 
                                             <span className="text-sm text-[var(--ink-muted)]">{t('cron.detail.executeAgent')}</span>
                                             <div className="flex items-center gap-1.5">
                                                 <WorkspaceIcon icon={project?.icon} size={14} />
-                                                <span className="text-sm text-[var(--ink)]">{getFolderName(task.workspacePath)}</span>
+                                                <span className="text-sm text-[var(--ink)]">{getWorkspaceDisplayName(task.workspacePath, project?.displayName || project?.name)}</span>
                                             </div>
                                         </div>
                                         {botInfo && (

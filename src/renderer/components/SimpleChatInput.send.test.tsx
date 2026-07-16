@@ -8,6 +8,11 @@ import type { Provider } from '@/config/types';
 import { i18n } from '@/i18n';
 import SimpleChatInput, { type SimpleChatInputHandle } from './SimpleChatInput';
 import { ToastProvider } from './Toast';
+import {
+  createCapsuleTranscriptEnvelope,
+  readPendingCapsuleTranscript,
+  storePendingCapsuleTranscript,
+} from '@/voice-capsule/capsuleTranscriptBridge';
 
 const workspaceMocks = vi.hoisted(() => ({
   service: {
@@ -49,6 +54,7 @@ function renderInput(props: Partial<React.ComponentProps<typeof SimpleChatInput>
 describe('SimpleChatInput send paths', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     workspaceMocks.service.importBase64Files.mockResolvedValue({
       success: true,
       files: ['blexagent_files/pasted.txt'],
@@ -114,6 +120,20 @@ describe('SimpleChatInput send paths', () => {
     await user.click(screen.getByTitle(/发送/));
 
     expect(onSend).toHaveBeenCalledWith('chat hello', undefined);
+  });
+
+  it('consumes a journaled capsule transcript exactly once after activation', async () => {
+    const envelope = createCapsuleTranscriptEnvelope('胶囊里的问题');
+    storePendingCapsuleTranscript(envelope);
+    const onSend = renderInput({ active: true, mode: 'chat' });
+
+    await waitFor(() => expect(onSend).toHaveBeenCalledWith('胶囊里的问题'));
+    expect(readPendingCapsuleTranscript()).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('blex:voice-capsule-transcript-ready', { detail: envelope }));
+    });
+    expect(onSend).toHaveBeenCalledTimes(1);
   });
 
   it('honors parent provider availability for subscription sessions with local account evidence', async () => {

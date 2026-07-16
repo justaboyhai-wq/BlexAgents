@@ -77,3 +77,23 @@ export function workspacePathsEqual(
 ): boolean {
   return normalizeWorkspacePathIdentity(a ?? '') === normalizeWorkspacePathIdentity(b ?? '');
 }
+
+/**
+ * User-facing workspace label. The bundled Blex workspace used the historical
+ * `~/.blexagent/projects/mino` directory before the product rename. Keep that
+ * path as a storage compatibility detail, but never leak it back into chrome
+ * that has no Project metadata available (tabs, history, cron cards).
+ */
+export function getWorkspaceDisplayName(
+  path: string,
+  explicitName?: string | null,
+): string {
+  const preferred = explicitName?.trim();
+  if (preferred) return preferred;
+
+  const normalized = normalizeWorkspacePathIdentity(path);
+  if (/(?:^|\/)\.blexagent\/projects\/mino$/i.test(normalized)) return 'Blex';
+
+  const segments = path.split(/[/\\]/).filter(Boolean);
+  return segments.at(-1) || 'Workspace';
+}

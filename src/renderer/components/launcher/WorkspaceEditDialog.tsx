@@ -6,7 +6,7 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Project } from '@/config/types';
-import { getFolderName } from '@/types/tab';
+import { getWorkspaceDisplayName } from '@/../shared/workspacePath';
 import { ALL_WORKSPACE_ICON_IDS, DEFAULT_WORKSPACE_ICON } from '@/assets/workspace-icons';
 import WorkspaceIcon from './WorkspaceIcon';
 import { useCloseLayer } from '@/hooks/useCloseLayer';
@@ -33,13 +33,13 @@ export default memo(function WorkspaceEditDialog({
         return () => document.removeEventListener('keydown', handler);
     }, [onClose]);
 
-    const [name, setName] = useState(project.displayName || getFolderName(project.path));
+    const [name, setName] = useState(getWorkspaceDisplayName(project.path, project.displayName || project.name));
     const [icon, setIcon] = useState(project.icon || '');
     const [saving, setSaving] = useState(false);
     const handleSave = useCallback(async () => {
         setSaving(true);
         try {
-            const folderName = getFolderName(project.path);
+            const folderName = getWorkspaceDisplayName(project.path);
             await onSave(project.id, {
                 displayName: name !== folderName ? name : undefined,
                 icon: icon || undefined,

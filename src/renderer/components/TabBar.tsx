@@ -29,8 +29,9 @@ import { TAB_BAR_BUTTON_WIDTH_PX, TAB_BAR_GAP_PX, getTabStripIdealWidth } from '
 import { TabPointerSensor, TAB_POINTER_SENSOR_OPTIONS } from '@/components/tabPointerSensor';
 import { Popover } from '@/components/ui/Popover';
 import { useCloseLayer } from '@/hooks/useCloseLayer';
-import { type Tab, MAX_TABS, getFolderName } from '@/types/tab';
+import { type Tab, MAX_TABS } from '@/types/tab';
 import { getFixedTabChromeTitle } from '@/utils/tabChromeTitle';
+import { getWorkspaceDisplayName } from '@/../shared/workspacePath';
 
 interface TabBarProps {
     tabs: Tab[];
@@ -277,10 +278,10 @@ export default memo(function TabBar({
                                 const displayTitle = fixedViewTitle ?? (hasSessionTitle
                                     ? tab.title
                                     : tab.agentDir
-                                      ? getFolderName(tab.agentDir)
+                                      ? getWorkspaceDisplayName(tab.agentDir)
                                       : tab.title);
                                 const subtitle = tab.agentDir
-                                    ? getFolderName(tab.agentDir)
+                                    ? getWorkspaceDisplayName(tab.agentDir)
                                     : tab.view === 'settings'
                                       ? t('tabs.settings')
                                       : tab.view === 'taskcenter'

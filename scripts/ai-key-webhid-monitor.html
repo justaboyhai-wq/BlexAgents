@@ -194,8 +194,13 @@
       $('keyState').textContent = '等待连接';
       log('设备已断开');
     });
-    // Page load is not a user gesture, so it may only reopen an already-authorized device.
-    safeConnect(false, false);
+    // This is a diagnostic tool, not a background driver. Never auto-claim an
+    // already-authorized HID device on page load: an old browser tab would
+    // otherwise race BlexAgent for the Lingji vendor interface after every
+    // browser restart. The user must explicitly click connect for each test.
+    window.addEventListener('pagehide', () => {
+      if (device?.opened) void device.close().catch(() => undefined);
+    });
   </script>
 </body>
 </html>

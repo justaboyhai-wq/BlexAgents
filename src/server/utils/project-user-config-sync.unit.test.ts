@@ -89,6 +89,18 @@ describe('project-user-config-sync', () => {
     expect(readFileSync(join(projectSkillDir, 'SKILL.md'), 'utf-8')).toBe('project-owned');
   });
 
+  it('repairs an empty project skill directory that shadows a global skill', () => {
+    const { home, workspace } = makeEnv();
+    writeUserSkill(home, 'weather-cn');
+    const projectSkillDir = join(workspace, '.claude', 'skills', 'weather-cn');
+    mkdirSync(projectSkillDir, { recursive: true });
+
+    syncProjectUserConfigFiles(workspace, { cliToolRegistryEnabled: true });
+
+    expect(lstatSync(projectSkillDir).isSymbolicLink()).toBe(true);
+    expect(readFileSync(join(projectSkillDir, 'SKILL.md'), 'utf-8')).toContain('weather-cn');
+  });
+
   itNonWindows('replaces broken managed skill symlinks with current user skills', () => {
     const { home, root, workspace } = makeEnv();
     writeUserSkill(home, 'review-helper');

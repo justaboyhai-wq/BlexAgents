@@ -416,6 +416,7 @@ pub fn run() {
             global_shortcut::cmd_set_global_summon_shortcut,
             global_shortcut::cmd_get_global_voice_shortcut,
             global_shortcut::cmd_set_global_voice_shortcut,
+            global_shortcut::cmd_get_global_voice_wake_snapshot,
             global_shortcut::cmd_hide_voice_capsule,
             global_shortcut::cmd_open_main_from_voice_capsule,
             global_shortcut::cmd_insert_global_dictation_text,

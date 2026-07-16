@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { isProjectActiveForUser, type Project } from '@/config/types';
-import { getFolderName } from '@/types/tab';
+import { getWorkspaceDisplayName } from '@/../shared/workspacePath';
 import { shortenPathForDisplay } from '@/utils/pathDetection';
 import { useCloseLayer } from '@/hooks/useCloseLayer';
 import OverlayBackdrop from '@/components/OverlayBackdrop';
@@ -54,7 +54,7 @@ export default function WorkspaceSelectDialog({ projects, onSelect, onClose }: W
               >
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-medium text-[var(--ink)]">
-                    {project.displayName || getFolderName(project.path)}
+                    {getWorkspaceDisplayName(project.path, project.displayName || project.name)}
                   </div>
                   <div className="text-xs text-[var(--ink-subtle)]">
                     {shortenPathForDisplay(project.path)}

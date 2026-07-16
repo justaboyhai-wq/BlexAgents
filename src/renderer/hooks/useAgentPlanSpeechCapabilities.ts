@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { ProviderVerifyStatus } from '@/config/types';
 import {
@@ -25,12 +25,14 @@ export function useAgentPlanSpeechCapabilities(input: {
     unavailable: boolean;
   } | null>(null);
   const [revision, setRevision] = useState(0);
+  const retryAttemptRef = useRef(0);
 
   const refresh = useCallback(() => setRevision(value => value + 1), []);
 
   useEffect(() => {
     if (currentProviderId !== AGENT_PLAN_PROVIDER_ID) return;
     const controller = new AbortController();
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const requestApiKey = apiKey;
     const requestVerifyStatus = verifyStatus?.status;
     const verifiedAt = verifyStatus?.verifiedAt;
@@ -39,15 +41,29 @@ export function useAgentPlanSpeechCapabilities(input: {
       '/api/agent-plan/capabilities',
       { signal: controller.signal },
     ).then(response => {
-      if (!controller.signal.aborted) setResult({
-        apiKey: requestApiKey, verifyStatus: requestVerifyStatus, verifiedAt, revision: requestRevision, status: response, unavailable: false,
-      });
+      if (!controller.signal.aborted) {
+        retryAttemptRef.current = 0;
+        setResult({
+          apiKey: requestApiKey, verifyStatus: requestVerifyStatus, verifiedAt, revision: requestRevision, status: response, unavailable: false,
+        });
+      }
     }).catch(() => {
-      if (!controller.signal.aborted) setResult({
-        apiKey: requestApiKey, verifyStatus: requestVerifyStatus, verifiedAt, revision: requestRevision, status: null, unavailable: true,
-      });
+      if (!controller.signal.aborted) {
+        setResult({
+          apiKey: requestApiKey, verifyStatus: requestVerifyStatus, verifiedAt, revision: requestRevision, status: null, unavailable: true,
+        });
+        // Session sidecars are intentionally replaced during resume/config
+        // changes. A capability probe can race that handoff; recover without
+        // requiring the user to edit credentials or reload the whole app.
+        const attempt = retryAttemptRef.current++;
+        const delayMs = Math.min(1_000 * (2 ** attempt), 15_000);
+        retryTimer = setTimeout(() => setRevision(value => value + 1), delayMs);
+      }
     });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [
     apiGet,
     apiKey,

@@ -137,7 +137,15 @@ fn sync_skills_subtree(workspace: &Path, blexagent_root: &Path) {
         // or when a concurrent reader recreated the link before our create
         // landed.
         match fs::symlink_metadata(&link_path) {
-            Ok(meta) if !meta.is_symlink() => continue, // real dir, leave alone
+            Ok(meta) if !meta.is_symlink() && !is_windows_junction(&link_path, &meta) => {
+                // An interrupted install/sync can leave an empty real folder
+                // that shadows the global skill forever. Removing it is safe
+                // with `remove_dir` (not recursive): if it contains any user
+                // data or races with a writer, removal fails and we preserve it.
+                if !meta.is_dir() || fs::remove_dir(&link_path).is_err() {
+                    continue;
+                }
+            }
             Ok(_) => {
                 if fs::read_link(&link_path).ok().as_deref() == Some(target.as_path()) {
                     continue; // already correct — no-op
@@ -455,6 +463,22 @@ mod tests {
         // It's still a real dir, not a symlink.
         let meta = fs::symlink_metadata(&real_dir).unwrap();
         assert!(!meta.is_symlink());
+        let _ = fs::remove_dir_all(&workspace);
+        let _ = fs::remove_dir_all(&home);
+    }
+
+    #[test]
+    fn repairs_empty_project_skill_dir_that_shadows_global_skill() {
+        let home = user_root_with_skill("weather-cn");
+        let workspace = make_test_workspace("ws_empty_skill_repaired");
+        let stale_dir = workspace.join(".claude/skills/weather-cn");
+        fs::create_dir_all(&stale_dir).unwrap();
+
+        sync_workspace_skills_with_home(&workspace, &home).unwrap();
+
+        assert!(stale_dir.join("SKILL.md").is_file());
+        let meta = fs::symlink_metadata(&stale_dir).unwrap();
+        assert!(meta.is_symlink() || is_windows_junction(&stale_dir, &meta));
         let _ = fs::remove_dir_all(&workspace);
         let _ = fs::remove_dir_all(&home);
     }
