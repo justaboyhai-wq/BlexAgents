@@ -17,6 +17,7 @@ import type { RowLayoutContract } from '@/utils/chatRowLayout';
 import { useChatScrollDebugProbe } from '@/hooks/useChatScrollDebugProbe';
 import { resolveChatBottomSpacerPx } from '@/utils/chatBottomSpacer';
 import { parseBackgroundTaskNotificationMessage } from '@/utils/backgroundTaskStatus';
+import type { AgentPlanSpeechControl } from '../../shared/agent-plan-capabilities';
 
 function formatElapsedTime(totalSeconds: number, t: TFunction<'chat'>): string {
   const hours = Math.floor(totalSeconds / 3600);
@@ -79,6 +80,8 @@ interface MessageListProps {
   onRewind?: (messageId: string) => void;
   onRetry?: (assistantMessageId: string) => void;
   onFork?: (assistantMessageId: string) => void;
+  onSpeak?: (assistantMessageId: string, text: string) => Promise<void>;
+  speechControl?: AgentPlanSpeechControl;
   bottomSpacerPx?: number;
 }
 
@@ -253,6 +256,8 @@ const MessageList = memo(function MessageList({
   onRewind,
   onRetry,
   onFork,
+  onSpeak,
+  speechControl,
   bottomSpacerPx,
 }: MessageListProps) {
   const { t } = useTranslation('chat');
@@ -451,6 +456,10 @@ const MessageList = memo(function MessageList({
   onRetryRef.current = onRetry;
   const onForkRef = useRef(onFork);
   onForkRef.current = onFork;
+  const onSpeakRef = useRef(onSpeak);
+  onSpeakRef.current = onSpeak;
+  const speechControlRef = useRef(speechControl);
+  speechControlRef.current = speechControl;
   const layoutByMessageIdRef = useRef(layoutByMessageId);
   layoutByMessageIdRef.current = layoutByMessageId;
   const onRowLayoutChangedRef = useRef(onRowLayoutChanged ?? noopRowLayoutChanged);
@@ -523,6 +532,8 @@ const MessageList = memo(function MessageList({
             onRewind={onRewindRef.current}
             onRetry={onRetryRef.current}
             onFork={onForkRef.current}
+            onSpeak={onSpeakRef.current}
+            speechControl={speechControlRef.current}
             exitPlanModeSlot={message.id === exitPlanModeAnchorIdRef.current ? exitPlanModeSlotRef.current : undefined}
             initialUserCollapsed={layoutByMessageIdRef.current?.get(message.id)?.likelyUserCollapsed === true}
           />

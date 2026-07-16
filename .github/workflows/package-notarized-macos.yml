@@ -14,7 +14,6 @@ jobs:
   package:
     name: 公司签名与 Apple 公证 · ARM64 预览包
     runs-on: macos-14
-    environment: production-release
     env:
       APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -44,6 +43,15 @@ jobs:
           workspaces: src-tauri
 
       - run: npm ci
+
+      - name: 准备内置 Blex 默认工作区
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/hAcKlyc/openmino.git mino
+          rm -rf mino/.git
+          npm run brand:default-workspace
+          node scripts/validate-bundled-resources.mjs
 
       - name: 校验开源许可、文档与签名 Secrets
         shell: bash
@@ -87,6 +95,16 @@ jobs:
           security list-keychains -d user -s "$keychain" login.keychain-db
           security find-identity -v -p codesigning "$keychain" | grep -F "$APPLE_SIGNING_IDENTITY"
           rm -f "$certificate"
+
+      - name: 验证 Tauri 更新签名密钥
+        shell: bash
+        run: |
+          set -euo pipefail
+          probe="$RUNNER_TEMP/blexagent-updater-signing-probe"
+          printf 'BlexAgent updater signing probe\n' > "$probe"
+          npm run tauri -- signer sign "$probe"
+          test -s "$probe.sig"
+          rm -f "$probe" "$probe.sig"
 
       - name: 准备 App Store Connect 公证密钥
         shell: bash

@@ -32,11 +32,12 @@ export async function apiFetch(endpoint: string, options?: RequestInit): Promise
 /**
  * POST JSON to API endpoint
  */
-export async function apiPostJson<T>(endpoint: string, data: unknown): Promise<T> {
+export async function apiPostJson<T>(endpoint: string, data: unknown, options?: { signal?: AbortSignal }): Promise<T> {
     const response = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        ...options,
     });
 
     if (!response.ok) {
@@ -50,8 +51,8 @@ export async function apiPostJson<T>(endpoint: string, data: unknown): Promise<T
 /**
  * GET JSON from API endpoint
  */
-export async function apiGetJson<T>(endpoint: string): Promise<T> {
-    const response = await apiFetch(endpoint);
+export async function apiGetJson<T>(endpoint: string, options?: { signal?: AbortSignal }): Promise<T> {
+    const response = await apiFetch(endpoint, options);
 
     if (!response.ok) {
         const responseText = await response.text();

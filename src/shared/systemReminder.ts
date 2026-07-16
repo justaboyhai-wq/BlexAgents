@@ -1,6 +1,11 @@
 export const SYSTEM_REMINDER_OPEN = '<system-reminder>';
 export const SYSTEM_REMINDER_CLOSE = '</system-reminder>';
 export const FLOATING_BALL_CONTEXT_TAG = 'FLOATING_BALL_CONTEXT';
+export const MINIMAL_RESPONSE_TAG = 'MINIMAL_RESPONSE';
+
+export function buildMinimalResponseReminder(visibleText: string): string {
+  return `<system-reminder>\n<${MINIMAL_RESPONSE_TAG}>\n<instruction>\nYou are in minimal assistant mode, not plan mode. Answer in the shortest useful form and lead with the direct answer. Omit preambles, repetition, background explanation, and optional detail unless the user asks for them. Prefer one or two short sentences. Minimal mode changes response length only: preserve the session's autonomy and permission level. Skills, WebSearch, and all other available tools remain enabled; take actions and use tools whenever they improve correctness or are needed to complete the request.\n</instruction>\n</${MINIMAL_RESPONSE_TAG}>\n</system-reminder>\n${visibleText}`;
+}
 export const SPACE_ISSUE_CONTEXT_TAG = 'blexagent-space-issue';
 
 export interface ParsedLeadingSystemReminder {

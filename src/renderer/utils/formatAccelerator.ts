@@ -50,6 +50,17 @@ function isMacPlatform(): boolean {
 function displayMainKey(token: string, isMac: boolean): string {
   const t = token.toLowerCase();
   switch (t) {
+    case 'lingjiai':
+    case 'lingji-ai': return '灵玑 AI 键';
+    case 'mousex1':
+    case 'xbutton1':
+    case 'mouseback': return 'Mouse Side 1';
+    case 'mousex2':
+    case 'xbutton2':
+    case 'mouseforward': return 'Mouse Side 2';
+    case 'altright':
+    case 'rightalt':
+    case 'altgr': return 'Right Alt';
     case 'space': return isMac ? '␣' : 'Space';
     case 'enter':
     case 'return': return isMac ? '↩' : 'Enter';

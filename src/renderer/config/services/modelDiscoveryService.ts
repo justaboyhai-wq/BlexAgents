@@ -226,6 +226,10 @@ export function formatTokenCount(count: number): string {
 
 /** Check if a provider supports model discovery */
 export function supportsModelDiscovery(provider: Provider): boolean {
+  // Some subscription endpoints only expose inference routes. They must opt
+  // out explicitly so their base URL is not misinterpreted as an OpenAI API
+  // root and probed at a non-existent /v1/models endpoint.
+  if (provider.supportsModelDiscovery === false) return false;
   // Subscription has no API key for REST API
   if (provider.type === 'subscription') return false;
   // MiniMax has no model list endpoint

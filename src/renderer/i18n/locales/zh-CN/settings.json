@@ -139,11 +139,21 @@
       "resetTitle": "恢复默认快捷键",
       "resetDefault": "重置默认"
     },
+    "voice": {
+      "title": "全局语音唤醒快捷键",
+      "description": "在任何应用中按下快捷键，打开微型语音窗口并实时识别语音。识别后可生成简短回答或打开完整对话。",
+      "enableTitle": "启用语音唤醒",
+      "enableDescription": "Windows 默认使用灵玑 AI 键，按住即可唤起语音窗口",
+      "currentTitle": "当前语音快捷键",
+      "currentDescription": "可录制键盘、鼠标侧键，或直接选择灵玑 AI 键",
+      "resetDefault": "恢复默认"
+    },
     "recorder": {
       "cancelled": "已取消",
       "recordingDisplay": "请按下快捷键...（Esc 取消）",
       "recordingTitle": "正在录制：请按下快捷键，或按 Esc 取消",
       "idleTitle": "点击修改快捷键",
+      "useLingjiAi": "使用灵玑 AI 键",
       "errors": {
         "missingMainKey": "请选择一个普通按键",
         "blockedKey": "该按键不能作为快捷键",
@@ -307,7 +317,7 @@
       "refresh": "刷新",
       "searchPlaceholder": "搜索模型...",
       "needApiKey": "请先配置 API Key",
-      "notSupported": "当前供应商不支持发现模型",
+      "notSupported": "该供应商仅提供上方精选模型，无需在线拉取模型列表",
       "loading": "正在拉取模型列表...",
       "loadFailed": "无法拉取模型列表",
       "retry": "重试",
@@ -1724,6 +1734,14 @@
     "enableTitle": "启用",
     "enableDescription": "显示桌面悬浮入口和伴侣窗口。",
     "generalTitle": "通用设置",
+    "voiceTitle": "语音配置",
+    "voiceDescription": "设置桌面宠物和主对话语音回复使用的角色、语速与音量。修改后会用于下一次合成。",
+    "voiceRole": "语音角色",
+    "voiceSpeed": "语速",
+    "voiceVolume": "音量",
+    "voiceRatio": "{{value}} 倍",
+    "voicePreview": "试音",
+    "voicePreviewText": "试音内容：明日复明日，明日何其多。",
     "workspaceBindingTitle": "绑定工作区",
     "workspaceBindingDescription": "默认跟随启动页工作区，也可以固定到某个项目。",
     "followDefaultWorkspace": "跟随默认工作区",
@@ -1781,7 +1799,8 @@
       "chooseFileFailed": "选择文件失败：{{message}}",
       "workspaceBindingUpdated": "工作区绑定已更新",
       "hoverPeekEnabled": "已开启悬停预览浮窗",
-      "hoverPeekDisabled": "已关闭悬停预览浮窗"
+      "hoverPeekDisabled": "已关闭悬停预览浮窗",
+      "voicePreviewFailed": "试音失败：{{message}}"
     }
   },
   "about": {

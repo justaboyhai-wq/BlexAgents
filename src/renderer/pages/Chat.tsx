@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, Bot, Globe, History, Loader2, Plus, PanelRightOpen, RotateCcw, TerminalSquare, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Bot, Globe, History, Loader2, Plus, PanelRightOpen, RotateCcw, TerminalSquare, Volume2, VolumeX, X } from 'lucide-react';
 import { forwardRef, lazy, Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +42,11 @@ import { useFileDropZone } from '@/hooks/useFileDropZone';
 import { useTauriFileDrop } from '@/hooks/useTauriFileDrop';
 import { useCronTask } from '@/hooks/useCronTask';
 import { useWorkspaceFileService } from '@/hooks/useWorkspaceFileService';
+import { useAgentPlanSpeechCapabilities } from '@/hooks/useAgentPlanSpeechCapabilities';
+import { resolveToolAttachmentUrl } from '@/utils/toolAttachment';
+import { playAudioUrl, playAudioUrlAndWait, stopAudio } from '@/utils/audioPlayer';
+import { emit } from '@tauri-apps/api/event';
+import type { ToolAttachment } from '../../shared/types/tool-attachment';
 import { useWorkspaceChangeSignal } from '@/hooks/useWorkspaceChangeSignal';
 import { isIntroductionAbsentError, shouldShowIntroductionOverlay, useIntroductionContent } from '@/hooks/useIntroductionContent';
 import { resolveAdoptedBuiltinProviderId } from '@/utils/sessionConfigAdoption';
@@ -57,10 +62,23 @@ import { projectCronExecutionOverrides } from '@/utils/cronExecutionProjection';
 import type { CronSettingsResult, CronInitialConfig } from '@/components/cron/CronTaskSettingsModal';
 import { isTauriEnvironment } from '@/utils/browserMock';
 import { isDebugMode } from '@/utils/debug';
+import { listenWithCleanup } from '@/utils/tauriListen';
 import { getChannelTypeLabel } from '@/utils/taskCenterUtils';
 import { appendCronPromptToDraft } from '@/utils/cronComposerRecovery';
+import { completedSpeechPrefix } from '@/utils/voiceStreaming';
+
+function voiceMessageText(message: { content: unknown } | null | undefined): string {
+  if (!message) return '';
+  if (typeof message.content === 'string') return message.content;
+  if (!Array.isArray(message.content)) return '';
+  return message.content
+    .filter((block): block is { type: 'text'; text?: string } => typeof block === 'object' && block !== null && (block as { type?: string }).type === 'text')
+    .map(block => block.text || '')
+    .join('\n\n');
+}
+
 import { launchSupportDiagnostics } from '@/utils/supportDiagnostics';
-import { CODEX_SUBSCRIPTION_PROVIDER_ID, type PermissionMode, type McpServerDefinition, type Provider, getEffectiveModelAliases } from '@/config/types';
+import { CODEX_SUBSCRIPTION_PROVIDER_ID, type ConversationMode, type PermissionMode, type McpServerDefinition, type Provider, getEffectiveModelAliases } from '@/config/types';
 import { syncMcpServerNames } from '@/components/tools/toolBadgeConfig';
 import {
   getAllMcpServers,
@@ -561,6 +579,216 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
     && !effectiveSelectedProviderId;
   const currentProviderAvailableForInput = builtinSnapshotProviderSelectionIncomplete
     || (!!currentProvider && availableProviderIdsForInput.includes(currentProvider.id));
+  const agentPlanSpeech = useAgentPlanSpeechCapabilities({
+    currentProviderId: currentProvider?.id,
+    apiKey: apiKeys['volcengine-agent-plan'],
+    verifyStatus: providerVerifyStatus['volcengine-agent-plan'],
+    apiGet,
+  });
+  const agentPlanSpeechControl = agentPlanSpeech.control;
+  const refreshAgentPlanSpeech = agentPlanSpeech.refresh;
+  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(false);
+  const autoSpeakWasLoadingRef = useRef(false);
+  const autoSpokenMessageIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (!agentPlanSpeechControl.enabled) {
+      setAutoSpeakEnabled(false);
+      stopAudio();
+    }
+  }, [agentPlanSpeechControl.enabled]);
+  const handleSpeakMessage = useCallback(async (messageId: string, text: string) => {
+    if (!sessionId || !agentPlanSpeechControl.enabled) return;
+    try {
+      const response = await apiPost<{
+        success: boolean;
+        attachment?: ToolAttachment;
+        error?: string;
+      }>('/api/agent-plan/tts', {
+        text,
+        sessionId,
+        messageId,
+        speaker: config.speechSynthesisVoice,
+        speed: config.speechSynthesisSpeed,
+        volume: config.speechSynthesisVolume,
+      });
+      if (!response.attachment) throw new Error(response.error || 'Agent Plan TTS did not return audio.');
+      const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
+      if (!url || url.startsWith('error://')) throw new Error('Agent Plan TTS audio is unavailable.');
+      // Use the message id as the player identity so the message action can
+      // display progress even when the generated attachment path is opaque.
+      await playAudioUrl(messageId, url);
+    } catch (error) {
+      toast.error(t('input.speech.ttsFailed'));
+      await refreshProviderData().catch(() => undefined);
+      refreshAgentPlanSpeech();
+      throw error;
+    }
+  }, [agentPlanSpeechControl.enabled, apiPost, config.speechSynthesisSpeed, config.speechSynthesisVoice, config.speechSynthesisVolume, refreshAgentPlanSpeech, refreshProviderData, sessionId, t, toast]);
+
+  const capsuleTurnActiveRef = useRef(false);
+  const voiceTurnSurfaceRef = useRef<'chat' | 'capsule'>('capsule');
+  const capsuleTranscriptRef = useRef('');
+  const capsuleResponseRef = useRef('');
+  const capsuleSpeechOffsetRef = useRef(0);
+  const capsuleSpeechQueueRef = useRef(Promise.resolve());
+  const capsuleSpeechGenerationRef = useRef(0);
+  const capsuleSpeechEnabledRef = useRef(true);
+  const capsuleOwnsWindowRef = useRef(false);
+  const suppressNextAutoSpeakRef = useRef(false);
+
+  useEffect(() => {
+    const handleBargeIn = () => {
+      capsuleSpeechGenerationRef.current += 1;
+      capsuleSpeechQueueRef.current = Promise.resolve();
+      capsuleTurnActiveRef.current = false;
+      capsuleResponseRef.current = '';
+      capsuleSpeechOffsetRef.current = 0;
+      capsuleOwnsWindowRef.current = false;
+      // A voice interruption starts a new conversational turn; the answer it
+      // interrupted must never be auto-spoken again when its state settles.
+      suppressNextAutoSpeakRef.current = true;
+      stopAudio();
+    };
+    window.addEventListener('blex:voice-barge-in', handleBargeIn);
+    return () => window.removeEventListener('blex:voice-barge-in', handleBargeIn);
+  }, []);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const beginTurn = (event: Event) => {
+      capsuleTurnActiveRef.current = true;
+      suppressNextAutoSpeakRef.current = true;
+      const detail = (event as CustomEvent<{ transcript?: string; surface?: 'chat' | 'capsule' }>).detail;
+      capsuleTranscriptRef.current = detail?.transcript || '';
+      voiceTurnSurfaceRef.current = detail?.surface === 'chat' ? 'chat' : 'capsule';
+      capsuleOwnsWindowRef.current = voiceTurnSurfaceRef.current === 'capsule';
+      capsuleResponseRef.current = '';
+      capsuleSpeechOffsetRef.current = 0;
+      capsuleSpeechGenerationRef.current += 1;
+      capsuleSpeechQueueRef.current = Promise.resolve();
+      stopAudio();
+    };
+    window.addEventListener('blex:voice-capsule-turn', beginTurn);
+    const pendingTranscript = sessionStorage.getItem('blex:pending-voice-capsule-turn');
+    if (pendingTranscript) {
+      sessionStorage.removeItem('blex:pending-voice-capsule-turn');
+      beginTurn(new CustomEvent('blex:voice-capsule-turn', { detail: { transcript: pendingTranscript } }));
+    }
+    return () => window.removeEventListener('blex:voice-capsule-turn', beginTurn);
+  }, [isActive]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void listenWithCleanup<{ enabled?: boolean }>('voice-capsule-speech-toggle', event => {
+      if (!capsuleOwnsWindowRef.current) return;
+      const enabled = event.payload?.enabled !== false;
+      capsuleSpeechEnabledRef.current = enabled;
+      if (!enabled) {
+        capsuleSpeechGenerationRef.current += 1;
+        capsuleSpeechQueueRef.current = Promise.resolve();
+        stopAudio();
+      }
+    }, controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  const enqueueCapsuleSpeech = useCallback((segment: string) => {
+    if (!segment || !sessionId || !agentPlanSpeechControl.enabled || !capsuleSpeechEnabledRef.current) return;
+    const generation = capsuleSpeechGenerationRef.current;
+    // Start synthesising immediately. Playback remains ordered below, but the
+    // next sentence can now be prepared while the previous one is playing.
+    const audioReady = (async (): Promise<string | null> => {
+      if (generation !== capsuleSpeechGenerationRef.current) return null;
+      const response = await apiPost<{ success: boolean; attachment?: ToolAttachment; error?: string }>(
+        '/api/agent-plan/tts',
+        {
+          text: segment,
+          sessionId,
+          messageId: `voice-capsule-${generation}`,
+          speaker: config.speechSynthesisVoice,
+          speed: config.speechSynthesisSpeed,
+          volume: config.speechSynthesisVolume,
+        },
+      );
+      if (!response.attachment || generation !== capsuleSpeechGenerationRef.current) return null;
+      const url = await resolveToolAttachmentUrl(response.attachment, sessionId);
+      if (!url || url.startsWith('error://')) return null;
+      return url;
+    })().catch(() => null);
+    capsuleSpeechQueueRef.current = capsuleSpeechQueueRef.current.then(async () => {
+      const url = await audioReady;
+      if (!url || generation !== capsuleSpeechGenerationRef.current) return;
+      await playAudioUrlAndWait(`voice-capsule-${generation}`, url);
+    }).catch(() => undefined);
+  }, [agentPlanSpeechControl.enabled, apiPost, config.speechSynthesisSpeed, config.speechSynthesisVoice, config.speechSynthesisVolume, sessionId]);
+
+  useEffect(() => {
+    if (!capsuleTurnActiveRef.current) return;
+    const text = voiceMessageText(streamingMessage);
+    if (!text || text === capsuleResponseRef.current) return;
+    capsuleResponseRef.current = text;
+    if (voiceTurnSurfaceRef.current === 'capsule') {
+      void emit('voice-capsule-state', { kind: 'ai', phase: 'answering', transcript: capsuleTranscriptRef.current, response: text, audioLevels: [] });
+    }
+    const completed = completedSpeechPrefix(text, capsuleSpeechOffsetRef.current);
+    if (completed.segment) {
+      capsuleSpeechOffsetRef.current = completed.nextOffset;
+      enqueueCapsuleSpeech(completed.segment);
+    }
+  }, [enqueueCapsuleSpeech, streamingMessage]);
+
+  useEffect(() => {
+    if (isLoading || !capsuleTurnActiveRef.current || !capsuleResponseRef.current) return;
+    const remaining = capsuleResponseRef.current.slice(capsuleSpeechOffsetRef.current).trim();
+    if (remaining) enqueueCapsuleSpeech(remaining);
+    if (voiceTurnSurfaceRef.current === 'capsule') {
+      void emit('voice-capsule-state', { kind: 'ai', phase: 'complete', transcript: capsuleTranscriptRef.current, response: capsuleResponseRef.current, audioLevels: [] });
+    }
+    capsuleTurnActiveRef.current = false;
+  // The final message payload and `isLoading = false` arrive through separate
+  // state updates. Re-run when the payload changes as well, otherwise a turn
+  // whose loading flag settles first can strand the final, unpunctuated tail.
+  }, [enqueueCapsuleSpeech, isLoading, streamingMessage]);
+
+  // Auto-speak only on the loading -> complete transition. This deliberately
+  // ignores history hydration and streaming updates, so opening a chat never
+  // unexpectedly calls the TTS model.
+  useEffect(() => {
+    if (isLoading) {
+      autoSpeakWasLoadingRef.current = true;
+      return;
+    }
+    if (!autoSpeakWasLoadingRef.current) return;
+    autoSpeakWasLoadingRef.current = false;
+    if (suppressNextAutoSpeakRef.current) {
+      suppressNextAutoSpeakRef.current = false;
+      return;
+    }
+    if (!autoSpeakEnabled || !agentPlanSpeechControl.enabled || !sessionId) return;
+
+    const latestAssistant = [...messages].reverse().find(message => message.role === 'assistant');
+    if (!latestAssistant || autoSpokenMessageIdsRef.current.has(latestAssistant.id)) return;
+    const text = typeof latestAssistant.content === 'string'
+      ? latestAssistant.content
+      : latestAssistant.content
+        .filter(block => block.type === 'text')
+        .map(block => block.text || '')
+        .join('\n\n');
+    if (!text.trim()) return;
+    autoSpokenMessageIdsRef.current.add(latestAssistant.id);
+    void handleSpeakMessage(latestAssistant.id, text).catch(() => {
+      autoSpokenMessageIdsRef.current.delete(latestAssistant.id);
+    });
+  }, [agentPlanSpeechControl.enabled, autoSpeakEnabled, handleSpeakMessage, isLoading, messages, sessionId]);
+
+  const toggleAutoSpeak = useCallback(() => {
+    if (!agentPlanSpeechControl.enabled) return;
+    setAutoSpeakEnabled(previous => {
+      const next = !previous;
+      if (!next) stopAudio();
+      return next;
+    });
+  }, [agentPlanSpeechControl.enabled]);
 
   // PERFORMANCE: Ref-stabilize object deps used in handleSendMessage
   // Prevents useCallback from creating new references when these objects change,
@@ -1014,6 +1242,17 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
   const [permissionMode, setPermissionMode] = useState<PermissionMode>(
     (currentAgent?.permissionMode as PermissionMode | undefined) ?? currentProject?.permissionMode ?? 'auto'
   );
+  const [conversationMode, setConversationMode] = useState<ConversationMode>(() => initialMessage?.conversationMode ?? 'standard');
+  useEffect(() => {
+    if (!sessionId) return;
+    const storageKey = `blex:conversation-mode:${sessionId}`;
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored === 'minimal' || stored === 'standard') setConversationMode(stored);
+  }, [sessionId]);
+  const handleConversationModeChange = useCallback((mode: ConversationMode) => {
+    setConversationMode(mode);
+    if (sessionId) sessionStorage.setItem(`blex:conversation-mode:${sessionId}`, mode);
+  }, [sessionId]);
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
     currentAgent?.model ?? currentProject?.model ?? currentProvider?.primaryModel
   );
@@ -1757,6 +1996,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
             // message must already carry the launcher's choice.
             isExternalRuntime ? undefined : (launchMessage.reasoningEffort ?? reasoningEffort),
             isExternalRuntime ? undefined : providerRoute,
+            launchMessage.conversationMode ?? conversationMode,
           );
         }
 
@@ -3622,7 +3862,7 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
       await sendMessage(text, images, effectivePermissionMode, effectiveModel, isExternalRuntime ? undefined : providerEnv, undefined,
         // #324 — builtin only: external runtimes apply effort via /api/reasoning-effort/set
         isExternalRuntime ? undefined : reasoningEffort,
-        isExternalRuntime ? undefined : providerRoute);
+        isExternalRuntime ? undefined : providerRoute, conversationMode);
     } catch (error) {
       const errorMessage = {
         id: `error-${crypto.randomUUID()}`,
@@ -4695,20 +4935,23 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
               triggerRef={historyBtnRef}
               sessionNotificationBadgeCounts={sessionNotificationBadgeCounts}
             />
-            {/* Dev-only buttons - controlled by config.showDevTools */}
-            {config.showDevTools && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setShowLogs((prev) => !prev)}
-                  className={`rounded-lg px-2.5 py-1 text-sm font-medium transition-colors ${showLogs
-                    ? 'bg-[var(--paper-inset)] text-[var(--ink)]'
-                    : 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
-                    }`}
-                >
-                  Logs
-                </button>
-                </>
+            {agentPlanSpeechControl.visibility === 'visible' && (
+              <button
+                type="button"
+                onClick={toggleAutoSpeak}
+                disabled={!agentPlanSpeechControl.enabled}
+                aria-pressed={autoSpeakEnabled}
+                aria-label={autoSpeakEnabled ? t('shell.header.autoSpeakOn') : t('shell.header.autoSpeakOff')}
+                title={agentPlanSpeechControl.enabled
+                  ? (autoSpeakEnabled ? t('shell.header.autoSpeakOn') : t('shell.header.autoSpeakOff'))
+                  : t('shell.header.autoSpeakUnavailable')}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors ${autoSpeakEnabled
+                  ? 'bg-[var(--paper-inset)] text-[var(--ink)]'
+                  : 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                {autoSpeakEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+              </button>
             )}
             {/* Workspace toggle button - always visible when workspace is hidden */}
             {!showWorkspace && (
@@ -4911,6 +5154,8 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
               onRewind={isExternalRuntime ? undefined : handleRewind}
               onRetry={handleRetry}
               onFork={isExternalRuntime ? undefined : handleFork}
+              onSpeak={handleSpeakMessage}
+              speechControl={agentPlanSpeechControl}
               bottomSpacerPx={inputOverlayHeight}
             />
 
@@ -4979,8 +5224,12 @@ export default function Chat({ onBack, onNewSession, onSwitchSession, onOpenSess
             contextIndicator={contextIndicatorSlot}
             permissionMode={inputChromePermissionMode}
             onPermissionModeChange={handleInputPermissionModeChange}
+            conversationMode={conversationMode}
+            onConversationModeChange={handleConversationModeChange}
             apiKeys={apiKeys}
             providerVerifyStatus={providerVerifyStatus}
+            agentPlanSpeechControl={agentPlanSpeechControl}
+            speechApiPost={apiPost}
             inputRef={inputRef}
             workspaceMcpEnabled={workspaceMcpEnabled}
             globalMcpEnabled={globalMcpEnabled}

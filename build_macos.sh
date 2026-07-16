@@ -821,6 +821,21 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
     TAR_GZ_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app.tar.gz" ! -name "*.sig" 2>/dev/null | head -1)
     SIG_PATH=$(find "${TARGET_BUNDLE_DIR}/macos" -name "*.app.tar.gz.sig" 2>/dev/null | head -1)
 
+    # Tauri 公证流程会为 .app 提交并装订票据，但外层 DMG 在随后生成，
+    # 因此还需要单独提交一次。否则应用本身能通过 Gatekeeper，用户下载的
+    # 安装镜像仍会被识别为 "Unnotarized Developer ID"。
+    if [ -n "$DMG_PATH" ] && [ "$INTERNAL_MODE" != true ]; then
+        echo -e "  ${CYAN}提交 DMG 到 Apple 公证服务: $(basename "$DMG_PATH")${NC}"
+        xcrun notarytool submit "$DMG_PATH" \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait
+        xcrun stapler staple "$DMG_PATH"
+        xcrun stapler validate "$DMG_PATH"
+        echo -e "  ${GREEN}✓ DMG 公证票据已装订并验证${NC}"
+    fi
+
     # 架构友好名称
     if [[ "$TARGET" == "aarch64-apple-darwin" ]]; then
         ARCH_NAME="ARM (Apple Silicon)"

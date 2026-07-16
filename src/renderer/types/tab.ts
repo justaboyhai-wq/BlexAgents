@@ -57,6 +57,7 @@ export interface InitialMessageCron {
  *      Chat input box so the user can retry without losing their draft. */
 export interface InitialMessage {
     text: string;
+    conversationMode?: import('../../shared/config-types').ConversationMode;
     images?: ImageAttachment[];
     permissionMode?: PermissionMode;
     mcpEnabledServers?: string[];

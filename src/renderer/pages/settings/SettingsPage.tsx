@@ -83,7 +83,7 @@ import { VISIBLE_APP_SHORTCUTS } from '@/utils/appShortcuts';
 import { shouldDebounceAutoVerify } from '@/utils/apiKeyAutoVerify';
 import { shouldUseCachedValidSubscriptionVerify } from '@/utils/subscriptionVerifyPolicy';
 import type { SubscriptionVerifyResult } from '@/types/subscription';
-import { DEFAULT_SUMMON_ACCELERATOR } from '../../../shared/config-types';
+import { DEFAULT_SUMMON_ACCELERATOR, DEFAULT_VOICE_ACCELERATOR } from '../../../shared/config-types';
 import {
     IMAGE_UNDERSTANDING_TOOL_ID,
     OFFICIAL_TOOLS,
@@ -98,6 +98,7 @@ import { formatSubscriptionVerifyError } from '../../../shared/subscription';
 import type { UiLanguage } from '../../../shared/i18n';
 import ProviderEnableOrderDialog from '@/components/ProviderEnableOrderDialog';
 import FloatingBallPetSettings from '@/components/FloatingBallPetSettings';
+import SpeechSynthesisSettings from '@/components/SpeechSynthesisSettings';
 import {
     describeNativeFloatingBallError,
     setNativeFloatingBallEnabled,
@@ -339,6 +340,8 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
     // silently in browser dev where invoke returns no useful value.
     const [summonEnabled, setSummonEnabled] = useState(true);
     const [summonAccelerator, setSummonAccelerator] = useState(DEFAULT_SUMMON_ACCELERATOR);
+    const [voiceEnabled, setVoiceEnabled] = useState(true);
+    const [voiceAccelerator, setVoiceAccelerator] = useState(DEFAULT_VOICE_ACCELERATOR);
     const isMac = useMemo(() => navigator.platform.toLowerCase().includes('mac'), []);
     useEffect(() => {
         if (!isTauriEnvironment()) return;
@@ -350,6 +353,12 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
             .catch((e) => {
                 console.warn('[Settings] load global summon shortcut failed:', e);
             });
+    }, []);
+    useEffect(() => {
+        if (!isTauriEnvironment()) return;
+        invoke<{ enabled: boolean; accelerator: string }>('cmd_get_global_voice_shortcut')
+            .then((cfg) => { setVoiceEnabled(cfg.enabled); setVoiceAccelerator(cfg.accelerator || DEFAULT_VOICE_ACCELERATOR); })
+            .catch((e) => console.warn('[Settings] load global voice shortcut failed:', e));
     }, []);
     const applySummonShortcut = useCallback(async (next: { enabled: boolean; accelerator: string }) => {
         if (!isTauriEnvironment()) return;
@@ -371,6 +380,18 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
             toastRef.current.error(tSettingsRef.current('shortcuts.toasts.saveFailed', { message: msg }));
         }
     }, [summonEnabled, summonAccelerator]);
+    const applyVoiceShortcut = useCallback(async (next: { enabled: boolean; accelerator: string }) => {
+        if (!isTauriEnvironment()) return;
+        const prev = { enabled: voiceEnabled, accelerator: voiceAccelerator };
+        setVoiceEnabled(next.enabled); setVoiceAccelerator(next.accelerator);
+        try {
+            await invoke('cmd_set_global_voice_shortcut', next);
+            toastRef.current.success(tSettingsRef.current(next.enabled ? 'shortcuts.toasts.enabled' : 'shortcuts.toasts.disabled'));
+        } catch (e) {
+            setVoiceEnabled(prev.enabled); setVoiceAccelerator(prev.accelerator);
+            toastRef.current.error(tSettingsRef.current('shortcuts.toasts.saveFailed', { message: e instanceof Error ? e.message : String(e) }));
+        }
+    }, [voiceAccelerator, voiceEnabled]);
 
     // Download progress — listen directly for Tauri events to avoid re-render blast radius
     // through the MemoizedTabContent tree (only Settings needs this value)
@@ -4009,6 +4030,24 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                 </div>
                             </div>
 
+                            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
+                                <h3 className="text-base font-medium text-[var(--ink)]">{tSettings('shortcuts.voice.title')}</h3>
+                                <p className="mt-1 text-xs text-[var(--ink-muted)]">{tSettings('shortcuts.voice.description')}</p>
+                                <div className="mt-4 flex items-center justify-between">
+                                    <div className="flex-1 pr-4">
+                                        <p className="text-sm font-medium text-[var(--ink)]">{tSettings('shortcuts.voice.enableTitle')}</p>
+                                        <p className="text-xs text-[var(--ink-muted)]">{isTauriEnvironment() ? tSettings('shortcuts.voice.enableDescription') : tSettings('shortcuts.desktopOnly')}</p>
+                                    </div>
+                                    <button type="button" onClick={() => void applyVoiceShortcut({ enabled: !voiceEnabled, accelerator: voiceAccelerator })} disabled={!isTauriEnvironment()} className={`relative h-6 w-11 shrink-0 rounded-full ${voiceEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--line-strong)]'} disabled:opacity-50`}>
+                                        <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--toggle-thumb)] shadow transition-transform ${voiceEnabled ? 'translate-x-5' : ''}`} />
+                                    </button>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between">
+                                    <div className="flex-1 pr-4"><p className="text-sm font-medium text-[var(--ink)]">{tSettings('shortcuts.voice.currentTitle')}</p><p className="text-xs text-[var(--ink-muted)]">{tSettings('shortcuts.voice.currentDescription')}</p></div>
+                                    <div className="flex items-center gap-2"><ShortcutRecorder value={voiceAccelerator} allowBareModifier allowMouseButtons allowLingjiAi onChange={(accel) => void applyVoiceShortcut({ enabled: voiceEnabled, accelerator: accel })} disabled={!isTauriEnvironment() || !voiceEnabled} /><button type="button" onClick={() => void applyVoiceShortcut({ enabled: voiceEnabled, accelerator: DEFAULT_VOICE_ACCELERATOR })} disabled={!isTauriEnvironment() || !voiceEnabled || voiceAccelerator === DEFAULT_VOICE_ACCELERATOR} className="text-xs text-[var(--ink-muted)] disabled:opacity-40">{tSettings('shortcuts.voice.resetDefault')}</button></div>
+                                </div>
+                            </div>
+
                             {/* 应用快捷键 reference — read-only, sourced from the same
                                 APP_SHORTCUTS table App.tsx dispatches from (no drift). */}
                             <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
@@ -4038,6 +4077,8 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                                     {tSettings('general.description')}
                                 </p>
                             </div>
+
+                            <SpeechSynthesisSettings />
 
                             <div className="rounded-xl border border-[var(--line)] bg-[var(--paper-elevated)] p-5">
                                 <h3 className="text-base font-medium text-[var(--ink)]">{tSettings('general.appearanceTitle')}</h3>

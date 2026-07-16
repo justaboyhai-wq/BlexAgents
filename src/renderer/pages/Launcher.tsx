@@ -54,11 +54,12 @@ import {
     normalizeOfficialToolIds,
     type OfficialToolId,
 } from '../../shared/official-tools';
-import { apiGetJson } from '@/api/apiFetch';
+import { apiGetJson, apiPostJson } from '@/api/apiFetch';
 import { isBrowserDevMode, pickFolderForDialog } from '@/utils/browserMock';
 import { resolveLauncherProvider } from '@/utils/optionResolve';
 import { useAgentStatuses } from '@/hooks/useAgentStatuses';
 import { useWorkspaceFileService } from '@/hooks/useWorkspaceFileService';
+import { useAgentPlanSpeechCapabilities } from '@/hooks/useAgentPlanSpeechCapabilities';
 import type { SessionMetadata } from '@/api/sessionClient';
 import type { InitialMessage, LaunchSessionBirthHint } from '@/types/tab';
 
@@ -297,6 +298,12 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
         const id = launcherProviderId ?? selectedAgent?.providerId ?? selectedWorkspace?.providerId ?? config.defaultProviderId;
         return resolveProvider(id, providers, apiKeys, providerVerifyStatus);
     }, [launcherProviderId, selectedAgent, selectedWorkspace, config.defaultProviderId, providers, apiKeys, providerVerifyStatus]);
+    const launcherAgentPlanSpeech = useAgentPlanSpeechCapabilities({
+        currentProviderId: launcherProvider?.id,
+        apiKey: apiKeys['volcengine-agent-plan'],
+        verifyStatus: providerVerifyStatus['volcengine-agent-plan'],
+        apiGet: apiGetJson,
+    });
     const imageUnderstandingConfiguredForInput = useMemo(() => {
         if (!isImageUnderstandingToolConfigured(config.officialToolSettings)) return false;
         const selection = config.officialToolSettings?.imageUnderstanding;
@@ -1155,6 +1162,8 @@ export default function Launcher({ onLaunchProject, isStarting, startError: _sta
                         onPermissionModeChange={handleLauncherPermissionModeChange}
                         apiKeys={apiKeys}
                         providerVerifyStatus={providerVerifyStatus}
+                        agentPlanSpeechControl={launcherAgentPlanSpeech.control}
+                        speechApiPost={apiPostJson}
                         workspaceMcpEnabled={launcherWorkspaceMcpEnabled}
                         globalMcpEnabled={launcherGlobalMcpEnabled}
                         mcpServers={launcherMcpServers}

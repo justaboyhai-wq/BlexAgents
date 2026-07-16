@@ -62,6 +62,49 @@ describe('SimpleChatInput send paths', () => {
     workspaceMocks.service.listSlashCommands.mockResolvedValue([]);
   });
 
+  it('hides Agent Plan microphone controls outside the provider', () => {
+    renderInput({
+      agentPlanSpeechControl: { visibility: 'hidden', enabled: false, reason: 'not-agent-plan' },
+    });
+
+    expect(screen.queryByTitle('开始实时语音输入')).not.toBeInTheDocument();
+  });
+
+  it('shows one disabled microphone when Agent Plan is not verified', () => {
+    renderInput({
+      agentPlanSpeechControl: { visibility: 'visible', enabled: false, reason: 'verification-required' },
+    });
+
+    expect(screen.getByTitle('请先验证火山引擎 Agent Plan')).toBeDisabled();
+  });
+
+  it('keeps the microphone disabled when the verified provider has no speech transport', () => {
+    renderInput({
+      agentPlanSpeechControl: { visibility: 'visible', enabled: true, reason: null },
+    });
+
+    expect(screen.getByTitle('暂时无法检查 Agent Plan 语音能力')).toBeDisabled();
+  });
+
+  it('enables the microphone only when Agent Plan and its speech transport are ready', () => {
+    renderInput({
+      agentPlanSpeechControl: { visibility: 'visible', enabled: true, reason: null },
+      speechApiPost: vi.fn().mockResolvedValue({}),
+    });
+
+    expect(screen.getByTitle('开始实时语音输入')).toBeEnabled();
+  });
+
+  it('shows the same ready microphone on the launcher home input', () => {
+    renderInput({
+      mode: 'launcher',
+      agentPlanSpeechControl: { visibility: 'visible', enabled: true, reason: null },
+      speechApiPost: vi.fn().mockResolvedValue({}),
+    });
+
+    expect(screen.getByTitle('开始实时语音输入')).toBeEnabled();
+  });
+
   it('sends text from the Chat input surface', async () => {
     const user = userEvent.setup();
     const onSend = renderInput();

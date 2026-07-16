@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildMinimalResponseReminder,
   FLOATING_BALL_CONTEXT_TAG,
   SPACE_ISSUE_CONTEXT_TAG,
   buildFloatingBallContextReminder,
   parseLeadingSystemReminder,
   stripLeadingSystemReminder,
 } from './systemReminder';
+
+it('keeps minimal-response instructions hidden while preserving the user text', () => {
+  const message = buildMinimalResponseReminder('今天天气怎么样？');
+  const parsed = parseLeadingSystemReminder(message);
+  expect(parsed?.kind).toBe('MINIMAL_RESPONSE');
+  expect(parsed?.visibleText).toBe('今天天气怎么样？');
+  expect(message).toContain('shortest useful form');
+});
 
 describe('systemReminder', () => {
   it('builds floating-ball context as a plain system-reminder envelope', () => {

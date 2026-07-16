@@ -1,4 +1,4 @@
-import { AlertCircle, ChevronRight, ChevronUp, Gauge, Loader, Paperclip, Plus, Send, Square, X, FileText, AtSign, Wrench, Timer, Settings2 } from 'lucide-react';
+import { AlertCircle, ChevronRight, ChevronUp, Gauge, Loader, Mic, Paperclip, Plus, Send, Square, X, FileText, AtSign, Wrench, Timer, Settings2 } from 'lucide-react';
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +41,8 @@ import { imageAttachmentName } from './attachmentNames';
 import { MentionTabButton } from './components/MentionTabButton';
 import { ThoughtPickerRow } from './components/ThoughtPickerRow';
 import { useAttachmentHandling } from './hooks/useAttachmentHandling';
+import { useAgentPlanAsr } from '@/hooks/useAgentPlanAsr';
+import { emit } from '@tauri-apps/api/event';
 
 // ===== Module-level pure helpers (extracted from render body) =====
 
@@ -108,8 +110,12 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
   onReasoningEffortChange,
   permissionMode = 'auto',
   onPermissionModeChange,
+  conversationMode = 'standard',
+  onConversationModeChange,
   apiKeys = {},
   providerVerifyStatus = {},
+  agentPlanSpeechControl,
+  speechApiPost,
   inputRef,
   workspaceMcpEnabled = [],
   globalMcpEnabled = [],
@@ -184,8 +190,9 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
       label: t(`input.permissionModes.${m.value}.label`, { defaultValue: m.label }),
       description: t(`input.permissionModes.${m.value}.description`, { defaultValue: m.description }),
     }));
-  const currentModeDisplay = displayPermissionModes.find(m => m.value === permissionMode)
-    ?? displayPermissionModes[0];
+  const currentModeDisplay = conversationMode === 'minimal'
+    ? { icon: '◦', label: t('input.permissionModes.minimal.label') }
+    : displayPermissionModes.find(m => m.value === permissionMode) ?? displayPermissionModes[0];
 
   useEffect(() => {
     if (isLauncherMode || !onOverlayHeightChange) return;
@@ -214,6 +221,101 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
   // PERFORMANCE FIX: Use internal state to avoid parent re-renders on every keystroke
   // This prevents MessageList from re-rendering when typing in long conversations
   const [inputValue, setInputValue] = useState(externalValue ?? '');
+  const speechInputValueRef = useRef(inputValue);
+  speechInputValueRef.current = inputValue;
+  const setSpeechComposerText = useCallback((value: string) => setInputValue(value), []);
+  const getSpeechComposerText = useCallback(() => speechInputValueRef.current, []);
+  const asr = useAgentPlanAsr({
+    enabled: (mode === 'chat' || mode === 'launcher') && agentPlanSpeechControl?.enabled === true && Boolean(speechApiPost),
+    scopeKey: `${sessionId ?? ''}:${provider?.id ?? ''}`,
+    apiPost: speechApiPost ?? (async () => { throw new Error('Speech API is unavailable.'); }),
+    getComposerText: getSpeechComposerText,
+    setComposerText: setSpeechComposerText,
+  });
+  // Keep the rendered control in lockstep with the hook. A verified provider
+  // is not enough if the speech transport is unavailable in this runtime.
+  const asrEnabled = agentPlanSpeechControl?.enabled === true && Boolean(speechApiPost);
+  const { state: asrState, error: asrError, audioLevels: asrAudioLevels, start: startAsr, stop: stopAsr, toggle: toggleAsr, cancel: cancelAsr } = asr;
+  const onSendRef = useRef(onSend);
+  onSendRef.current = onSend;
+  const globalVoiceSurfaceRef = useRef<'chat' | 'capsule' | null>(null);
+  const globalVoiceStartRef = useRef<Promise<void> | null>(null);
+
+  useEffect(() => {
+    if (!active || mode !== 'chat') return;
+    const handleStart = (rawEvent: Event) => {
+      if (!asrEnabled) {
+        console.warn('[voice-wake] active chat cannot start ASR: speech capability unavailable');
+        void emit('voice-capsule-state', { kind: 'ai', phase: 'error', transcript: '', response: '', error: '当前语音服务不可用，请检查语音模型配置', audioLevels: [] });
+        return;
+      }
+      const event = rawEvent as CustomEvent<{ surface?: 'chat' | 'capsule' }>;
+      const surface = event.detail?.surface === 'capsule' ? 'capsule' : 'chat';
+      console.info(`[voice-wake] chat input received start surface=${surface}`);
+      globalVoiceSurfaceRef.current = surface;
+      if (surface === 'capsule') setInputValue('');
+      const start = startAsr();
+      globalVoiceStartRef.current = start;
+      if (surface === 'capsule') {
+        void emit('voice-capsule-state', { kind: 'ai', phase: 'recording', transcript: '', response: '', audioLevels: [] });
+      }
+    };
+    const handleStop = () => {
+      const surface = globalVoiceSurfaceRef.current;
+      if (!surface) return;
+      console.info(`[voice-wake] chat input received stop surface=${surface}`);
+      globalVoiceSurfaceRef.current = null;
+      void (async () => {
+        await globalVoiceStartRef.current;
+        const transcript = (await stopAsr()).trim();
+        globalVoiceStartRef.current = null;
+        if (surface === 'capsule') {
+          await emit('voice-capsule-state', { kind: 'ai', phase: transcript ? 'thinking' : 'idle', transcript, response: '', audioLevels: [] });
+        }
+        if (transcript) {
+          window.dispatchEvent(new CustomEvent('blex:voice-capsule-turn', { detail: { transcript, surface } }));
+        }
+        if (transcript) {
+          const sent = await onSendRef.current(transcript);
+          if (sent !== false) setInputValue('');
+        }
+      })();
+    };
+    window.addEventListener('blex:global-voice-start', handleStart);
+    window.addEventListener('blex:global-voice-stop', handleStop);
+    return () => {
+      window.removeEventListener('blex:global-voice-start', handleStart);
+      window.removeEventListener('blex:global-voice-stop', handleStop);
+    };
+  }, [active, asrEnabled, mode, startAsr, stopAsr]);
+
+  useEffect(() => {
+    if (globalVoiceSurfaceRef.current !== 'capsule') return;
+    void emit('voice-capsule-state', {
+      phase: asrState === 'recording' || asrState === 'starting' ? 'recording' : 'thinking',
+      kind: 'ai',
+      transcript: inputValue,
+      response: '',
+      audioLevels: asrAudioLevels,
+      error: asrError ?? undefined,
+    });
+  }, [asrAudioLevels, asrError, asrState, inputValue]);
+
+  useEffect(() => {
+    if (!asrError) return;
+    toastRef.current.error(t('input.speech.asrFailed'));
+  }, [asrError, t]);
+
+  useEffect(() => {
+    if (asrState === 'idle') return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      void cancelAsr();
+    };
+    document.addEventListener('keydown', handleEscape, true);
+    return () => document.removeEventListener('keydown', handleEscape, true);
+  }, [asrState, cancelAsr]);
 
   // Sync with external value when it changes (e.g., after send clears input)
   // NOTE: Intentionally only depend on externalValue - we only want to sync when
@@ -1573,6 +1675,40 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
               {/* Optional prefix (e.g., workspace selector in launcher mode) */}
               {toolbarPrefix}
 
+              {/* Agent Plan ASR follows the input actions; it uses the same
+                  capability gate as message TTS. */}
+              {(mode === 'chat' || mode === 'launcher') && agentPlanSpeechControl?.visibility === 'visible' && (
+                <button
+                  type="button"
+                  disabled={!asrEnabled || asrState === 'starting' || asrState === 'stopping'}
+                  onClick={() => void toggleAsr()}
+                  aria-label={asrEnabled
+                    ? (asrState === 'recording' ? t('input.speech.stopRecording') : t('input.speech.startRecording'))
+                    : t(`input.speech.reasons.${agentPlanSpeechControl.reason ?? 'service-unavailable'}`)}
+                  className={`relative flex items-center rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                    asrState === 'recording'
+                      ? 'text-[var(--success)] hover:bg-[var(--hover-bg)]'
+                      : asrEnabled
+                        ? 'text-[var(--ink-muted)] hover:bg-[var(--hover-bg)] hover:text-[var(--ink)]'
+                        : 'cursor-not-allowed bg-[var(--ink-muted)]/10 text-[var(--ink-muted)]/45'
+                  }`}
+                  title={asrEnabled
+                    ? (asrState === 'recording' ? t('input.speech.stopRecording') : t('input.speech.startRecording'))
+                    : t(`input.speech.reasons.${agentPlanSpeechControl.reason ?? 'service-unavailable'}`)}
+                >
+                  {asrState === 'starting' || asrState === 'stopping'
+                    ? <Loader className="h-3.5 w-3.5 animate-spin" />
+                    : asrState === 'recording'
+                      ? (
+                        <>
+                          <span aria-hidden="true" className="absolute inset-1 rounded-lg bg-[var(--success)]/15 animate-ping" />
+                          <Mic className="relative h-3.5 w-3.5 animate-pulse" />
+                        </>
+                      )
+                      : <Mic className="h-3.5 w-3.5" />}
+                </button>
+              )}
+
               {/* Plus menu */}
               <button
                 ref={plusBtnRef}
@@ -1736,6 +1872,20 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
                     </button>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Minimal is a response-style preference, not a permission
+                    // mode. Keep the user's current autonomy level unchanged.
+                    onConversationModeChange?.('minimal');
+                    setShowModeMenu(false);
+                  }}
+                  className={`flex w-full flex-col items-start px-3 py-2 text-left ${conversationMode === 'minimal' ? 'bg-[var(--accent)]/10' : 'hover:bg-[var(--hover-bg)]'}`}
+                >
+                  <span className={`flex items-center gap-1.5 text-sm font-medium ${conversationMode === 'minimal' ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}><span>◦</span>{t('input.permissionModes.minimal.label')}</span>
+                  <span className="mt-0.5 text-xs text-[var(--ink-muted)]">{t('input.permissionModes.minimal.description')}</span>
+                </button>
                 {displayPermissionModes.map((mode) => (
                   <button
                     key={mode.value}
@@ -1745,15 +1895,16 @@ const SimpleChatInput = memo(forwardRef<SimpleChatInputHandle, SimpleChatInputPr
                       if (mode.value === 'fullAgency' || (mode.value as string) === 'bypassPermissions') {
                         toastRef.current.warning(t('input.autonomyWarning'), 5000);
                       }
+                      onConversationModeChange?.('standard');
                       onPermissionModeChange?.(mode.value);
                       setShowModeMenu(false);
                     }}
-                    className={`flex w-full flex-col items-start px-3 py-2 text-left ${permissionMode === mode.value
+                    className={`flex w-full flex-col items-start px-3 py-2 text-left ${conversationMode === 'standard' && permissionMode === mode.value
                       ? 'bg-[var(--accent)]/10'
                       : 'hover:bg-[var(--hover-bg)]'
                       }`}
                   >
-                    <span className={`text-sm font-medium flex items-center gap-1.5 ${permissionMode === mode.value ? 'text-[var(--accent)]' : 'text-[var(--ink)]'
+                    <span className={`text-sm font-medium flex items-center gap-1.5 ${conversationMode === 'standard' && permissionMode === mode.value ? 'text-[var(--accent)]' : 'text-[var(--ink)]'
                       }`}>
                       <span>{mode.icon}</span>
                       {mode.label}

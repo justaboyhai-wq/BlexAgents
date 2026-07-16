@@ -9,6 +9,7 @@ import {
   EDGE_TTS_TOOL,
   GEMINI_GENERATE_TOOL,
   GEMINI_EDIT_TOOL,
+  AGENT_PLAN_GENERATE_IMAGE_TOOL,
 } from './builtinMediaResult';
 
 const EDGE_TTS_RESULT = [
@@ -116,6 +117,32 @@ describe('parseBuiltinMediaToolResult', () => {
   it('tags edit_image with the edit producedBy', () => {
     const edit = GEMINI_RESULT.replace('图片已生成。', '图片已编辑（第 2 次修改）。');
     expect(parseBuiltinMediaToolResult(GEMINI_EDIT_TOOL, edit)[0].producedBy).toBe('mcp.gemini-image.edit_image');
+  });
+
+  it('derives Agent Plan image URL specs without inlining image bytes', () => {
+    const result = [
+      '图片已生成。',
+      'model: doubao-seedream-5.0-lite',
+      'prompt: 蓝白色圆角海报',
+      'imageUrl1: https://example.com/generated-1.jpeg',
+      'imageUrl2: https://example.com/generated-2.jpeg',
+    ].join('\n');
+    expect(parseBuiltinMediaToolResult(AGENT_PLAN_GENERATE_IMAGE_TOOL, result)).toEqual([
+      {
+        sourceUrl: 'https://example.com/generated-1.jpeg',
+        mimeType: 'image/jpeg',
+        kind: 'image',
+        caption: '蓝白色圆角海报',
+        producedBy: 'mcp.agent-plan-media.generate_image',
+      },
+      {
+        sourceUrl: 'https://example.com/generated-2.jpeg',
+        mimeType: 'image/jpeg',
+        kind: 'image',
+        caption: '蓝白色圆角海报',
+        producedBy: 'mcp.agent-plan-media.generate_image',
+      },
+    ]);
   });
 
   it('infers jpg mime from extension', () => {

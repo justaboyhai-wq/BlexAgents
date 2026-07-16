@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BlexAgent · 双胶囊动效原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --ink-secondary: #26334a;
+      --ink-muted: #66728a;
+      --ink-subtle: #9aa6ba;
+      --paper: #f3f7fc;
+      --paper-elevated: #fbfdff;
+      --paper-inset: #e6edf7;
+      --line: rgb(36 65 105 / .11);
+      --line-strong: rgb(36 65 105 / .20);
+      --accent: #4b78c2;
+      --accent-soft: rgb(75 120 194 / .12);
+      --success: #3293b3;
+      --success-soft: rgb(50 147 179 / .12);
+      --shadow: 0 14px 38px rgb(41 70 112 / .16), 0 3px 10px rgb(41 70 112 / .09);
+      --font: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 1080px;
+      color: var(--ink);
+      font-family: var(--font);
+      background:
+        radial-gradient(circle at 10% 15%, rgb(75 120 194 / .12), transparent 28%),
+        radial-gradient(circle at 90% 86%, rgb(50 147 179 / .09), transparent 30%),
+        var(--paper);
+    }
+
+    button { font: inherit; }
+    .page { width: min(1440px, calc(100% - 48px)); margin: 0 auto; padding: 34px 0 44px; }
+    .topbar { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 7px 0 6px; font-size: 28px; letter-spacing: -.03em; }
+    .intro { margin: 0; color: var(--ink-muted); font-size: 14px; }
+    .legend { display: flex; gap: 14px; color: var(--ink-muted); font-size: 12px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    .dot.green { background: var(--success); }
+
+    .layout { display: grid; grid-template-columns: minmax(720px, 1fr) 330px; gap: 20px; }
+    .stage-card, .panel {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgb(251 253 255 / .84);
+      box-shadow: 0 12px 40px rgb(41 70 112 / .07);
+      backdrop-filter: blur(20px);
+    }
+    .stage-card { padding: 14px; }
+    .desktop {
+      position: relative;
+      min-height: 620px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #eeeae4;
+    }
+    .wallpaper {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(115deg, rgb(255 255 255 / .7), transparent 45%),
+        radial-gradient(circle at 72% 20%, #d8e5f3 0, #e8edf4 32%, transparent 60%),
+        #e4eaf2;
+    }
+    .mock-window {
+      position: absolute; inset: 34px 50px 54px;
+      overflow: hidden;
+      border: 1px solid rgb(30 28 26 / .13);
+      border-radius: 14px;
+      background: #fbfaf8;
+      box-shadow: 0 24px 55px rgb(46 37 31 / .16);
+    }
+    .window-bar { height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 14px; border-bottom: 1px solid #e8e4df; background: #f4f1ed; }
+    .window-bar i { width: 9px; height: 9px; border-radius: 50%; background: #d0c9c1; }
+    .window-title { margin-left: 10px; color: #776f68; font-size: 12px; }
+    .mock-content { display: grid; grid-template-columns: 180px 1fr; height: calc(100% - 42px); }
+    .mock-side { padding: 24px 18px; border-right: 1px solid #ebe7e2; background: #f7f4f0; }
+    .mock-line { height: 9px; margin-bottom: 12px; border-radius: 6px; background: #ded9d3; }
+    .mock-line.short { width: 56%; }
+    .mock-doc { padding: 50px 64px; }
+    .mock-doc .mock-line { height: 10px; margin-bottom: 16px; background: #e3dfda; }
+    .mock-doc .heading { width: 42%; height: 18px; margin-bottom: 30px; background: #cac4bd; }
+
+    .key-hint {
+      position: absolute; left: 22px; bottom: 18px; z-index: 2;
+      display: flex; gap: 7px; padding: 7px 10px; border: 1px solid rgb(255 255 255 / .65);
+      border-radius: 10px; color: rgb(28 22 18 / .58); background: rgb(255 255 255 / .52);
+      font-size: 11px; backdrop-filter: blur(10px);
+    }
+    kbd { padding: 1px 5px; border: 1px solid var(--line-strong); border-radius: 5px; background: #fff; box-shadow: 0 1px 0 rgb(28 22 18 / .15); }
+
+    .capsule-zone { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+    .capsule {
+      position: absolute; right: 24px; bottom: 22px;
+      display: flex; align-items: center;
+      border: 1px solid rgb(28 22 18 / .10);
+      background: rgb(255 252 247 / .96);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px) saturate(1.15);
+      pointer-events: auto;
+      transform-origin: right bottom;
+    }
+
+    /* Shared motion primitives map directly to the final React components. */
+    .orb { position: relative; display: grid; flex: 0 0 auto; place-items: center; width: 31px; height: 31px; border-radius: 50%; }
+    .orb svg { position: relative; z-index: 2; width: 15px; height: 15px; }
+    .pulse-ring { position: absolute; inset: 0; border: 1px solid currentColor; border-radius: 50%; opacity: 0; }
+    .wave { display: flex; align-items: center; gap: 2px; height: 18px; }
+    .wave i { width: 2px; height: 5px; border-radius: 2px; background: currentColor; transform-origin: center; }
+    .wave i:nth-child(2), .wave i:nth-child(6) { height: 11px; }
+    .wave i:nth-child(3), .wave i:nth-child(5) { height: 14px; }
+    .wave i:nth-child(4) { height: 18px; }
+    .label { min-width: 0; }
+    .primary { overflow: hidden; color: var(--ink-secondary); font-size: 13px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
+    .secondary { margin-top: 1px; color: var(--ink-muted); font-size: 11px; }
+    .icon-button { display: grid; flex: 0 0 auto; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; color: var(--ink-muted); background: transparent; cursor: pointer; transition: .18s ease; }
+    .icon-button:hover { color: var(--accent); background: var(--paper-inset); }
+    .icon-button svg { width: 13px; height: 13px; }
+
+    /* AI key capsule: centered conversational surface with an answer satellite. */
+    .ai-capsule { right: 50%; width: 198px; min-height: 36px; justify-content: center; padding: 7px 14px; border-radius: 18px; transform: translateX(50%); transition: width .32s cubic-bezier(.22,.8,.22,1), transform .25s ease; }
+    .ai-capsule .spectrum { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; height: 22px; color: var(--accent); }
+    .ai-capsule .spectrum i { width: 3px; height: 8px; border-radius: 999px; background: currentColor; opacity: .58; transform: scaleY(1); transition: height 70ms linear, opacity 90ms ease; }
+    .ai-answer {
+      position: absolute; right: 50%; bottom: 78px; width: 344px; min-height: 72px; max-height: 138px;
+      padding: 12px 43px 12px 15px; overflow: visible; border: 1px solid var(--line);
+      border-radius: 22px; color: var(--ink-secondary); background: rgb(255 252 247 / .97);
+      box-shadow: var(--shadow); opacity: 0; transform: translate(50%, 10px) scale(.97); transform-origin: right bottom;
+      transition: opacity .22s ease, transform .34s cubic-bezier(.2,.9,.25,1); pointer-events: none;
+    }
+    .ai-answer.visible { opacity: 1; transform: translate(50%, 0) scale(1); pointer-events: auto; }
+    .ai-answer p { max-height: 90px; margin: 0; overflow: auto; font-size: 13px; line-height: 1.6; }
+    .answer-actions { position: absolute; top: 8px; right: 9px; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .answer-actions .icon-button { position: relative; top: auto; right: auto; width: 24px; height: 24px; border-radius: 0; }
+    .answer-actions .icon-button:hover { color: var(--accent); background: transparent; transform: scale(1.08); }
+    .answer-actions .voice-toggle { color: var(--ink-subtle); background: transparent; box-shadow: none; }
+    .answer-actions .voice-toggle[aria-pressed="true"] { color: var(--accent); background: transparent; box-shadow: none; }
+    .answer-actions .voice-toggle.speaking svg { animation: voice-pulse .85s ease-in-out infinite; }
+    .stream-caret { display: inline-block; width: 2px; height: 13px; margin-left: 3px; vertical-align: -2px; background: var(--accent); animation: caret .7s steps(1) infinite; }
+    .orbit { position: absolute; inset: -4px; border: 1px solid rgb(75 120 194 / .28); border-radius: 50%; opacity: 0; }
+    .orbit::after { position: absolute; top: -2px; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); content: ""; }
+
+    .ai-capsule[data-state="recording"]:not(.live-audio) .spectrum i { animation: wave .62s ease-in-out infinite alternate; }
+    .ai-capsule[data-state="recording"]:not(.live-audio) .spectrum i:nth-child(3n) { animation-delay: -.28s; }
+    .ai-capsule[data-state="recording"]:not(.live-audio) .spectrum i:nth-child(2n) { animation-delay: -.46s; }
+    .ai-capsule[data-state="thinking"] .spectrum { opacity: .72; animation: spectrum-breathe 1.1s ease-in-out infinite; }
+    .ai-capsule[data-state="streaming"] .spectrum,
+    .ai-capsule[data-state="done"] .spectrum { opacity: .55; }
+
+    /* Both keys use the exact same visual component. Dictation differs only in
+       routing: it never mounts the answer satellite above the spectrum. */
+    .dictation-capsule { right: 50%; width: 198px; min-height: 36px; justify-content: center; padding: 7px 14px; border-radius: 18px; transform: translateX(50%); transition: transform .25s ease, opacity .2s ease; }
+    .dictation-capsule .spectrum { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; height: 22px; color: var(--accent); }
+    .dictation-capsule .spectrum i { width: 3px; height: 8px; border-radius: 999px; background: currentColor; opacity: .58; transition: height 70ms linear, opacity 90ms ease; }
+    .dictation-capsule[data-state="recording"]:not(.live-audio) .spectrum i { animation: wave .62s ease-in-out infinite alternate; }
+    .dictation-capsule[data-state="recording"]:not(.live-audio) .spectrum i:nth-child(3n) { animation-delay: -.28s; }
+    .dictation-capsule[data-state="recording"]:not(.live-audio) .spectrum i:nth-child(2n) { animation-delay: -.46s; }
+    .dictation-capsule[data-state="transcribing"] .spectrum,
+    .dictation-capsule[data-state="inserting"] .spectrum { opacity: .72; animation: spectrum-breathe 1.1s ease-in-out infinite; }
+    .dictation-capsule[data-state="success"] { opacity: .56; transform: translateX(50%) scaleX(.84); }
+
+    .hidden { display: none !important; }
+
+    .panel { padding: 18px; }
+    .panel h2 { margin: 0 0 4px; font-size: 16px; }
+    .panel .sub { margin: 0 0 18px; color: var(--ink-muted); font-size: 12px; line-height: 1.5; }
+    .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 4px; border-radius: 12px; background: var(--paper-inset); }
+    .mode-switch button { padding: 8px; border: 0; border-radius: 9px; color: var(--ink-muted); background: transparent; cursor: pointer; }
+    .mode-switch button.active { color: var(--ink); background: var(--paper-elevated); box-shadow: 0 1px 4px rgb(28 22 18 / .10); }
+    .section { margin-top: 20px; }
+    .section-title { margin-bottom: 9px; color: var(--ink-muted); font-size: 11px; font-weight: 700; letter-spacing: .10em; text-transform: uppercase; }
+    .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .state-grid button, .demo-button {
+      min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+      color: var(--ink-secondary); background: var(--paper-elevated); cursor: pointer; transition: .18s ease;
+    }
+    .state-grid button:hover, .state-grid button.active { border-color: rgb(75 120 194 / .40); background: var(--accent-soft); }
+    .demo-button { width: 100%; margin-top: 9px; border-color: transparent; color: #fff; background: var(--ink); }
+    .demo-button:hover { background: #3a3532; }
+    .mic-button { width: 100%; min-height: 38px; margin-top: 7px; padding: 8px 10px; border: 1px solid rgb(75 120 194 / .28); border-radius: 10px; color: var(--accent); background: var(--accent-soft); cursor: pointer; }
+    .mic-button.active { color: #fff; background: var(--accent); }
+    .mic-status { min-height: 16px; margin-top: 5px; color: var(--ink-subtle); font-size: 10px; text-align: center; }
+    .spec-list { display: grid; gap: 10px; margin: 0; }
+    .spec-row { display: grid; grid-template-columns: 68px 1fr; gap: 8px; font-size: 12px; line-height: 1.5; }
+    .spec-row dt { color: var(--ink-subtle); }
+    .spec-row dd { margin: 0; color: var(--ink-muted); }
+    .footer-note { margin-top: 16px; padding: 11px; border-radius: 12px; color: var(--ink-muted); background: rgb(75 120 194 / .08); font-size: 11px; line-height: 1.55; }
+
+    @keyframes pulse { from { opacity: .45; transform: scale(.82); } to { opacity: 0; transform: scale(1.5); } }
+    @keyframes pulse-green { from { opacity: .5; transform: scale(.82); } to { opacity: 0; transform: scale(1.45); } }
+    @keyframes wave { from { transform: scaleY(.35); opacity: .62; } to { transform: scaleY(1); opacity: 1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes breathe { 50% { transform: scale(.84); opacity: .66; } }
+    @keyframes caret { 50% { opacity: 0; } }
+    @keyframes pop { 50% { transform: scale(1.12); } }
+    @keyframes spectrum-breathe { 50% { opacity: .35; transform: scaleX(.82); } }
+    @keyframes voice-pulse { 50% { opacity: .55; transform: scale(.82); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Voice Surface Prototype · v1</div>
+        <h1>AI 键胶囊 × 全局语音输入胶囊</h1>
+        <p class="intro">一套视觉语言，两种清晰心智模型。右侧可切换状态或播放完整流程。</p>
+      </div>
+      <div class="legend"><span><i class="dot"></i>AI 会话</span><span><i class="dot green"></i>全局输入</span></div>
+    </header>
+
+    <div class="layout">
+      <section class="stage-card">
+        <div class="desktop">
+          <div class="wallpaper"></div>
+          <div class="mock-window">
+            <div class="window-bar"><i></i><i></i><i></i><span class="window-title">正在编辑 · 周末出行计划</span></div>
+            <div class="mock-content">
+              <aside class="mock-side"><div class="mock-line short"></div><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line short"></div></aside>
+              <article class="mock-doc"><div class="mock-line heading"></div><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line short"></div></article>
+            </div>
+          </div>
+          <div class="key-hint"><kbd>AI 键</kbd> 对话 <span>·</span> <kbd>语音键</kbd> 输入</div>
+
+          <div class="capsule-zone" id="aiZone">
+            <article class="ai-answer" id="aiAnswer">
+              <p id="answerText"></p>
+              <div class="answer-actions">
+                <button class="icon-button" title="转到 BlexAgent 主窗口" aria-label="转到 BlexAgent 主窗口">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17 17 7M8 7h9v9"/></svg>
+                </button>
+                <button class="icon-button voice-toggle" id="voiceToggle" type="button" aria-pressed="true" title="自动播放语音：已开启" aria-label="自动播放语音">
+                  <svg id="voiceToggleIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z"/><path d="M15 9.5a4 4 0 0 1 0 5M17.8 7a7.5 7.5 0 0 1 0 10"/></svg>
+                </button>
+              </div>
+            </article>
+            <div class="capsule ai-capsule" id="aiCapsule" data-state="idle">
+              <span class="spectrum" id="aiSpectrum" aria-label="声音强度">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </div>
+          </div>
+
+          <div class="capsule-zone hidden" id="dictationZone">
+            <div class="capsule dictation-capsule" id="dictationCapsule" data-state="idle">
+              <span class="spectrum" id="dictationSpectrum" aria-label="声音强度">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <h2>交互控制台</h2>
+        <p class="sub">点击状态观察细节；“完整演示”会按真实时序自动播放。</p>
+        <div class="mode-switch"><button class="active" data-mode="ai">AI 键胶囊</button><button data-mode="dictation">语音输入胶囊</button></div>
+        <div class="section">
+          <div class="section-title">状态</div>
+          <div class="state-grid" id="stateGrid"></div>
+          <button class="demo-button" id="demoButton">播放完整演示</button>
+          <button class="mic-button" id="micButton">启用真实麦克风联动</button>
+          <div class="mic-status" id="micStatus">两种按键共用同一套实时声纹</div>
+        </div>
+        <div class="section">
+          <div class="section-title">设计约束</div>
+          <dl class="spec-list" id="specList"></dl>
+        </div>
+        <div class="footer-note">实现建议：最终程序复用同一 CapsuleShell、Orb、Waveform 三个基础组件；AI 与 Dictation 仅提供各自状态映射和内容槽。动画只使用 transform / opacity，支持 reduced-motion。</div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const MODES = {
+      ai: {
+        states: ['idle', 'recording', 'thinking', 'streaming', 'done'],
+        labels: { idle: '待机', recording: '录音', thinking: '思考', streaming: '流式回答', done: '回答完成' },
+        specs: [
+          ['定位', '屏幕底部居中，表达“与 BlexAgent 对话”'],
+          ['尺寸', '声纹胶囊 198 × 36；回答层最大 344 × 138'],
+          ['颜色', '雾蓝主色；不使用危险语义的红色'],
+          ['时序', '按下即录音；松开即发送；首字即展开回答层'],
+          ['出口', '回答层右上角进入主窗口并保留会话']
+        ]
+      },
+      dictation: {
+        states: ['idle', 'recording', 'transcribing', 'inserting', 'success'],
+        labels: { idle: '待机', recording: '录音', transcribing: '识别', inserting: '写入', success: '完成' },
+        specs: [
+          ['定位', '与 AI 键一致，屏幕底部居中'],
+          ['尺寸', '与 AI 键一致：声纹胶囊 198 × 36'],
+          ['颜色', '与 AI 键共用同一雾蓝色和声纹动效'],
+          ['时序', '按下录音；松开识别；写入当前光标；自动消失'],
+          ['边界', '永不生成回答、不打开回答层、不发送对话']
+        ]
+      }
+    };
+
+    let mode = 'ai';
+    let demoRun = 0;
+    let voiceEnabled = true;
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    function renderControls() {
+      $('stateGrid').innerHTML = MODES[mode].states.map((state, index) => `<button data-state="${state}" class="${index === 0 ? 'active' : ''}">${MODES[mode].labels[state]}</button>`).join('');
+      $('specList').innerHTML = MODES[mode].specs.map(([term, detail]) => `<div class="spec-row"><dt>${term}</dt><dd>${detail}</dd></div>`).join('');
+      document.querySelectorAll('#stateGrid button').forEach(button => button.addEventListener('click', () => setState(button.dataset.state)));
+      setState('idle');
+    }
+
+    function setState(state) {
+      document.querySelectorAll('#stateGrid button').forEach(button => button.classList.toggle('active', button.dataset.state === state));
+      if (mode === 'ai') setAiState(state); else setDictationState(state);
+    }
+
+    function setAiState(state) {
+      $('aiCapsule').dataset.state = state;
+      $('aiAnswer').classList.toggle('visible', state === 'streaming' || state === 'done');
+      $('voiceToggle').classList.toggle('speaking', voiceEnabled && state === 'streaming');
+      const copy = {
+        idle: ['AI 键已就绪', '按住说话，松开发送'],
+        recording: ['正在聆听', '杭州周末适合去哪里……'],
+        thinking: ['正在处理', '极简模式 · 可调用工具'],
+        streaming: ['正在回答', '可继续按键打断'],
+        done: ['回答完成', '点击右上角进入主窗口']
+      }[state];
+      if (state === 'streaming') $('answerText').innerHTML = '周六建议去九溪烟树，上午人少、体感更凉快。<span class="stream-caret"></span>';
+      if (state === 'done') $('answerText').textContent = '周六建议去九溪烟树，上午人少、体感更凉快。出发前我可以继续帮你查实时天气和交通。';
+    }
+
+    function setDictationState(state) {
+      $('dictationCapsule').dataset.state = state;
+    }
+
+    async function playDemo() {
+      const run = ++demoRun;
+      $('demoButton').textContent = '演示播放中…';
+      const timeline = mode === 'ai'
+        ? [['idle', 650], ['recording', 2200], ['thinking', 1300], ['streaming', 2300], ['done', 1800]]
+        : [['idle', 650], ['recording', 2200], ['transcribing', 800], ['inserting', 950], ['success', 1500], ['idle', 500]];
+      for (const [state, duration] of timeline) {
+        if (run !== demoRun) return;
+        setState(state); await sleep(duration);
+      }
+      if (run === demoRun) $('demoButton').textContent = '播放完整演示';
+    }
+
+    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => {
+      demoRun++;
+      if (micStream) void enableLiveSpectrum();
+      $('demoButton').textContent = '播放完整演示';
+      mode = button.dataset.mode;
+      document.querySelectorAll('[data-mode]').forEach(item => item.classList.toggle('active', item === button));
+      $('aiZone').classList.toggle('hidden', mode !== 'ai');
+      $('dictationZone').classList.toggle('hidden', mode !== 'dictation');
+      renderControls();
+    }));
+    $('demoButton').addEventListener('click', playDemo);
+    $('voiceToggle').addEventListener('click', () => {
+      voiceEnabled = !voiceEnabled;
+      $('voiceToggle').setAttribute('aria-pressed', String(voiceEnabled));
+      $('voiceToggle').title = `自动播放语音：${voiceEnabled ? '已开启' : '已关闭'}`;
+      $('voiceToggle').classList.toggle('speaking', voiceEnabled && $('aiCapsule').dataset.state === 'streaming');
+      $('voiceToggleIcon').innerHTML = voiceEnabled
+        ? '<path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z"/><path d="M15 9.5a4 4 0 0 1 0 5M17.8 7a7.5 7.5 0 0 1 0 10"/>'
+        : '<path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z"/><path d="m16 10 5 5m0-5-5 5"/>';
+    });
+    let micStream = null;
+    let audioContext = null;
+    let analyser = null;
+    let spectrumFrame = 0;
+
+    async function enableLiveSpectrum() {
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+        cancelAnimationFrame(spectrumFrame);
+        $('aiCapsule').classList.remove('live-audio');
+        $('dictationCapsule').classList.remove('live-audio');
+        $('micButton').classList.remove('active');
+        $('micButton').textContent = '启用真实麦克风联动';
+        $('micStatus').textContent = '实时麦克风已关闭';
+        return;
+      }
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
+        audioContext = audioContext || new AudioContext();
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 128;
+        analyser.smoothingTimeConstant = .72;
+        audioContext.createMediaStreamSource(micStream).connect(analyser);
+        const activeCapsule = mode === 'ai' ? $('aiCapsule') : $('dictationCapsule');
+        const activeSpectrum = mode === 'ai' ? $('aiSpectrum') : $('dictationSpectrum');
+        activeCapsule.classList.add('live-audio');
+        $('micButton').classList.add('active');
+        $('micButton').textContent = '关闭真实麦克风联动';
+        $('micStatus').textContent = '麦克风已连接 · 说话即可观察声纹';
+        setState('recording');
+        const bars = [...activeSpectrum.children];
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const render = () => {
+          analyser.getByteFrequencyData(data);
+          bars.forEach((bar, index) => {
+            const mirrored = Math.abs(index - (bars.length - 1) / 2);
+            const bin = Math.min(data.length - 1, 2 + Math.round(mirrored * 1.25));
+            const level = Math.max(.06, Math.min(1, data[bin] / 175));
+            bar.style.height = `${3 + level * 19}px`;
+            bar.style.opacity = `${.45 + level * .55}`;
+          });
+          spectrumFrame = requestAnimationFrame(render);
+        };
+        render();
+      } catch (error) {
+        $('micStatus').textContent = '无法访问麦克风，请检查浏览器权限或安全上下文';
+      }
+    }
+    $('micButton').addEventListener('click', enableLiveSpectrum);
+    renderControls();
+  </script>
+</body>
+</html>

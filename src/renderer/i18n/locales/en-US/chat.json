@@ -20,6 +20,21 @@
     "systemBusy": "A system task is running. Please wait.",
     "stopping": "Stopping...",
     "providerUnavailableDefault": "Set up a model provider in Settings first.",
+    "speech": {
+      "startRecording": "Start live voice input",
+      "stopRecording": "Stop recording and keep the transcript",
+      "recording": "Recording",
+      "asrFailed": "Live speech recognition failed. Check microphone access or Agent Plan settings.",
+      "ttsFailed": "Speech generation or playback failed. Try again later.",
+      "reasons": {
+        "missing-api-key": "Set up Volcengine Agent Plan first",
+        "verification-required": "Verify Volcengine Agent Plan first",
+        "verification-failed": "Agent Plan verification failed. Configure it again.",
+        "verification-expired": "Agent Plan verification expired. Verify it again.",
+        "checking": "Checking Agent Plan speech capabilities",
+        "service-unavailable": "Agent Plan speech capabilities cannot be checked right now"
+      }
+    },
     "deleteImage": "Remove image",
     "addContext": "Add context",
     "referenceFile": "Reference file",
@@ -72,6 +87,10 @@
       "thoughtSoftCap": "Showing the first {{count}} matches. Type a more specific keyword."
     },
     "permissionModes": {
+      "minimal": {
+        "label": "Minimal",
+        "description": "Assistant mode with Skills, web search, and tools available; prioritizes the shortest useful answer"
+      },
       "auto": {
         "label": "Act",
         "description": "Agent works in the workspace and asks before using tools"
@@ -737,7 +756,10 @@
       "newChat": "New chat",
       "newChatShort": "New chat",
       "history": "History",
-      "expandWorkspace": "Expand workspace"
+      "expandWorkspace": "Expand workspace",
+      "autoSpeakOn": "Auto-read enabled",
+      "autoSpeakOff": "Enable auto-read",
+      "autoSpeakUnavailable": "Set up Agent Plan speech first"
     },
     "currentChatFallback": "This chat",
     "dropZone": {

@@ -211,6 +211,8 @@
       "exportMarkdown": "导出 markdown",
       "retry": "重试",
       "fork": "分支",
+      "speak": "朗读这条回复",
+      "speechUnavailable": "请先完成 Agent Plan 语音能力配置",
       "rewind": "时间回溯"
     },
     "systemTags": {

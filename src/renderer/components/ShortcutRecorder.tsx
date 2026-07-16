@@ -24,6 +24,12 @@ export interface ShortcutRecorderProps {
   disabled?: boolean;
   /** Optional: extra class for the button. */
   className?: string;
+  /** Allow a standalone physical modifier such as Right Alt (voice wake). */
+  allowBareModifier?: boolean;
+  /** Allow mouse side buttons (button 3/4) as standalone voice shortcuts. */
+  allowMouseButtons?: boolean;
+  /** Offer the Lingji vendor HID AI key as a native shortcut preset. */
+  allowLingjiAi?: boolean;
 }
 
 const MAIN_KEY_BLOCKLIST = new Set([
@@ -105,6 +111,9 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
   onChange,
   disabled = false,
   className,
+  allowBareModifier = false,
+  allowMouseButtons = false,
+  allowLingjiAi = false,
 }: ShortcutRecorderProps) {
   const { t } = useTranslation('settings');
   const [recording, setRecording] = useState(false);
@@ -137,7 +146,13 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
       // Ignore pure modifier keypresses — wait for the user to add a main key.
       const isPureModifier =
         e.key === 'Meta' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift';
-      if (isPureModifier) return;
+      if (isPureModifier && !(allowBareModifier && e.code === 'AltRight')) return;
+
+      if (allowBareModifier && e.code === 'AltRight' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        stopRecording();
+        onChange('AltRight');
+        return;
+      }
 
       const result = eventToAccelerator(e);
       if (!result.ok) {
@@ -150,7 +165,20 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
 
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, [recording, onChange, stopRecording, t]);
+  }, [allowBareModifier, recording, onChange, stopRecording, t]);
+
+  useEffect(() => {
+    if (!recording || !allowMouseButtons) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (event.button !== 3 && event.button !== 4) return;
+      event.preventDefault();
+      event.stopPropagation();
+      stopRecording();
+      onChange(event.button === 3 ? 'MouseX1' : 'MouseX2');
+    };
+    window.addEventListener('mousedown', onMouseDown, { capture: true });
+    return () => window.removeEventListener('mousedown', onMouseDown, { capture: true });
+  }, [allowMouseButtons, onChange, recording, stopRecording]);
 
   // Auto-blur when entering recording state so the button doesn't trap focus
   useEffect(() => {
@@ -179,6 +207,16 @@ const ShortcutRecorder = memo(function ShortcutRecorder({
       </button>
       {hint && (
         <p className="text-xs text-[var(--ink-muted)]">{hint}</p>
+      )}
+      {allowLingjiAi && value.toLowerCase() !== 'lingjiai' && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange('LingjiAI')}
+          className="text-xs text-[var(--accent)] hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {t('shortcuts.recorder.useLingjiAi')}
+        </button>
       )}
     </div>
   );

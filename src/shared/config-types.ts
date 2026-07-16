@@ -10,6 +10,7 @@ import type { SubscriptionVerifyFailureKind } from './subscription';
  * Permission mode for agent behavior
  */
 export type PermissionMode = 'auto' | 'plan' | 'fullAgency';
+export type ConversationMode = 'standard' | 'minimal';
 
 /**
  * Background-agent permission policy (issue #264).
@@ -354,6 +355,10 @@ export interface Provider {
   // 默认行为：GET {config.baseUrl}/v1/models
   // 当供应商的 Anthropic 路径不支持 /v1/models 时，指向其 OpenAI 路径
   modelListUrl?: string;
+
+  // 是否支持通过远端接口发现模型。默认 true；订阅套餐等仅提供固定
+  // 推理端点、没有模型目录接口时显式设为 false，避免错误探测 /v1/models。
+  supportsModelDiscovery?: boolean;
 
   // 模型列表 - 使用新的 ModelEntity 结构
   models: ModelEntity[];
@@ -732,6 +737,12 @@ export interface AppConfig {
   floatingBallAppearance?: 'pet' | 'orb';
   /** 当前选中的桌宠资源包。缺省视同内置 Blex（持久化资源 ID 仍为 mino）。 */
   floatingBallPetId?: string;
+  /** Agent Plan TTS 发音角色。缺省使用 Vivi 2.0。 */
+  speechSynthesisVoice?: string;
+  /** Agent Plan TTS 语速倍率，官方支持范围 0.1-2.0。 */
+  speechSynthesisSpeed?: number;
+  /** Agent Plan TTS 音量倍率，官方支持范围 0.5-2.0。 */
+  speechSynthesisVolume?: number;
   /** 桌面渠道持久 session id（伴侣窗自铸 UUID v4；轮换见下两个字段，PRD §6.2）。 */
   floatingBallSessionId?: string;
   /** 上述 session 的铸造日期（本地 YYYY-MM-DD）。与今天不同时轮换新 session。 */
@@ -763,6 +774,11 @@ export interface AppConfig {
   /** PRD 0.2.16 全局唤起快捷键。缺省视同 enabled=true + 默认键。
    *  accelerator 形如 'CmdOrCtrl+Shift+M'（Tauri accelerator 语法）。 */
   globalSummonShortcut?: {
+    enabled: boolean;
+    accelerator: string;
+  };
+  /** 全局语音唤醒快捷键，Windows 缺省为灵玑 AI 键。 */
+  globalVoiceShortcut?: {
     enabled: boolean;
     accelerator: string;
   };
@@ -990,6 +1006,7 @@ export const PRESET_PROVIDERS: Provider[] = [
     // endpoint. Its dedicated plan base URL accepts ANTHROPIC_AUTH_TOKEN.
     authType: 'auth_token',
     apiProtocol: 'anthropic',
+    supportsModelDiscovery: false,
     websiteUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/openManagement?advancedActiveKey=agentPlan',
     config: {
       // Agent Plan has its own quota endpoint. Do not use /api/v3, which is
@@ -998,9 +1015,23 @@ export const PRESET_PROVIDERS: Provider[] = [
     },
     modelAliases: { sonnet: 'ark-code-latest', opus: 'ark-code-latest', haiku: 'ark-code-latest' },
     models: [
-      { model: 'ark-code-latest', modelName: 'Ark Code Latest', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 32_000, inputModalities: ['text', 'image'] },
+      // Agent Plan exposes a curated subscription catalogue rather than a
+      // /v1/models endpoint. Keep this list aligned with the plan console.
+      // Dedicated video/image/embedding/speech models are intentionally not
+      // selectable as the Claude Agent SDK's primary conversational model.
+      { model: 'ark-code-latest', modelName: 'Auto（智能调度）', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 32_000, inputModalities: ['text', 'image'] },
       { model: 'doubao-seed-2.0-code', modelName: 'Doubao Seed 2.0 Code', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
       { model: 'doubao-seed-2.0-pro', modelName: 'Doubao Seed 2.0 Pro', modelSeries: 'volcengine-agent-plan', contextLength: 256_000, maxOutputTokens: 128_000, inputModalities: ['text', 'image'] },
+      { model: 'doubao-seed-2.0-lite', modelName: 'Doubao Seed 2.0 Lite', modelSeries: 'volcengine-agent-plan', inputModalities: ['text', 'image', 'video', 'audio'] },
+      { model: 'doubao-seed-2.0-mini', modelName: 'Doubao Seed 2.0 Mini', modelSeries: 'volcengine-agent-plan', inputModalities: ['text', 'image'] },
+      { model: 'glm-5.2', modelName: 'GLM 5.2', modelSeries: 'volcengine-agent-plan', contextLength: 1_000_000, inputModalities: ['text'] },
+      { model: 'kimi-k2.7-code', modelName: 'Kimi K2.7 Code', modelSeries: 'volcengine-agent-plan', inputModalities: ['text', 'image', 'video'] },
+      { model: 'deepseek-v4-pro', modelName: 'DeepSeek V4 Pro', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'deepseek-v4-flash', modelName: 'DeepSeek V4 Flash', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'minimax-m3', modelName: 'MiniMax M3', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'minimax-m2.7', modelName: 'MiniMax M2.7', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'kimi-k2.6', modelName: 'Kimi K2.6', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
+      { model: 'deepseek-v3.2', modelName: 'DeepSeek V3.2', modelSeries: 'volcengine-agent-plan', inputModalities: ['text'] },
     ],
   },
   {
@@ -1244,6 +1275,9 @@ export const DEFAULT_CONFIG: AppConfig = {
   teamSpaceEnabled: false, // 默认隐藏未发布的团队 Space 入口
   floatingBallDevGate: true,
   floatingBallEnabled: false,
+  speechSynthesisVoice: 'zh_female_vv_uranus_bigtts',
+  speechSynthesisSpeed: 1,
+  speechSynthesisVolume: 1,
   floatingBallHoverPeekEnabled: true,
   liteLLMModelDataRefresh: true, // 默认开启 LiteLLM 模型数据兜底刷新（开发者可关）
   claudeTranscriptCleanupPeriodDays: DEFAULT_CLAUDE_TRANSCRIPT_CLEANUP_PERIOD_DAYS,
@@ -1255,8 +1289,13 @@ export const DEFAULT_CONFIG: AppConfig = {
     enabled: true,
     accelerator: 'CmdOrCtrl+Shift+M',
   },
+  globalVoiceShortcut: {
+    enabled: true,
+    accelerator: 'LingjiAI',
+  },
 };
 
 /** Default accelerator string for the global summon shortcut (PRD 0.2.16).
  *  Mirrors the Rust constant `global_shortcut::DEFAULT_ACCELERATOR`. */
 export const DEFAULT_SUMMON_ACCELERATOR = 'CmdOrCtrl+Shift+M';
+export const DEFAULT_VOICE_ACCELERATOR = 'LingjiAI';
