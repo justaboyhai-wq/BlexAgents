@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+/.local-deps/
+/.tmp-claude-sdk-*/
 
 # Build outputs
 dist/
@@ -76,6 +78,9 @@ coverage/
 
 # Misc
 /rclone.exe
+/rustup-init*.exe
+/*.pcap
+/*.pcapng
 *.pem
 *.key
 *.p8
@@ -94,8 +99,6 @@ specs/playground/
 specs/issues/
 specs/marketing/
 specs/dev_exp/
-
-start_dev.sh
 
 # Default workspace (cloned by setup.sh)
 /mino/
