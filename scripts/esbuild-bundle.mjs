@@ -18,8 +18,10 @@
 // half-fixed bundle.
 
 import { build } from 'esbuild';
-import { copyFile, readFile, mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { copyFile, readFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
 // Read package.json version once and inject as a compile-time constant.
 // This is the ONLY way `blexagent version` can show the real shipped
@@ -44,8 +46,14 @@ const PKG_VERSION = JSON.parse(
 // declared` — Sidecar dies before answering /health, the renderer hangs at
 // "loading history". A unique alias here permanently sidesteps the
 // collision regardless of how many depths-deep deps re-import the symbol.
+//
+// The bundle is ESM, but some bundled CommonJS dependencies still read
+// module-scoped `__filename` / `__dirname`. Node does not define those
+// globals for ESM, so derive them from import.meta.url once at the bundle
+// boundary. Without this, @larksuiteoapi/node-sdk crashes the Sidecar before
+// /health is available in production installs.
 const ESM_INTEROP_BANNER =
-  'import { createRequire as __myAgentsCreateRequire } from "module"; const require = __myAgentsCreateRequire(import.meta.url);';
+  'import { createRequire as __blexAgentCreateRequire } from "module"; import { dirname as __blexAgentDirname } from "node:path"; import { fileURLToPath as __blexAgentFileURLToPath } from "node:url"; const require = __blexAgentCreateRequire(import.meta.url); const __filename = __blexAgentFileURLToPath(import.meta.url); const __dirname = __blexAgentDirname(__filename);';
 const CLI_SHEBANG_BANNER = '#!/usr/bin/env node';
 
 const TARGETS = {
@@ -73,6 +81,42 @@ const TARGETS = {
         console.error(
           `✘ ${outfile}: hardcoded __dirname → ${m[1]}\n` +
             `  Source must use import.meta.url / utils.getScriptDir(), not __dirname.`,
+        );
+        process.exit(1);
+      }
+
+      // Import the exact production bundle after every build. With no
+      // arguments the server intentionally exits in parseArgs(), but only
+      // after all top-level dependencies have loaded. This catches ESM/CJS
+      // interop regressions (including missing __dirname) before packaging.
+      // The server installs crash diagnostics during module evaluation. Give
+      // the smoke process an isolated home so a build never writes into the
+      // developer's real ~/.blexagent directory.
+      const smokeHome = await mkdtemp(join(tmpdir(), 'blexagent-bundle-smoke-'));
+      let smoke;
+      try {
+        smoke = spawnSync(process.execPath, [outfile], {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            HOME: smokeHome,
+            USERPROFILE: smokeHome,
+            BLEXAGENT_CONFIG_DIR: join(smokeHome, '.blexagent'),
+          },
+          timeout: 15_000,
+          windowsHide: true,
+        });
+      } finally {
+        await rm(smokeHome, { force: true, recursive: true });
+      }
+      const smokeOutput = `${smoke.stdout ?? ''}${smoke.stderr ?? ''}`;
+      const expectedMessage = 'Missing required argument: --agent-dir <path>';
+      if (smoke.error || smoke.status !== 1 || !smokeOutput.includes(expectedMessage)) {
+        console.error(
+          `✘ ${outfile}: production import smoke failed\n` +
+            `  error=${smoke.error?.message ?? 'none'} status=${smoke.status}\n` +
+            smokeOutput,
         );
         process.exit(1);
       }
