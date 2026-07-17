@@ -10,7 +10,7 @@ import { getBundledCusePath } from './runtime';
 
 const CUSE_VERSION_TIMEOUT_MS = 5_000;
 const CUSE_LATEST_TIMEOUT_MS = 5_000;
-const CUSE_LATEST_URL = 'https://download.blexagent.com/cuse/latest.json';
+const CUSE_LATEST_URL = 'https://download.myagents.io/cuse/latest.json';
 const MAX_SKILL_CACHE_HASH_BYTES = 50 * 1024 * 1024;
 
 const execFileAsync = promisify(execFile);

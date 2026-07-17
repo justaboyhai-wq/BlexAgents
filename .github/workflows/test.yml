@@ -47,6 +47,15 @@ jobs:
       - run: npm run build:cli
       - run: npm run build:web
 
+  windows-build-scripts:
+    name: Windows PowerShell 5.1 build-script preflight
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Parse scripts and verify pinned npm/MSVC guards (offline)
+        shell: powershell
+        run: .\scripts\test-windows-build-scripts.ps1
+
   # Rust gate: cargo test plus project redline Clippy rules. We only deny
   # disallowed_methods/macros here; ordinary Clippy warnings stay non-fatal
   # until they are cleaned up in a dedicated phase.

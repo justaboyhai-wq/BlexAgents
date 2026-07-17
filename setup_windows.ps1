@@ -11,6 +11,7 @@ $PSNativeCommandUseErrorActionPreference = $false
 try {
     $ProjectDir = Split-Path -Parent $MyInvocation.MyCommand.Path
     Set-Location $ProjectDir
+    . (Join-Path $ProjectDir "scripts\windows-build-helpers.ps1")
 
     Write-Host "`n=========================================" -ForegroundColor Blue
     Write-Host "  BlexAgent Windows 开发环境初始化" -ForegroundColor Green
@@ -194,40 +195,10 @@ try {
 
         $NodeExe = Join-Path $NodeDir "node.exe"
         if (Test-Path $NodeExe) {
-            # Check version
             $existingVer = & $NodeExe --version 2>$null
             if ($existingVer -eq "v$NodeVersion") {
                 Write-Host "  OK - Node.js v$NodeVersion (already exists)" -ForegroundColor Green
-                # Node.js 已存在，但仍需确保 npm 已升级
-                $npmDir = Join-Path $NodeDir "node_modules\npm"
-                if (Test-Path $npmDir) {
-                    $npmCli = Join-Path $npmDir "bin\npm-cli.js"
-                    $curVer = & $NodeExe $npmCli --version 2>&1
-                    if ("$curVer" -match "^11\.[0-9]\.") {
-                        Write-Host "  npm v$curVer 需要升级..." -ForegroundColor Yellow
-                        try {
-                            $npmTmpDir = Join-Path $env:TEMP "npm_upgrade_$(Get-Random)"
-                            New-Item -ItemType Directory -Path $npmTmpDir -Force | Out-Null
-                            $registryJson = Invoke-RestMethod -Uri "https://registry.npmjs.org/npm/latest" -TimeoutSec 30
-                            $tarballUrl = $registryJson.dist.tarball
-                            $tgzPath = Join-Path $npmTmpDir "npm.tgz"
-                            Invoke-WebRequest -Uri $tarballUrl -OutFile $tgzPath -TimeoutSec 60
-                            tar -xzf $tgzPath -C $npmTmpDir 2>&1 | Out-Null
-                            $extractedPkg = Join-Path $npmTmpDir "package"
-                            if (Test-Path $extractedPkg) {
-                                Remove-Item -Recurse -Force $npmDir
-                                Move-Item -Path $extractedPkg -Destination $npmDir
-                                $newVer = & $NodeExe (Join-Path $npmDir "bin\npm-cli.js") --version 2>&1
-                                Write-Host "  npm 升级: v$curVer → v$newVer ✓" -ForegroundColor Green
-                            }
-                            Remove-Item -Recurse -Force $npmTmpDir -ErrorAction SilentlyContinue
-                        } catch {
-                            Write-Host "  npm 升级失败: $_" -ForegroundColor Red
-                        }
-                    } else {
-                        Write-Host "  npm v$curVer ✓" -ForegroundColor Green
-                    }
-                }
+                $null = Ensure-BundledNpm -ProjectDir $ProjectDir -NodeDir $NodeDir
                 Write-Host "OK - Node.js runtime ready" -ForegroundColor Green
                 return
             }
@@ -237,8 +208,8 @@ try {
         Write-Host "  下载 Windows x64 版本..." -ForegroundColor Cyan
         $ZipName = "node-v$NodeVersion-win-x64.zip"
         $DownloadUrl = "https://nodejs.org/dist/v$NodeVersion/$ZipName"
-        $TempZip = Join-Path $env:TEMP "node-windows.zip"
-        $TempDir = Join-Path $env:TEMP "node-windows-extract"
+        $TempZip = Join-Path $env:TEMP "blexagent-node-windows-$PID.zip"
+        $TempDir = Join-Path $env:TEMP "blexagent-node-windows-$PID"
 
         try {
             [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -248,84 +219,45 @@ try {
             Expand-Archive -Path $TempZip -DestinationPath $TempDir -Force
 
             $ExtractedDir = Join-Path $TempDir "node-v$NodeVersion-win-x64"
-
-            # Clean and copy full distribution (node.exe + npm + npx)
             if (Test-Path $NodeDir) { Remove-Item -Recurse -Force $NodeDir }
             New-Item -ItemType Directory -Path $NodeDir -Force | Out-Null
 
-            # Copy top-level files
             Copy-Item -Path (Join-Path $ExtractedDir "node.exe") -Destination $NodeDir -Force
             Copy-Item -Path (Join-Path $ExtractedDir "npm.cmd") -Destination $NodeDir -Force
             Copy-Item -Path (Join-Path $ExtractedDir "npx.cmd") -Destination $NodeDir -Force
             Copy-Item -Path (Join-Path $ExtractedDir "npm") -Destination $NodeDir -Force
             Copy-Item -Path (Join-Path $ExtractedDir "npx") -Destination $NodeDir -Force
-            # Use robocopy for node_modules to handle deep paths beyond MAX_PATH (260 chars).
-            # PowerShell's Copy-Item -Recurse silently skips files with long paths, corrupting
-            # npm's internal dependencies (minizlib/minipass → "Class extends undefined" error).
+
+            # PowerShell Copy-Item can silently skip npm's deep dependency paths.
             $SrcModules = Join-Path $ExtractedDir "node_modules"
             $DstModules = Join-Path $NodeDir "node_modules"
             if (Test-Path $SrcModules) {
                 & robocopy $SrcModules $DstModules /E /NFL /NDL /NJH /NJS /NC /NS /NP | Out-Null
-                # robocopy returns 0-7 for success, 8+ for errors
                 if ($LASTEXITCODE -ge 8) {
                     throw "robocopy failed with exit code $LASTEXITCODE"
                 }
             }
 
-            # Remove corepack (not needed)
             $corepackCmd = Join-Path $NodeDir "corepack.cmd"
             $corepackDir = Join-Path $NodeDir "node_modules\corepack"
             if (Test-Path $corepackCmd) { Remove-Item -Force $corepackCmd }
             if (Test-Path $corepackDir) { Remove-Item -Recurse -Force $corepackDir }
 
-            # Upgrade npm — bundled npm 11.9.0 has minizlib CJS bug on Windows.
-            # CANNOT use `npm install npm@latest` (catch-22: broken npm can't upgrade itself).
-            Write-Host "  升级 npm (curl + tar)..." -ForegroundColor Cyan
-            $npmDir = Join-Path $NodeDir "node_modules\npm"
-            try {
-                $nodeExe = Join-Path $NodeDir "node.exe"
-                $oldNpmCli = Join-Path $npmDir "bin\npm-cli.js"
-                $oldVer = if (Test-Path $oldNpmCli) { & $nodeExe $oldNpmCli --version 2>&1 } else { "unknown" }
-                Write-Host "  当前: v$oldVer" -ForegroundColor Gray
-
-                $npmTmpDir = Join-Path $env:TEMP "npm_upgrade_$(Get-Random)"
-                New-Item -ItemType Directory -Path $npmTmpDir -Force | Out-Null
-                $registryJson = Invoke-RestMethod -Uri "https://registry.npmjs.org/npm/latest" -TimeoutSec 30
-                $tarballUrl = $registryJson.dist.tarball
-                Write-Host "  下载: $($registryJson.version) ← $tarballUrl"
-                $tgzPath = Join-Path $npmTmpDir "npm.tgz"
-                Invoke-WebRequest -Uri $tarballUrl -OutFile $tgzPath -TimeoutSec 60
-                tar -xzf $tgzPath -C $npmTmpDir 2>&1 | Out-Null
-                $extractedPkg = Join-Path $npmTmpDir "package"
-                if (Test-Path $extractedPkg) {
-                    Remove-Item -Recurse -Force $npmDir
-                    Move-Item -Path $extractedPkg -Destination $npmDir
-                    $newNpmCli = Join-Path $npmDir "bin\npm-cli.js"
-                    $newVer = & $nodeExe $newNpmCli --version 2>&1
-                    Write-Host "  npm 已升级: v$oldVer → v$newVer" -ForegroundColor Green
-                } else {
-                    Write-Host "  npm 解压失败" -ForegroundColor Red
-                }
-                Remove-Item -Recurse -Force $npmTmpDir -ErrorAction SilentlyContinue
-            } catch {
-                Write-Host "  npm 升级失败: $_" -ForegroundColor Red
-                Write-Host "  ⚠ 插件安装可能失败，请检查网络后重试" -ForegroundColor Yellow
-                Remove-Item -Recurse -Force $npmTmpDir -ErrorAction SilentlyContinue
-            }
-
+            # package.json::packageManager is the single source of truth. The
+            # Node archive's bundled npm is inspected by manifest, never run.
+            $null = Ensure-BundledNpm -ProjectDir $ProjectDir -NodeDir $NodeDir
             Write-Host "  OK - Windows x64" -ForegroundColor Green
         } catch {
             Write-Host "  下载失败: $_" -ForegroundColor Red
             Write-Host "  请手动下载: $DownloadUrl" -ForegroundColor Yellow
             throw "Node.js download failed"
         } finally {
-            if (Test-Path $TempZip) { Remove-Item -Force $TempZip }
-            if (Test-Path $TempDir) { Remove-Item -Recurse -Force $TempDir }
+            Remove-Item -LiteralPath $TempZip -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $TempDir -Recurse -Force -ErrorAction SilentlyContinue
         }
 
         Write-Host "OK - Node.js runtime ready" -ForegroundColor Green
     }
-
     function Get-VCRuntime {
         $ResourcesDir = Join-Path $ProjectDir "src-tauri\resources"
         if (-not (Test-Path $ResourcesDir)) {
@@ -362,59 +294,20 @@ try {
     }
 
     function Test-MSVC {
-        Write-Host "  检查 MSVC Build Tools... " -NoNewline
-
-        # Method 1: cl.exe in PATH (Developer Command Prompt)
-        $cl = Get-Command cl.exe -ErrorAction SilentlyContinue
-        if ($cl) {
+        Write-Host "  检查并加载 MSVC Build Tools... " -NoNewline
+        try {
+            $msvc = Import-MSVCEnvironment -Architecture x64
             Write-Host "OK" -ForegroundColor Green
+            Write-Host "    cl.exe:   $($msvc.ClPath)" -ForegroundColor Gray
+            Write-Host "    link.exe: $($msvc.LinkPath)" -ForegroundColor Gray
             return $true
         }
-
-        # Method 2: vswhere (standard VS installer location)
-        $programFilesX86 = [Environment]::GetFolderPath("ProgramFilesX86")
-        $vsWhere = Join-Path $programFilesX86 "Microsoft Visual Studio\Installer\vswhere.exe"
-        if (Test-Path $vsWhere) {
-            $vsPath = & $vsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>$null
-            if ($vsPath) {
-                Write-Host "OK" -ForegroundColor Green
-                return $true
-            }
-            # Fallback: any VS/BuildTools installation
-            $vsPath = & $vsWhere -latest -products * -property installationPath 2>$null
-            if ($vsPath) {
-                Write-Host "OK (found VS installation)" -ForegroundColor Green
-                return $true
-            }
+        catch {
+            Write-Host "MISSING" -ForegroundColor Red
+            Write-Host "    $_" -ForegroundColor Yellow
+            return $false
         }
-
-        # Method 3: check common BuildTools paths directly
-        $btPaths = @(
-            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools",
-            "${env:ProgramFiles}\Microsoft Visual Studio\2022\BuildTools",
-            "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Community",
-            "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community"
-        )
-        foreach ($p in $btPaths) {
-            if (Test-Path $p) {
-                Write-Host "OK" -ForegroundColor Green
-                return $true
-            }
-        }
-
-        # Method 4: winget list check
-        try {
-            $wingetList = winget list --id Microsoft.VisualStudio.2022.BuildTools 2>$null
-            if ($LASTEXITCODE -eq 0 -and $wingetList -match "BuildTools") {
-                Write-Host "OK (winget)" -ForegroundColor Green
-                return $true
-            }
-        } catch { }
-
-        Write-Host "MISSING" -ForegroundColor Red
-        return $false
     }
-
     # Main
     Write-Host "Step 1/9: 检查并安装依赖" -ForegroundColor Blue
     # NB: total step count = 9 (was 8 prior to cuse fetch insertion).

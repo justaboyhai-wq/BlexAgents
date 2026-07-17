@@ -60,7 +60,7 @@ const RUNTIME_DIR = resolve(PROJECT_ROOT, 'src-tauri/resources/tsx-runtime');
 // the last known-good. See unified-2026-05-16.log for the prod incident.
 // Before bumping, verify with:
 //   node --import file://<runtime>/node_modules/tsx/dist/esm/index.mjs \
-//     -e "require('module').createRequire(\"$HOME/.myagents/openclaw-plugins/openclaw-lark/\")('mime-db')"
+//     -e "require('module').createRequire(\"$HOME/.blexagent/openclaw-plugins/openclaw-lark/\")('mime-db')"
 const projectPkgRaw = await readFile(resolve(PROJECT_ROOT, 'package.json'), 'utf8');
 const projectPkg = JSON.parse(projectPkgRaw);
 const tsxVersion =
@@ -78,7 +78,7 @@ await writeFile(
   resolve(RUNTIME_DIR, 'package.json'),
   JSON.stringify(
     {
-      name: 'myagents-tsx-runtime',
+      name: 'blexagent-tsx-runtime',
       private: true,
       // Comment-equivalent: this dir is populated by setup-tsx-runtime.mjs
       // and consumed by Plugin Bridge via absolute --import path. Don't

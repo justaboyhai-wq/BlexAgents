@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $PROJECT_DIR = $PSScriptRoot
 $BUILD_MODE_LABEL = if ($BundleNsis) { "Debug NSIS 安装包" } else { "快速 Debug exe（不打安装包）" }
+. (Join-Path $PROJECT_DIR "scripts\windows-build-helpers.ps1")
 
 # 加载 .env 文件（如果存在）
 $envFile = Join-Path $PROJECT_DIR ".env"
@@ -41,6 +42,18 @@ Write-ColorOutput "╔═══════════════════�
 Write-ColorOutput "║  🤖 BlexAgent Windows Dev 构建                         ║" "Cyan"
 Write-ColorOutput "║  ⚠ DevTools 启用 + $BUILD_MODE_LABEL                 ║" "Cyan"
 Write-ColorOutput "╚═══════════════════════════════════════════════════════╝" "Cyan"
+Write-Host ""
+
+Write-ColorOutput "[准备] 初始化 MSVC x64 编译环境..." "Blue"
+try {
+    $msvc = Import-MSVCEnvironment -Architecture x64
+} catch {
+    Write-ColorOutput "✗ MSVC x64 环境不可用: $_" "Red"
+    exit 1
+}
+Write-Host "  cl.exe:   $($msvc.ClPath)" -ForegroundColor Gray
+Write-Host "  link.exe: $($msvc.LinkPath)" -ForegroundColor Gray
+Write-ColorOutput "✓ MSVC x64 环境已加载并验证" "Green"
 Write-Host ""
 
 # ========================================
