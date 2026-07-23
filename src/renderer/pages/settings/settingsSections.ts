@@ -8,6 +8,7 @@ export type SettingsSection =
   | 'plugins'
   | 'agent'
   | 'usage-stats'
+  | 'memory-hub'
   | 'desktop-pet'
   | 'about';
 
@@ -21,6 +22,7 @@ export const VALID_SECTIONS: SettingsSection[] = [
   'plugins',
   'agent',
   'usage-stats',
+  'memory-hub',
   'desktop-pet',
   'about',
 ];

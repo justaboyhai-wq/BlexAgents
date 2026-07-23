@@ -655,6 +655,7 @@ import { handleChatStreamRoute } from './routes/chat-stream';
 import { handleSessionConfigRoute } from './routes/session-config';
 import { handleSessionOperationRoute } from './routes/session-operations';
 import { installAutoTitleHook } from './session-title-service';
+import { installMemoryHubPostTurnHook } from './memory-hub-service';
 import type { ImagePayload } from './runtimes/types';
 import { rehomeImagePayloadsForSession } from './runtimes/image-payload';
 import {
@@ -9803,6 +9804,7 @@ description: >
       // #296 — install the backend auto-title trigger into the turn-hooks slot
       // BEFORE any turn can complete (initializeAgent / pre-warm run below).
       installAutoTitleHook();
+      installMemoryHubPostTurnHook();
 
       ensurePluginsDirs();
       emitDeferredPhaseDone('skill-seed');

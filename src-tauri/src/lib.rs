@@ -26,6 +26,7 @@ mod macos_arrow_filter;
 mod macos_traffic_light;
 pub mod management_api;
 pub mod memory_evolution;
+pub mod memory_hub;
 pub mod notification;
 pub mod notification_badge;
 pub mod perf_trace;
@@ -231,11 +232,16 @@ pub fn run() {
     let thought_state: thought::ManagedThoughtStore =
         Arc::new(thought::ThoughtStore::new(data_dir.join("thoughts")));
     let task_state: task::ManagedTaskStore = Arc::new(task::TaskStore::new(data_dir.clone()));
+    let memory_hub_state = Arc::new(
+        memory_hub::MemoryHub::new(data_dir.clone())
+            .unwrap_or_else(|error| panic!("failed to initialize MemoryHub: {}", error)),
+    );
     // Expose the same Arcs via OnceLock singletons so the Rust Management API
     // (used by Bun CLI bridge → /api/admin/task/*) can read/write tasks without
     // access to Tauri `State`. They point at the same inner store.
     thought::set_thought_store(thought_state.clone());
     task::set_task_store(task_state.clone());
+    memory_hub::set_global_memory_hub(memory_hub_state.clone());
 
     // Create SSE proxy state
     let sse_proxy_state = Arc::new(sse_proxy::SseProxyState::default());
@@ -293,6 +299,7 @@ pub fn run() {
         .manage(browser_state)
         .manage(thought_state)
         .manage(task_state)
+        .manage(memory_hub_state)
         .manage(agent_hub::AgentHubState::default())
         // PRD 0.2.35 — global force-wake-lock holder. `setup_tray` later registers
         // `TrayMenuHandles` for the matching CheckMenuItem; the boot hydrate
@@ -365,6 +372,24 @@ pub fn run() {
             // System skills sync (task-alignment / task-implement etc.)
             commands::cmd_sync_system_skills,
             memory_evolution::cmd_configure_memory_evolution_tasks,
+            // Local-first MemoryHub and work insights
+            memory_hub::cmd_memory_get_config,
+            memory_hub::cmd_memory_update_config,
+            memory_hub::cmd_memory_search,
+            memory_hub::cmd_memory_list,
+            memory_hub::cmd_memory_create,
+            memory_hub::cmd_memory_update,
+            memory_hub::cmd_memory_delete,
+            memory_hub::cmd_memory_pin,
+            memory_hub::cmd_memory_status,
+            memory_hub::cmd_memory_rebuild,
+            memory_hub::cmd_memory_backfill,
+            memory_hub::cmd_memory_clear,
+            memory_hub::cmd_memory_export,
+            memory_hub::cmd_insights_query,
+            memory_hub::cmd_insights_generate_report,
+            memory_hub::cmd_artifact_pin,
+            memory_hub::cmd_artifact_unpin,
             // Cron task commands
             cron_task::commands::cmd_create_cron_task,
             cron_task::commands::cmd_start_cron_task,
@@ -1078,6 +1103,12 @@ pub fn run() {
                     }
                 }
             }
+
+            // MemoryHub uses the same source-of-truth files as SearchEngine,
+            // with its own idempotent checkpoints and periodic reconciliation.
+            let memory_hub = app.state::<Arc<memory_hub::MemoryHub>>().inner().clone();
+            memory_hub.start_background();
+            ulog_info!("[App] MemoryHub initialized");
 
             // Auto-start IM Bot if previously enabled (3s delay)
             im::schedule_auto_start(app.handle().clone());

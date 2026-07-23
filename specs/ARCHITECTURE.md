@@ -70,6 +70,7 @@ BlexAgent 是杭州波粒二象文化科技有限公司开发的 Apache-2.0 开�
 - `workspace_files/`：文件访问与路径安全；
 - `updater.rs`：签名更新；
 - `proxy_config.rs`：受控代理配置。
+- `memory_hub/`：本地活动账本、分层记忆、产出物、中文索引与工作回顾投影。
 
 Sidecar 的 Runtime identity 统一归一为 `builtin`。旧 sessions/config 中的其他字符串不得导致 Rust 注入外部 Runtime 环境变量或启动第三方 CLI。
 
@@ -171,6 +172,7 @@ Web、server、bridge 和内部 CLI 分别构建，Tauri 将所需资源打入�
 - [IM 集成](./tech_docs/im_integration_architecture.md)
 - [Plugin Bridge](./tech_docs/plugin_bridge_architecture.md)
 - [Session 架构](./tech_docs/session_architecture.md)
+- [MemoryHub 与工作回顾](./tech_docs/memory_hub.md)
 - [构建与发布指南](./guides/build_and_release_guide.md)
 - [安全政策](../SECURITY.md)
 - [隐私声明](./legal/PRIVACY.md)

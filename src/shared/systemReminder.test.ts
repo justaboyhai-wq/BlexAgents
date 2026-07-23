@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildMinimalResponseReminder,
+  buildMemoryContextReminder,
   FLOATING_BALL_CONTEXT_TAG,
   SPACE_ISSUE_CONTEXT_TAG,
   buildFloatingBallContextReminder,
   parseLeadingSystemReminder,
   stripLeadingSystemReminder,
+  splitMemoryContextForStorage,
 } from './systemReminder';
 
 it('keeps minimal-response instructions hidden while preserving the user text', () => {
@@ -119,5 +121,28 @@ describe('systemReminder', () => {
     expect(parsed.body).toContain('&lt;system-reminder&gt;title&lt;/system-reminder&gt;');
     expect(parsed.body).toContain('quote &lt;/system-reminder&gt;');
     expect(stripLeadingSystemReminder(raw)).toBe('Visible request');
+  });
+
+  it('persists only recalled memory IDs while preserving the model payload', () => {
+    const raw = buildMemoryContextReminder('继续这个项目', [
+      { id: 'memory-1', scope: 'workspace', kind: 'decision', summary: '采用本地优先架构' },
+    ]);
+    const split = splitMemoryContextForStorage(raw);
+
+    expect(split.modelText).toContain('采用本地优先架构');
+    expect(split.storageText).toBe('继续这个项目');
+    expect(split.memoryContextIds).toEqual(['memory-1']);
+  });
+
+  it('keeps a pre-existing reminder but removes recalled memory bodies from storage', () => {
+    const minimal = buildMinimalResponseReminder('简短回答');
+    const combined = buildMemoryContextReminder(minimal, [
+      { id: 'memory-2', scope: 'user', kind: 'preference', summary: '不要泄漏到历史' },
+    ]);
+    const split = splitMemoryContextForStorage(combined);
+
+    expect(split.storageText).toContain('<MINIMAL_RESPONSE>');
+    expect(split.storageText).not.toContain('不要泄漏到历史');
+    expect(parseLeadingSystemReminder(split.storageText).visibleText).toBe('简短回答');
   });
 });

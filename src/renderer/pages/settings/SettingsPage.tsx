@@ -99,6 +99,7 @@ import type { UiLanguage } from '../../../shared/i18n';
 import ProviderEnableOrderDialog from '@/components/ProviderEnableOrderDialog';
 import FloatingBallPetSettings from '@/components/FloatingBallPetSettings';
 import SpeechSynthesisSettings from '@/components/SpeechSynthesisSettings';
+import MemoryHubSettings from '@/components/MemoryHubSettings';
 import {
     describeNativeFloatingBallError,
     setNativeFloatingBallEnabled,
@@ -3768,6 +3769,8 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                     </div>
                 )}
 
+                {activeSection === 'memory-hub' && <MemoryHubSettings />}
+
                 {activeSection === 'desktop-pet' && config.floatingBallDevGate !== false && (
                     <FloatingBallPetSettings />
                 )}
@@ -3918,7 +3921,7 @@ export default function Settings({ initialSection, initialMcpId, initialOfficial
                 )}
 
                 {/* Other sections use narrower layout */}
-                <div className={`mx-auto max-w-xl px-8 py-8 ${['skills', 'agents', 'plugins', 'providers', 'mcp', 'desktop-pet'].includes(activeSection) ? 'hidden' : ''}`}>
+                <div className={`mx-auto max-w-xl px-8 py-8 ${['skills', 'agents', 'plugins', 'providers', 'mcp', 'desktop-pet', 'memory-hub'].includes(activeSection) ? 'hidden' : ''}`}>
 
                     {activeSection === 'shortcuts' && (
                         <div className="space-y-6">

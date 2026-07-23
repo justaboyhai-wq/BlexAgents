@@ -104,6 +104,7 @@ export type MessageWire = {
   usage?: MessageUsage;
   toolCount?: number;
   durationMs?: number;
+  memoryContextIds?: string[];
 };
 
 export type BuiltinRestartReason =
@@ -143,6 +144,7 @@ export type MessageQueueItem = {
   providerAnalytics?: TurnProviderAnalytics;
   inboxMeta?: InboxTurnMeta;
   injectedTurnId?: string;
+  memoryContextIds?: string[];
   transientProviderRetry?: {
     rootQueueId: string;
     attempt: number;
@@ -160,6 +162,7 @@ export type TurnBoundaryQueueItem = {
   analyticsSource?: TurnAnalyticsSource;
   analyticsOrigin?: SessionOrigin;
   mirrorImages?: MirrorImage[];
+  memoryContextIds?: string[];
 };
 
 export type TurnAdmissionTicket = {
@@ -176,6 +179,7 @@ export type InFlightMetadata = {
   analyticsSource?: TurnAnalyticsSource;
   analyticsOrigin?: SessionOrigin;
   mirrorImages?: MirrorImage[];
+  memoryContextIds?: string[];
 };
 
 export type BuiltinTurnUsage = {

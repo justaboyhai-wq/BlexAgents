@@ -75,6 +75,7 @@ export function messageWireToSessionMessage(msg: MessageWire): SessionMessage {
     usage: isAssistant ? msg.usage : undefined,
     toolCount: isAssistant ? msg.toolCount : undefined,
     durationMs: isAssistant ? msg.durationMs : undefined,
+    memoryContextIds: msg.role === 'user' ? msg.memoryContextIds : undefined,
   };
 }
 
@@ -107,6 +108,7 @@ export function sessionMessageToMessageWire(storedMsg: SessionMessage): MessageW
     usage: storedMsg.usage,
     toolCount: storedMsg.toolCount,
     durationMs: storedMsg.durationMs,
+    memoryContextIds: storedMsg.memoryContextIds,
   };
 }
 

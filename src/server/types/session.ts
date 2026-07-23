@@ -216,6 +216,8 @@ export interface SessionMessage {
     toolCount?: number;
     /** Response duration in milliseconds */
     durationMs?: number;
+    /** IDs only; recalled memory bodies are never persisted in the transcript. */
+    memoryContextIds?: string[];
     /** Message source metadata (IM integration) */
     metadata?: MessageSourceMetadata;
 }

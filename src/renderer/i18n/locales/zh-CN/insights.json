@@ -1,0 +1,20 @@
+{
+  "title": "回顾",
+  "subtitle": "查看你的产出、进展、记忆与工作节奏",
+  "ranges": { "today": "今日", "sevenDays": "近 7 天", "thirtyDays": "近 30 天" },
+  "views": { "overview": "概览", "artifacts": "产出物", "progress": "进展", "memories": "记忆", "efficiency": "效率" },
+  "filters": { "allWorkspaces": "全部工作区", "allAgents": "全部智能体" },
+  "metrics": { "completedTasks": "完成任务", "artifacts": "产出物", "conversations": "对话轮次", "workspaces": "活跃工作区" },
+  "timeline": { "title": "每日活动", "legend": "对话 + 完成任务 + 产出物", "point": "{{date}}：{{count}} 条活动" },
+  "highlights": { "title": "关键结论", "conversation": "对话" },
+  "report": { "title": "周期总结", "generate": "生成总结", "regenerate": "重新生成", "generating": "生成中…", "placeholder": "生成一份基于本地活动数据、可追溯到原始会话与任务的周期总结。", "sources": "来源" },
+  "artifacts": { "title": "产出物（{{count}}）", "missing": "原文件已移动或删除，可回到来源会话查看记录。" },
+  "progress": { "done": "已完成", "active": "进行中", "blocked": "已阻塞" },
+  "memories": { "search": "搜索记忆", "allKinds": "全部类型", "sources": "{{count}} 个来源" },
+  "memoryKinds": { "preference": "偏好", "fact": "事实", "decision": "决策", "goal": "目标", "procedure": "流程", "project_state": "项目状态" },
+  "memoryScopes": { "user": "用户级", "workspace": "工作区级", "agent": "智能体级" },
+  "efficiency": { "inputTokens": "输入 Token", "outputTokens": "输出 Token", "duration": "模型耗时", "tools": "工具调用", "completed": "完成任务", "blocked": "阻塞记录", "active": "活跃任务", "conversations": "对话轮次" },
+  "actions": { "refresh": "刷新", "retry": "重试", "open": "打开", "source": "来源会话", "pin": "固定", "unpin": "取消固定", "edit": "编辑", "delete": "删除", "deleteConfirm": "确定删除这条记忆吗？删除会保留墓碑，但不会再参与召回。", "save": "保存" },
+  "empty": { "noActivity": "该时间范围内还没有活动", "noHighlights": "还没有可展示的关键结论", "noArtifacts": "该时间范围内还没有产出物", "noTasks": "暂无任务", "noMemories": "还没有符合条件的记忆" },
+  "errors": { "load": "加载回顾数据失败：{{message}}", "report": "生成总结失败：{{message}}", "openArtifact": "打开产出物失败：{{message}}", "saveMemory": "保存记忆失败：{{message}}" }
+}

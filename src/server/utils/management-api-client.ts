@@ -18,6 +18,7 @@ export async function managementApi(
   path: string,
   method: 'GET' | 'POST' = 'GET',
   body?: Record<string, unknown>,
+  timeoutMs: number = ADMIN_LOOPBACK_TIMEOUT_MS,
 ): Promise<Record<string, unknown>> {
   if (!MGMT_PORT) {
     return {
@@ -38,7 +39,7 @@ export async function managementApi(
     options.body = JSON.stringify(body);
   }
   try {
-    const resp = await cancellableFetch(url, options, { timeoutMs: ADMIN_LOOPBACK_TIMEOUT_MS });
+    const resp = await cancellableFetch(url, options, { timeoutMs });
     return await readLoopbackJson(resp, 'Management API');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

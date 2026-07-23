@@ -14,7 +14,7 @@ mod file_indexer;
 mod schema;
 mod searcher;
 mod session_indexer;
-mod tokenizer;
+pub(crate) mod tokenizer;
 mod util;
 mod watcher;
 

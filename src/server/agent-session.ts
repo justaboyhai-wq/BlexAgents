@@ -71,6 +71,7 @@ import {
 } from '../shared/toolDisplay/filePatch';
 import { parsePartialJson } from '../shared/parsePartialJson';
 import { deriveSessionTitle } from '../shared/sessionTitle';
+import { splitMemoryContextForStorage } from '../shared/systemReminder';
 import { isPendingSessionId } from '../shared/constants';
 import { workspacePathsEqual } from '../shared/workspacePath';
 import { normalizeReasoningEffort, isSdkEffortLevel } from '../shared/reasoningEffort';
@@ -865,6 +866,7 @@ async function surfaceInFlightQueueItem(
     attachments: meta?.attachments,
     sdkUuid: options.sdkUuid,
     metadata: meta?.source ? { source: meta.source } : undefined,
+    memoryContextIds: meta?.memoryContextIds,
   };
   appendMessage(userMessage);
   if (options.sdkUuid) {
@@ -1579,6 +1581,7 @@ function promoteNextFromPending(): void {
     requestId: pending.sourceItem.requestId,
     analyticsSource: pending.sourceItem.analyticsSource,
     analyticsOrigin: pending.sourceItem.analyticsOrigin,
+    memoryContextIds: pending.sourceItem.memoryContextIds,
   });
   console.log(`[agent] Promoting next pending mid-turn message: queueId=${pending.queueId} (pending remaining=${getPendingMidTurnQueue().length})`);
   // Re-emit queue:added with isInFlight=true. Frontend's queue:added handler
@@ -1643,6 +1646,7 @@ function startNextTurnQueuedItem(
     timestamp: new Date().toISOString(),
     attachments: item.attachments,
     metadata: item.source ? { source: item.source } : undefined,
+    memoryContextIds: item.memoryContextIds,
   };
   appendMessage(userMessage);
   void persistMessagesToStorageAndCommitPreparedFirstUserTurn(item.messageText)
@@ -7809,7 +7813,10 @@ export async function enqueueUserMessage(
     await rewindPromise;
   }
 
-  const trimmed = text.trim();
+  const memoryContext = splitMemoryContextForStorage(text.trim());
+  const modelText = memoryContext.modelText.trim();
+  const trimmed = memoryContext.storageText.trim();
+  const memoryContextIds = memoryContext.memoryContextIds;
   const hasImages = images && images.length > 0;
 
   if (!trimmed && !hasImages) {
@@ -8222,6 +8229,7 @@ export async function enqueueUserMessage(
         ready: false,
         messageText: trimmed,
         requestId,
+        memoryContextIds,
       };
       pushTurnBoundary(reservedTurnBoundaryItem);
       console.log(`[agent] Reserved turn-boundary queue slot: queueId=${queueId} requestId=${requestId ?? '-'} text="${trimmed.slice(0, 50)}"`);
@@ -8280,7 +8288,7 @@ export async function enqueueUserMessage(
   // Mutable text payload — modality fallback (below) appends `@<path>`
   // references for images that can't go in as image content blocks. Title /
   // log / persistence continue to use the original `trimmed`.
-  let effectiveText = trimmed;
+  let effectiveText = modelText;
 
   // Add images first so Claude can see them before the text query
   // Images are resized/sliced server-side to stay within API limits (≤1568px, long images → 1:2 tiles)
@@ -8420,6 +8428,7 @@ export async function enqueueUserMessage(
       providerAnalytics: turnProviderAnalytics,
       inboxMeta,
       injectedTurnId: options?.injectedTurnId,
+      memoryContextIds,
     };
 
     // (v0.2.12 mid-turn injection) Lockstep yield. Only one queued message
@@ -8449,6 +8458,7 @@ export async function enqueueUserMessage(
       readyTurnItem.analyticsSource = analyticsSource ?? currentScenario.type;
       readyTurnItem.analyticsOrigin = analyticsOrigin;
       readyTurnItem.mirrorImages = toMirrorImages(resolvedImages);
+      readyTurnItem.memoryContextIds = memoryContextIds;
       if (!turnItem) {
         pushTurnBoundary(readyTurnItem);
         broadcast('queue:added', { queueId, messageText: trimmed.slice(0, 100), isInFlight: false, deliveryMode: 'turn' });
@@ -8470,6 +8480,7 @@ export async function enqueueUserMessage(
         analyticsSource: analyticsSource ?? currentScenario.type,
         analyticsOrigin,
         mirrorImages: toMirrorImages(resolvedImages),
+        memoryContextIds,
       });
       wakeGenerator(queueItem);
       console.log(`[agent] Message queued mid-turn (in-flight to CLI): queueId=${queueId} requestId=${requestId ?? '-'} text="${trimmed.slice(0, 50)}"`);
@@ -8485,6 +8496,7 @@ export async function enqueueUserMessage(
         content: trimmed,
         timestamp: new Date().toISOString(),
         attachments: savedAttachments.length > 0 ? savedAttachments : undefined,
+        memoryContextIds,
       };
       pushPendingMidTurn({
         queueId,
@@ -8494,6 +8506,7 @@ export async function enqueueUserMessage(
           content: userMessage.content,
           timestamp: userMessage.timestamp,
           attachments: userMessage.attachments,
+          memoryContextIds: userMessage.memoryContextIds,
         },
         sourceItem: queueItem,
       });
@@ -8528,6 +8541,7 @@ export async function enqueueUserMessage(
     timestamp: new Date().toISOString(),
     attachments: savedAttachments.length > 0 ? savedAttachments : undefined,
     metadata,
+    memoryContextIds,
   };
   appendMessage(userMessage);
   broadcast('chat:message-replay', { message: userMessage });
@@ -8560,6 +8574,7 @@ export async function enqueueUserMessage(
     providerAnalytics: turnProviderAnalytics,
     inboxMeta,
     injectedTurnId: options?.injectedTurnId,
+    memoryContextIds,
   };
 
   if (!isSessionActive()) {
@@ -12316,6 +12331,7 @@ async function* messageGenerator(): AsyncGenerator<SDKUserMessage> {
         requestId: item.requestId,
         analyticsSource: item.analyticsSource,
         analyticsOrigin: item.analyticsOrigin,
+        memoryContextIds: item.memoryContextIds,
       });
       // Re-emit queue:added with isInFlight=true so the frontend pill's
       // UI marks it as handed to SDK; cancellation now goes through

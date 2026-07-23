@@ -186,6 +186,14 @@ pub async fn start_management_api() -> Result<u16, String> {
         .route("/api/task/write-doc", post(task_write_doc_handler))
         .route("/api/thought/list", get(thought_list_handler))
         .route("/api/thought/create", post(thought_create_handler))
+        // MemoryHub — deterministic Sidecar→Rust recall and best-effort
+        // post-turn acceleration. The filesystem watcher remains authoritative.
+        .route("/api/memory/recall", post(memory_recall_handler))
+        .route(
+            "/api/memory/turn-completed",
+            post(memory_turn_completed_handler),
+        )
+        .route("/api/memory/upsert", post(memory_upsert_handler))
         .route("/api/space/issue-list", post(space_issue_list_handler))
         .route("/api/space/issue-get", post(space_issue_get_handler))
         .route(
@@ -1805,6 +1813,54 @@ async fn thought_create_handler(
     match store.create(input).await {
         Ok(t) => Json(serde_json::json!({ "ok": true, "thought": t })),
         Err(e) => Json(serde_json::json!({ "ok": false, "error": e })),
+    }
+}
+
+async fn memory_recall_handler(
+    Json(input): Json<crate::memory_hub::MemorySearchInput>,
+) -> Json<serde_json::Value> {
+    let Some(hub) = crate::memory_hub::global_memory_hub() else {
+        return Json(serde_json::json!({ "ok": false, "error": "MemoryHub is unavailable" }));
+    };
+    match hub.search(input).await {
+        Ok(result) => Json(serde_json::json!({ "ok": true, "result": result })),
+        Err(error) => Json(serde_json::json!({ "ok": false, "error": error })),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MemoryTurnCompletedRequest {
+    #[allow(dead_code)]
+    session_id: Option<String>,
+}
+
+async fn memory_turn_completed_handler(
+    Json(_input): Json<MemoryTurnCompletedRequest>,
+) -> Json<serde_json::Value> {
+    let Some(hub) = crate::memory_hub::global_memory_hub().cloned() else {
+        return Json(serde_json::json!({ "ok": false, "error": "MemoryHub is unavailable" }));
+    };
+    tauri::async_runtime::spawn(async move {
+        if let Err(error) = hub.reconcile(false).await {
+            ulog_warn!(
+                "[management-api] MemoryHub post-turn reconcile failed: {}",
+                error
+            );
+        }
+    });
+    Json(serde_json::json!({ "ok": true, "accepted": true }))
+}
+
+async fn memory_upsert_handler(
+    Json(input): Json<crate::memory_hub::MemoryCreateInput>,
+) -> Json<serde_json::Value> {
+    let Some(hub) = crate::memory_hub::global_memory_hub() else {
+        return Json(serde_json::json!({ "ok": false, "error": "MemoryHub is unavailable" }));
+    };
+    match hub.create_memory(input).await {
+        Ok(record) => Json(serde_json::json!({ "ok": true, "record": record })),
+        Err(error) => Json(serde_json::json!({ "ok": false, "error": error })),
     }
 }
 

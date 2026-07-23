@@ -66,7 +66,7 @@ interface Props {
    *  immediately. Firing the same intent twice in a row (user clicks the
    *  Launcher search icon twice) requires the `nonce` to change — it's
    *  the dependency `useEffect` watches. */
-  pendingIntent?: { autofocusSearch?: boolean; nonce: number } | null;
+  pendingIntent?: { autofocusSearch?: boolean; taskId?: string; nonce: number } | null;
 }
 
 type Bucket = 'pending' | 'active' | 'finished';
@@ -240,6 +240,21 @@ export function TaskListPanel({ highlightTaskId, refreshKey, pendingIntent }: Pr
     });
     return () => cancelAnimationFrame(raf);
   }, [intentAutofocus, intentNonce]);
+
+  // Source links from Insights carry the native task id. Wait until the
+  // asynchronous task reload has completed, then open that exact task once.
+  // Remembering the nonce prevents a later SSE refresh from reopening a
+  // detail overlay the user has already closed.
+  const openedTaskIntentRef = useRef(0);
+  const intentTaskId = pendingIntent?.taskId;
+  useEffect(() => {
+    if (!intentTaskId || intentNonce === 0 || openedTaskIntentRef.current === intentNonce) return;
+    const task = tasks.find((candidate) => candidate.id === intentTaskId);
+    if (!task) return;
+    openedTaskIntentRef.current = intentNonce;
+    setSelectedTaskStartEditing(false);
+    setSelectedTask(task);
+  }, [intentNonce, intentTaskId, tasks]);
 
 
   // SSE: listen for task:status-changed events fired by Rust `update_status`

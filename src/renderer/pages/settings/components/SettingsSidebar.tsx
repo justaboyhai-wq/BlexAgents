@@ -19,6 +19,7 @@ const NAV_ITEMS: Array<{ section: SettingsSection; labelKey: string; activeSecti
   { section: 'agent', labelKey: 'sidebar.nav.bots' },
   { section: 'desktop-pet', labelKey: 'sidebar.nav.floatingBall' },
   { section: 'usage-stats', labelKey: 'sidebar.nav.usageStats' },
+  { section: 'memory-hub', labelKey: 'sidebar.nav.memoryHub' },
   { section: 'general', labelKey: 'sidebar.nav.general' },
   { section: 'shortcuts', labelKey: 'sidebar.nav.shortcuts' },
   { section: 'about', labelKey: 'sidebar.nav.about' },

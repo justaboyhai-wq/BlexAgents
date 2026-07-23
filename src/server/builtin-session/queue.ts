@@ -9,7 +9,7 @@ import type {
 
 type PendingMidTurnQueueItem = {
   queueId: string;
-  userMessage: Pick<MessageWire, 'id' | 'role' | 'content' | 'timestamp' | 'attachments'>;
+  userMessage: Pick<MessageWire, 'id' | 'role' | 'content' | 'timestamp' | 'attachments' | 'memoryContextIds'>;
   sourceItem: MessageQueueItem;
 };
 
