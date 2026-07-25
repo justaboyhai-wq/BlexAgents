@@ -9,7 +9,7 @@
  * we use decorations: false on Windows for custom title bar styling.
  */
 
-import { Bot, Cloud, Minus, Square, X, RefreshCw, RotateCcw, Settings, Copy, CheckSquare } from 'lucide-react';
+import { Bot, Cloud, Minus, Square, X, RefreshCw, RotateCcw, Settings, Copy, CheckSquare, History } from 'lucide-react';
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isTauri } from '@/api/tauriClient';
@@ -329,6 +329,16 @@ export default function CustomTitleBar({
                         >
                             <CheckSquare className="h-4 w-4" />
                             <span className="text-sm font-medium">{t('titlebar.task')}</span>
+                        </button>
+                        <TitlebarDragSpacer className="w-1" />
+                        <button
+                            onClick={() => window.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.OPEN_INSIGHTS))}
+                            className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[var(--ink-muted)] transition-colors hover:bg-[var(--paper-inset)] hover:text-[var(--ink)]"
+                            title={t('titlebar.insightsTitle')}
+                            data-no-drag
+                        >
+                            <History className="h-4 w-4" />
+                            <span className="text-sm font-medium">{t('titlebar.insights')}</span>
                         </button>
                         <TitlebarDragSpacer className="w-1" />
                     </>

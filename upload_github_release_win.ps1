@@ -1,4 +1,4 @@
-# 上传 Windows 构建产物（NSIS .exe）到 GitHub Release
+﻿# 上传 Windows 构建产物（NSIS .exe）到 GitHub Release
 # 可独立运行，也被 publish_windows.ps1 调用
 #
 # 用法: .\upload_github_release_win.ps1

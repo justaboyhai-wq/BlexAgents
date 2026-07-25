@@ -84,6 +84,8 @@ export const CUSTOM_EVENTS = {
      *  任务」 tab's search icon to continue the search intent across
      *  tabs instead of forcing the user to re-click). */
     OPEN_TASK_CENTER: 'open-task-center',
+    /** Fired to open the local MemoryHub work-review singleton tab. */
+    OPEN_INSIGHTS: 'open-insights',
     /** Fired to open the Team Space singleton tab when the build/runtime gates allow it. */
     OPEN_SPACE: 'open-space',
     /**

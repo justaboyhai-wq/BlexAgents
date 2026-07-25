@@ -134,6 +134,44 @@ pub async fn check_and_spawn<R: Runtime>(
         return;
     }
 
+    // MemoryHub owns the modern workspace-level merge path. It projects only
+    // newly observed source revisions into the local ledger and never injects
+    // maintenance turns into historical sessions. Keep the legacy per-session
+    // UPDATE_MEMORY flow below as a compatibility fallback when MemoryHub is
+    // explicitly disabled.
+    if let Some(hub) = crate::memory_hub::global_memory_hub() {
+        if hub.get_config().await.enabled {
+            let result = hub.reconcile(false).await;
+            update_config_field(app_handle, agent_id, |config| {
+                config.last_batch_at = Some(Utc::now().to_rfc3339());
+            })
+            .await;
+            match result {
+                Ok(status) => {
+                    let count = status.indexed_session_count as u32;
+                    update_config_field(app_handle, agent_id, move |config| {
+                        config.last_batch_session_count = Some(count);
+                    })
+                    .await;
+                    ulog_info!(
+                        "[memory-update] MemoryHub workspace merge completed for agent {} ({} indexed sessions)",
+                        agent_id,
+                        count
+                    );
+                }
+                Err(error) => {
+                    ulog_warn!(
+                        "[memory-update] MemoryHub workspace merge failed for agent {}: {}",
+                        agent_id,
+                        error
+                    );
+                }
+            }
+            is_running.store(false, Ordering::SeqCst);
+            return;
+        }
+    }
+
     // Gate 6: Ensure memory rule substrate + UPDATE_MEMORY.md at use time so
     // default-enabled agents can actually run without a manual file click.
     let rule_substrate =

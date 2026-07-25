@@ -32,11 +32,19 @@ export type PostTurnTitleHook = (
 ) => void;
 
 let titleHook: PostTurnTitleHook | null = null;
+export type PostTurnMemoryHook = (sessionId: string) => void;
+let memoryHook: PostTurnMemoryHook | null = null;
 
 /** Install the auto-title implementation. Called once at sidecar boot by the
  *  Title Service; later calls replace the slot (last writer wins). */
 export function setPostTurnTitleHook(hook: PostTurnTitleHook): void {
   titleHook = hook;
+}
+
+/** Install the independent MemoryHub completion notification. The filesystem
+ * watcher is authoritative; this slot only reduces projection latency. */
+export function setPostTurnMemoryHook(hook: PostTurnMemoryHook): void {
+  memoryHook = hook;
 }
 
 /**
@@ -50,10 +58,18 @@ export function firePostTurnTitleHook(
   model: string | undefined,
   providerEnv?: ProviderEnv,
 ): void {
-  if (!titleHook) return;
-  try {
-    titleHook(sessionId, runtime, model, providerEnv);
-  } catch {
-    /* best-effort: swallow so the turn is never affected */
+  if (titleHook) {
+    try {
+      titleHook(sessionId, runtime, model, providerEnv);
+    } catch {
+      /* best-effort: swallow so the turn is never affected */
+    }
+  }
+  if (memoryHook) {
+    try {
+      memoryHook(sessionId);
+    } catch {
+      /* best-effort: MemoryHub must never affect a successful turn */
+    }
   }
 }

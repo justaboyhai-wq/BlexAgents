@@ -25,6 +25,8 @@
 
 set -euo pipefail
 
+# Current compatibility CDN. download.blexagent.com is not yet serving this
+# endpoint, so keep downloads on the verified public mirror.
 DOWNLOAD_BASE_URL="https://download.myagents.io"
 LATEST_URL="${DOWNLOAD_BASE_URL}/cuse/latest.json"
 RELEASES_BASE_URL="${DOWNLOAD_BASE_URL}/cuse/releases"

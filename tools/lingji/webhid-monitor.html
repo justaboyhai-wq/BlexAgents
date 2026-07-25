@@ -160,17 +160,14 @@
     async function initializeMouse() {
       try {
         $('initialize').disabled = true;
-        log('开始重放 uMouse 固定初始化序列');
-        // uMouse polls with A0 while starting, then switches the device with 41.
-        for (let index = 0; index < 3; index += 1) {
-          await sendMouseCommand(0xA0);
-          await delay(120);
+        log('开始重放 BlexAgent 固定初始化序列');
+        // Keep this sequence aligned with LINGJI_INIT_STEPS in
+        // src-tauri/src/global_shortcut.rs (command, delay-after-ms).
+        const steps = [[0xA0, 3], [0x41, 1300], [0x26, 6], [0x52, 0]];
+        for (const [command, delayAfter] of steps) {
+          await sendMouseCommand(command);
+          if (delayAfter > 0) await delay(delayAfter);
         }
-        await sendMouseCommand(0x41);
-        await delay(1050);
-        await sendMouseCommand(0x26);
-        await delay(10);
-        await sendMouseCommand(0x52);
         log('初始化序列发送完成，请按 AI 键');
       } catch (error) {
         log(`初始化失败：${error?.message || error}`);

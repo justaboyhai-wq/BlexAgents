@@ -60,6 +60,7 @@
 | System Reminder 隐藏消息协议 / user bubble badge / 注入 user message 的隐藏 payload | `tech_docs/system_reminder_protocol.md` |
 | Task / Cron provider routing 三层架构 | `tech_docs/task_provider_routing.md` |
 | 全文搜索（Tantivy / jieba） | `tech_docs/search_architecture.md` |
+| MemoryHub / 分层记忆 / 回顾看板 / Mem0 | `tech_docs/memory_hub.md` |
 | 内置 Node.js / SDK native binary / PATH 注入 | `tech_docs/bundled_node.md` |
 | `blexagent` CLI / Admin API | `tech_docs/cli_architecture.md` |
 | 三方供应商 / OpenAI Bridge | `tech_docs/third_party_providers.md` |

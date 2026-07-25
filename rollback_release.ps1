@@ -372,7 +372,9 @@ if ($RollbackMac -and $TargetVersion -ne $CurrentMacVersion) {
         if ($intelDmg) { $downloads["mac_intel"] = @{ name = "Intel Mac"; url = "$DownloadBaseUrl/releases/v$TargetVersion/$intelDmg" } }
         $latestManifest = @{ version = $TargetVersion; pub_date = $PubDate; release_notes = "BlexAgent v$TargetVersion"; downloads = $downloads }
         [System.IO.File]::WriteAllText((Join-Path $ManifestDir "latest.json"), ($latestManifest | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
-        Write-Host "    [OK] latest.json (ARM: $($armDmg ?? '无'), Intel: $($intelDmg ?? '无'))" -ForegroundColor Green
+        $armDmgLabel = if ($armDmg) { $armDmg } else { '无' }
+        $intelDmgLabel = if ($intelDmg) { $intelDmg } else { '无' }
+        Write-Host "    [OK] latest.json (ARM: $armDmgLabel, Intel: $intelDmgLabel)" -ForegroundColor Green
     } else {
         Write-Host "    [!] 未找到 DMG 文件，跳过 latest.json" -ForegroundColor Yellow
     }

@@ -11,6 +11,8 @@ export function getFixedTabChromeTitle(
       return t('tabs.settings');
     case 'taskcenter':
       return t('tabs.taskCenter');
+    case 'insights':
+      return t('tabs.insights');
     case 'space':
       return t('tabs.team');
     case 'launcher':

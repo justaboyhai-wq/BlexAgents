@@ -102,7 +102,7 @@ describe('cuse diagnostics', () => {
       resolveBundledCusePath: () => bundledPath,
       execRunner: async () => ({ stdout: 'cuse 0.2.1\n' }),
       fetchLatest: async () => ({
-        url: 'https://download.blexagent.com/cuse/latest.json',
+        url: 'https://download.myagents.io/cuse/latest.json',
         version: 'v0.2.2',
       }),
     });

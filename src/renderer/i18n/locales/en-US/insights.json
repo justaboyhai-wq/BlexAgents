@@ -1,0 +1,20 @@
+{
+  "title": "Review",
+  "subtitle": "See your outputs, progress, memories, and working rhythm",
+  "ranges": { "today": "Today", "sevenDays": "Last 7 days", "thirtyDays": "Last 30 days" },
+  "views": { "overview": "Overview", "artifacts": "Outputs", "progress": "Progress", "memories": "Memories", "efficiency": "Efficiency" },
+  "filters": { "allWorkspaces": "All workspaces", "allAgents": "All agents" },
+  "metrics": { "completedTasks": "Completed tasks", "artifacts": "Outputs", "conversations": "Conversation turns", "workspaces": "Active workspaces" },
+  "timeline": { "title": "Daily activity", "legend": "Conversations + completed tasks + outputs", "point": "{{date}}: {{count}} activities" },
+  "highlights": { "title": "Key conclusions", "conversation": "Conversation" },
+  "report": { "title": "Period summary", "generate": "Generate", "regenerate": "Regenerate", "generating": "Generating…", "placeholder": "Generate a source-linked summary from local activity data.", "sources": "Sources" },
+  "artifacts": { "title": "Outputs ({{count}})", "missing": "The original file was moved or deleted. Open the source conversation for its record." },
+  "progress": { "done": "Completed", "active": "In progress", "blocked": "Blocked" },
+  "memories": { "search": "Search memories", "allKinds": "All types", "sources": "{{count}} sources" },
+  "memoryKinds": { "preference": "Preference", "fact": "Fact", "decision": "Decision", "goal": "Goal", "procedure": "Procedure", "project_state": "Project state" },
+  "memoryScopes": { "user": "User", "workspace": "Workspace", "agent": "Agent" },
+  "efficiency": { "inputTokens": "Input tokens", "outputTokens": "Output tokens", "duration": "Model time", "tools": "Tool calls", "completed": "Completed tasks", "blocked": "Blocked records", "active": "Active tasks", "conversations": "Conversation turns" },
+  "actions": { "refresh": "Refresh", "retry": "Retry", "open": "Open", "source": "Source conversation", "pin": "Pin", "unpin": "Unpin", "edit": "Edit", "delete": "Delete", "deleteConfirm": "Delete this memory? A tombstone will remain, but it will no longer be recalled.", "save": "Save" },
+  "empty": { "noActivity": "No activity in this period", "noHighlights": "No key conclusions yet", "noArtifacts": "No outputs in this period", "noTasks": "No tasks", "noMemories": "No matching memories" },
+  "errors": { "load": "Failed to load review data: {{message}}", "report": "Failed to generate summary: {{message}}", "openArtifact": "Failed to open output: {{message}}", "saveMemory": "Failed to save memory: {{message}}" }
+}

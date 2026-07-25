@@ -8,15 +8,17 @@ BlexAgent 将 Node.js v24 运行时打包到应用内，实现**单一 runtime�
 
 ## 二进制获取方式
 
-Node.js v24 官方二进制通过 `scripts/download_nodejs.sh` / `.ps1` 从 nodejs.org 下载：
+Node.js v24 官方二进制通过 Unix 侧的 `scripts/download_nodejs.sh`，以及 Windows 侧的 `setup_windows.ps1` / `build_windows.ps1` 从 nodejs.org 下载：
 
 ```bash
 ./setup.sh  # 首次 clone 自动调用；build_dev.sh / build_macos.sh / build_windows.ps1 / build_linux.sh 也会幂等调用
 ```
 
-- **版本变量**：`NODE_VERSION` 在 `scripts/download_nodejs.sh` 顶部定义
+- **版本变量**：`NODE_VERSION` 在各平台下载入口中固定；npm 版本统一读取根 `package.json#packageManager`
 - **打包位置**：`src-tauri/resources/nodejs/`（Tauri staging 目录，已加入 `.gitignore`）
 - **缓存位置**：`src-tauri/resources/nodejs-cache/<platform>-<arch>-v<version>/`（按平台 / 架构 / 版本隔离，已加入 `.gitignore`）
+- **npm 版本**：从根 `package.json#packageManager` 读取精确版本（当前 `npm@11.13.0`），直接下载对应固定 tarball 并校验，禁止跟随 registry `latest`
+- **缓存标记**：使用 `.blexagent-nodejs-*`；验证通过时自动兼容并迁移旧 `.myagents-nodejs-*` 标记
 - **ABI 保护**：脚本先检查对应架构缓存；`resources/nodejs/` 只在构建某个 target 前从缓存同步。`build_dev.sh` 启动时用 `file(1)` 验证 binary 架构匹配 host，避免 macOS 双架构 release 构建后留下 x64 staging 影响 arm64 dev 构建
 
 ### 支持的平台
@@ -160,7 +162,7 @@ v0.2.0 之前这些步骤用 `bun build` + `bun install` — 完全切到 Node.j
 | MCP 安装失败 | 包管理器未找到 | 确认 `getPackageManagerPath()` 返回 npm（固定 npm） |
 | `Claude Code process exited with code 1` (Windows) | 缺少 Git for Windows | NSIS 安装程序内置 Git；或设 `CLAUDE_CODE_GIT_BASH_PATH` 环境变量 |
 | `Claude Code process exited with code 3221226505` / `0xC0000409` (Windows) | SDK 自带 `claude.exe` 是 native binary；可能受系统组件、DLL 环境或上游 binary 兼容性影响 | 提示 `Claude Agent SDK 启动失败（exit code ...），请检查运行环境。` |
-| npm v11.9.0 minizlib CJS bug (Windows) | bundled npm 与 Windows 某些文件锁冲突 | `setup_windows.ps1` / `build_windows.ps1` 自动升级到 latest npm |
+| npm v11.9.0 minizlib CJS bug (Windows) | bundled npm 与 Windows 某些文件锁冲突 | 构建脚本按根 `package.json#packageManager` 安装并校验固定 npm 版本 |
 
 ### Windows Git 依赖说明
 

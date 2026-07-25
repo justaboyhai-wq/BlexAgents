@@ -274,7 +274,7 @@ echo ""
 
 # 下载最新 cuse 二进制 (computer-use MCP)
 # 每次构建都拉取最新 release —— cuse 私有仓库的 release.yml 自动构建并发到 GH Release，
-# 维护者再跑 BlexAgent-Cuse/publish_r2.sh 把产物镜像到 R2（`download.blexagent.com/cuse/...`），
+# 维护者再跑 BlexAgent-Cuse/publish_r2.sh 把产物镜像到 R2（`download.myagents.io/cuse/...`），
 # 此脚本从 R2 公网拉取，无需 gh CLI / 无需访问私有仓库。
 echo -e "${BLUE}[4.5/7] 拉取最新 cuse 二进制...${NC}"
 if ! "${PROJECT_DIR}/scripts/download_cuse.sh"; then
@@ -525,136 +525,8 @@ echo -e "${BLUE}[7/7] 构建 Tauri 应用 (Release + 签名 + 公证)...${NC}"
 echo -e "${YELLOW}这可能需要 5-10 分钟 (包含公证等待时间)...${NC}"
 
 # ---- 补齐 Claude Agent SDK 的跨架构 native 包 ----
-# `@anthropic-ai/claude-agent-sdk-darwin-{arm64,x64}` 在 package.json 里
-# 是 optionalDependencies；npm 默认只装匹配 host 架构的那一份，所以
-# arm64 Mac 上 `npm install` 后通常只有 darwin-arm64。这里只补齐本次
-# 选择的 target 需要的 arch；build "Both" 模式会校验 arm64 + x64。
-#
-# 强制安装非 host 架构 platform package 必须带 `--force`。npm 10+ 对
-# direct install 仍会按 host CPU 做 EBADPLATFORM 校验；`--os` / `--cpu`
-# 只作为 optional dep 过滤输入保留，真正允许 darwin-x64 在 arm64 host
-# 上落盘的是 `--force`。每个 arch 必须用各自的 flag 单独装一次。
-#
-# `--no-save` 不写回 package.json（仓库 optionalDeps 形态保持不变）；
-# `--ignore-scripts` 同 setup-tsx-runtime 的逻辑（避免跨平台 postinstall
-# 触发自检失败）。
-SDK_VERSION=$(grep '"@anthropic-ai/claude-agent-sdk-darwin-arm64"' "${PROJECT_DIR}/package.json" | sed 's/.*: "\([0-9][0-9.]*\)".*/\1/')
-if [ -z "$SDK_VERSION" ]; then
-    echo -e "${RED}✗ 无法从 package.json 解析 Claude SDK 版本号${NC}"
-    exit 1
-fi
-
-expected_claude_sdk_macho_arch() {
-    case "$1" in
-        arm64) echo "arm64" ;;
-        x64) echo "x86_64" ;;
-        *) return 1 ;;
-    esac
-}
-
-validate_macho_binary() {
-    local BINARY="$1"
-    local EXPECTED_ARCH="$2"
-    local LABEL="$3"
-    local ARCHES=""
-    local OTOOL_OUTPUT=""
-
-    if [ ! -f "$BINARY" ]; then
-        echo -e "    ${YELLOW}⚠ ${LABEL} 缺失: $BINARY${NC}"
-        return 1
-    fi
-
-    ARCHES=$(lipo -archs "$BINARY" 2>/dev/null || true)
-    if [[ " $ARCHES " != *" $EXPECTED_ARCH "* ]]; then
-        echo -e "    ${YELLOW}⚠ ${LABEL} 架构不匹配: expected=${EXPECTED_ARCH}, actual=${ARCHES:-unknown}${NC}"
-        return 1
-    fi
-
-    # Truncated Mach-O files can still pass `file`/`lipo`, then fail later at
-    # codesign with the opaque "main executable failed strict validation".
-    # `otool -l` prints "(past end of file)" for those broken load commands.
-    if ! OTOOL_OUTPUT=$(otool -l "$BINARY" 2>&1); then
-        echo -e "    ${YELLOW}⚠ ${LABEL} Mach-O load commands 不可读${NC}"
-        echo "$OTOOL_OUTPUT" | sed 's/^/      /'
-        return 1
-    fi
-    if grep -q "past end of file" <<<"$OTOOL_OUTPUT"; then
-        echo -e "    ${YELLOW}⚠ ${LABEL} 已损坏: Mach-O load commands 指向文件末尾之后${NC}"
-        return 1
-    fi
-
-    return 0
-}
-
-validate_claude_sdk_package() {
-    local ARCH="$1"
-    local EXPECTED_ARCH
-    EXPECTED_ARCH=$(expected_claude_sdk_macho_arch "$ARCH")
-    local PKG_NAME="@anthropic-ai/claude-agent-sdk-darwin-${ARCH}"
-    local PKG_DIR="${PROJECT_DIR}/node_modules/${PKG_NAME}"
-    local PKG_JSON="${PKG_DIR}/package.json"
-    local SDK_PKG_BIN="${PKG_DIR}/claude"
-
-    if [ ! -f "$PKG_JSON" ]; then
-        echo -e "    ${YELLOW}⚠ ${PKG_NAME} package.json 缺失${NC}"
-        return 1
-    fi
-    if ! node -e '
-const fs = require("fs");
-const [pkgPath, expectedName, expectedVersion] = process.argv.slice(1);
-try {
-  const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-  process.exit(pkg.name === expectedName && pkg.version === expectedVersion ? 0 : 1);
-} catch {
-  process.exit(1);
-}
-' "$PKG_JSON" "$PKG_NAME" "$SDK_VERSION"; then
-        echo -e "    ${YELLOW}⚠ ${PKG_NAME} package.json 与期望版本不匹配${NC}"
-        return 1
-    fi
-
-    validate_macho_binary "$SDK_PKG_BIN" "$EXPECTED_ARCH" "${PKG_NAME}/claude"
-}
-
-ensure_claude_sdk_package() {
-    local ARCH="$1"
-    local PKG_NAME="@anthropic-ai/claude-agent-sdk-darwin-${ARCH}"
-    local PKG_DIR="${PROJECT_DIR}/node_modules/${PKG_NAME}"
-
-    if validate_claude_sdk_package "$ARCH"; then
-        echo -e "${GREEN}  ✓ darwin-${ARCH} 已验证${NC}"
-        return
-    fi
-
-    echo -e "${BLUE}[7.0/7] 修复 Claude SDK darwin-${ARCH}@${SDK_VERSION}...${NC}"
-    local TMP_DIR="${PROJECT_DIR}/.tmp-claude-sdk-${ARCH}-$$"
-    rm -rf "$TMP_DIR"
-    mkdir -p "$TMP_DIR"
-    if ! npm install --prefix "$TMP_DIR" --force --no-save --package-lock=false --no-audit --no-fund --ignore-scripts \
-        --os=darwin --cpu="$ARCH" \
-        "${PKG_NAME}@${SDK_VERSION}"; then
-        rm -rf "$TMP_DIR"
-        echo -e "${RED}✗ darwin-${ARCH} 临时安装失败${NC}"
-        exit 1
-    fi
-
-    if [ ! -d "${TMP_DIR}/node_modules/${PKG_NAME}" ]; then
-        rm -rf "$TMP_DIR"
-        echo -e "${RED}✗ darwin-${ARCH} 临时安装未产出 ${PKG_NAME}${NC}"
-        exit 1
-    fi
-
-    rm -rf "$PKG_DIR"
-    mkdir -p "$(dirname "$PKG_DIR")"
-    cp -R "${TMP_DIR}/node_modules/${PKG_NAME}" "$PKG_DIR"
-    rm -rf "$TMP_DIR"
-    if ! validate_claude_sdk_package "$ARCH"; then
-        echo -e "${RED}✗ darwin-${ARCH} 安装后仍未通过完整性校验: ${PKG_DIR}/claude${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}  ✓ darwin-${ARCH} 就绪${NC}"
-}
-
+# optionalDependencies 默认只安装 host 架构。统一 helper 负责按本次 target
+# 验证和修复 native package，避免构建脚本复制一套易漂移的完整性逻辑。
 REQUIRED_SDK_ARCHES=()
 for TARGET in "${BUILD_TARGETS[@]}"; do
     if [[ "$TARGET" == "aarch64-apple-darwin" ]]; then
@@ -663,10 +535,7 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
         REQUIRED_SDK_ARCHES+=("x64")
     fi
 done
-
-for ARCH in "${REQUIRED_SDK_ARCHES[@]}"; do
-    ensure_claude_sdk_package "$ARCH"
-done
+"${PROJECT_DIR}/scripts/ensure_claude_sdk_package.sh" "${REQUIRED_SDK_ARCHES[@]}"
 
 for TARGET in "${BUILD_TARGETS[@]}"; do
     echo ""
@@ -741,28 +610,17 @@ for TARGET in "${BUILD_TARGETS[@]}"; do
     # 每个 target 架构拷对应的 binary；binary 内嵌 Bun runtime，需 allow-jit entitlements
     # （与 Node 一致，已在 Entitlements.plist 声明）。
     if [[ "$NODE_TARGET_ARCH" == "arm64" ]]; then
-        SDK_ARCH="arm64"
         SDK_TRIPLE="darwin-arm64"
     else
-        SDK_ARCH="x64"
         SDK_TRIPLE="darwin-x64"
     fi
     CLAUDE_SRC="${PROJECT_DIR}/node_modules/@anthropic-ai/claude-agent-sdk-${SDK_TRIPLE}/claude"
     CLAUDE_DEST="${PROJECT_DIR}/src-tauri/resources/claude-agent-sdk/claude"
-    CLAUDE_EXPECTED_ARCH=$(expected_claude_sdk_macho_arch "$SDK_ARCH")
     echo -e "  ${CYAN}拷贝 Claude native binary (${SDK_TRIPLE})...${NC}"
-    if ! validate_claude_sdk_package "$SDK_ARCH"; then
-        echo -e "    ${RED}✗ Claude native binary 未通过完整性校验: $CLAUDE_SRC${NC}"
-        exit 1
-    fi
     rm -f "$CLAUDE_DEST"
     cp "$CLAUDE_SRC" "$CLAUDE_DEST"
     chmod +x "$CLAUDE_DEST"
     xattr -d com.apple.quarantine "$CLAUDE_DEST" 2>/dev/null || true
-    if ! validate_macho_binary "$CLAUDE_DEST" "$CLAUDE_EXPECTED_ARCH" "staged claude (${SDK_TRIPLE})"; then
-        echo -e "    ${RED}✗ staged claude 已损坏: $CLAUDE_DEST${NC}"
-        exit 1
-    fi
     if codesign --force --options runtime --timestamp \
         --entitlements "${PROJECT_DIR}/src-tauri/Entitlements.plist" \
         --sign "$APPLE_SIGNING_IDENTITY" "$CLAUDE_DEST"; then

@@ -52,6 +52,7 @@ import Launcher from '@/pages/Launcher'; // eager: default first view → no col
 const Chat = lazy(() => import('@/pages/Chat'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const TaskCenter = lazy(() => import('@/pages/TaskCenter'));
+const Insights = lazy(() => import('@/pages/Insights'));
 const Space = lazy(() => import('@/pages/Space'));
 
 /** Layout-compatible Suspense fallback for a lazy page chunk — same paper fill
@@ -280,7 +281,7 @@ interface TabContentProps {
   sessionNotificationBadgeCounts?: ReadonlyMap<string, number>;
   // Task Center intent carried by the most recent OPEN_TASK_CENTER event.
   // Only read by the `taskcenter` tab; other tab views ignore it.
-  taskCenterPendingIntent: { autofocusSearch?: boolean; nonce: number } | null;
+  taskCenterPendingIntent: { autofocusSearch?: boolean; taskId?: string; nonce: number } | null;
 }
 
 // Exported for the cold-restore behavior test (Issue #232) — asserts a cold
@@ -339,6 +340,10 @@ export const MemoizedTabContent = memo(function TabContent({
       ) : kind === 'taskcenter' ? (
         <Suspense fallback={PAGE_FALLBACK}>
           <TaskCenter isActive={isActive} pendingIntent={taskCenterPendingIntent} />
+        </Suspense>
+      ) : kind === 'insights' ? (
+        <Suspense fallback={PAGE_FALLBACK}>
+          <Insights isActive={isActive} />
         </Suspense>
       ) : kind === 'space' ? (
         <Suspense fallback={PAGE_FALLBACK}>
@@ -3305,6 +3310,33 @@ export default function App() {
     acknowledgeNotificationTarget({ type: 'task-center' });
   }, [acknowledgeNotificationTarget, openNewTabDeferred, setActiveTabId, t]);
 
+  // Open the local work-review / MemoryHub page as a singleton tab.
+  const handleOpenInsights = useCallback(() => {
+    const currentTabs = tabsRef.current;
+    const existing = currentTabs.find((tab) => tab.view === 'insights');
+    if (existing) {
+      setActiveTabId(existing.id);
+      return;
+    }
+    if (currentTabs.length >= MAX_TABS) {
+      console.warn(`[App] Max tabs (${MAX_TABS}) reached`);
+      return;
+    }
+    openNewTabDeferred({
+      id: `tab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      agentDir: null,
+      sessionId: null,
+      view: 'insights',
+      title: t('tabs.insights'),
+      sidecarConfigDisposition: 'push',
+    });
+  }, [openNewTabDeferred, setActiveTabId, t]);
+
+  useEffect(() => {
+    window.addEventListener(CUSTOM_EVENTS.OPEN_INSIGHTS, handleOpenInsights);
+    return () => window.removeEventListener(CUSTOM_EVENTS.OPEN_INSIGHTS, handleOpenInsights);
+  }, [handleOpenInsights]);
+
   // Intent carried across `OPEN_TASK_CENTER` — the event dispatcher
   // (Launcher "我的任务" tab's search icon) wants more than just "open
   // the tab": it wants the Task Center's search box focused on arrival.
@@ -3324,19 +3356,20 @@ export default function App() {
   //      `useRef + ++` is cheap and collision-free.
   const taskCenterIntentCounterRef = useRef(0);
   const [taskCenterPendingIntent, setTaskCenterPendingIntent] = useState<
-    { autofocusSearch?: boolean; nonce: number } | null
+    { autofocusSearch?: boolean; taskId?: string; nonce: number } | null
   >(null);
 
   // Listen for OPEN_TASK_CENTER custom event from child components
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as
-        | { autofocusSearch?: boolean }
+        | { autofocusSearch?: boolean; taskId?: string }
         | undefined;
-      if (detail?.autofocusSearch) {
+      if (detail?.autofocusSearch || detail?.taskId) {
         taskCenterIntentCounterRef.current += 1;
         setTaskCenterPendingIntent({
-          autofocusSearch: true,
+          autofocusSearch: detail.autofocusSearch,
+          taskId: detail.taskId,
           nonce: taskCenterIntentCounterRef.current,
         });
       } else {

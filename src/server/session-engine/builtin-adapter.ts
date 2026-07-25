@@ -67,6 +67,7 @@ import { getSessionData } from '../SessionStore';
 import { getLatestAssistantResultFromMessages, NO_TEXT_RESPONSE } from '../inbox/latest-result';
 import { shrinkReplayContentForClient } from '../utils/session-message-preview';
 import type { SessionMessage } from '../types/session';
+import { enrichMessageWithMemory } from '../memory-recall';
 
 function providerEnvForRouteRequest(request: {
   providerRoute?: ProviderRoute;
@@ -275,8 +276,9 @@ export function createBuiltinSessionEngine(): SessionEngine {
       if (routed.error) {
         return { success: false, error: routed.error, status: routed.status };
       }
+      const text = await enrichMessageWithMemory(request.text, request.workspacePath);
       const result = await enqueueUserMessage(
-        request.text,
+        text,
         request.images,
         request.permissionMode,
         routed.model,
@@ -310,8 +312,9 @@ export function createBuiltinSessionEngine(): SessionEngine {
       if (routed.error) {
         return { success: false, error: routed.error, status: routed.status };
       }
+      const message = await enrichMessageWithMemory(request.message, request.workspacePath);
       const result = await enqueueUserMessage(
-        request.message,
+        message,
         request.images,
         request.permissionMode as PermissionMode | undefined,
         routed.model,
@@ -340,8 +343,9 @@ export function createBuiltinSessionEngine(): SessionEngine {
       if (routed.error) {
         return { success: false, error: routed.error, status: routed.status };
       }
+      const text = await enrichMessageWithMemory(request.text, request.workspacePath);
       const result = await enqueueUserMessage(
-        request.text,
+        text,
         request.images,
         request.permissionMode as PermissionMode | undefined,
         routed.model,
@@ -362,8 +366,9 @@ export function createBuiltinSessionEngine(): SessionEngine {
     async enqueueInboxMessage(request) {
       const scenario = request.scenario ?? { type: 'desktop' as const };
       await setInteractionScenario(scenario);
+      const text = await enrichMessageWithMemory(request.text, request.workspacePath);
       return enqueueUserMessage(
-        request.text,
+        text,
         undefined,
         undefined,
         undefined,

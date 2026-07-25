@@ -286,6 +286,8 @@ export default memo(function TabBar({
                                       ? t('tabs.settings')
                                       : tab.view === 'taskcenter'
                                         ? t('tabs.taskCenter')
+                                        : tab.view === 'insights'
+                                          ? t('tabs.insights')
                                         : tab.view === 'space'
                                           ? t('tabs.team')
                                           : t('tabs.launcher');

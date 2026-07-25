@@ -60,7 +60,8 @@
     "format": "prettier --experimental-cli --write .",
     "format:check": "prettier --experimental-cli --check --log-level warn .",
     "generate:sdk-shims": "node --import tsx/esm scripts/generate-sdk-shims.ts",
-    "clean": "rm -rf node_modules dist .turbo .eslintcache *.tsbuildinfo src-tauri/target",
+    "clean": "node scripts/clean-generated.mjs",
+    "clean:all": "node scripts/clean-generated.mjs --dependencies --resources",
     "version": "node scripts/sync-version.js && git add src-tauri/tauri.conf.json src-tauri/Cargo.toml"
   },
   "dependencies": {

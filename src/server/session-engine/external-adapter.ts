@@ -67,6 +67,7 @@ import {
 } from '../proxy-state';
 import type { RuntimeBackedProviderIdentity } from '../../shared/providerExecution';
 import type { RuntimeSource, RuntimeType } from '../../shared/types/runtime';
+import { enrichMessageWithMemory } from '../memory-recall';
 
 function getRuntimeSessionId(): string {
   return getExternalSessionId() || getCurrentBoundSessionId() || getSessionId();
@@ -237,8 +238,9 @@ export function createExternalSessionEngine(): SessionEngine {
     },
 
     async sendDesktopMessage(request: DesktopMessageRequest): Promise<DesktopAdmissionResult> {
+      const text = await enrichMessageWithMemory(request.text, request.workspacePath);
       const sent = enqueueExternalSendForDesktop(
-        request.text,
+        text,
         request.images,
         request.permissionMode,
         request.model,
@@ -276,8 +278,9 @@ export function createExternalSessionEngine(): SessionEngine {
     },
 
     async enqueueImMessage(request: ImMessageRequest): Promise<ImAdmissionResult> {
+      const message = await enrichMessageWithMemory(request.message, request.workspacePath);
       const result = await sendExternalMessage(
-        request.message,
+        message,
         request.images,
         undefined,
         undefined,
@@ -308,8 +311,9 @@ export function createExternalSessionEngine(): SessionEngine {
     },
 
     async enqueueBackgroundMessage(request) {
+      const text = await enrichMessageWithMemory(request.text, request.workspacePath);
       const result = await sendExternalMessage(
-        request.text,
+        text,
         request.images,
         undefined,
         undefined,
@@ -333,9 +337,10 @@ export function createExternalSessionEngine(): SessionEngine {
       return { success: true, queued: result.queued };
     },
 
-    enqueueInboxMessage(request) {
+    async enqueueInboxMessage(request) {
+      const text = await enrichMessageWithMemory(request.text, request.workspacePath);
       return sendExternalMessage(
-        request.text,
+        text,
         undefined,
         undefined,
         undefined,

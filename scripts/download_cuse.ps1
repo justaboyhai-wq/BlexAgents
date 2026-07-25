@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Fetch the latest cuse (computer-use MCP) binary from Cloudflare R2 and
@@ -31,6 +31,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# Current compatibility CDN. download.blexagent.com is not yet serving this
+# endpoint, so keep downloads on the verified public mirror.
 $DownloadBaseUrl  = "https://download.myagents.io"
 $LatestUrl        = "$DownloadBaseUrl/cuse/latest.json"
 $ReleasesBaseUrl  = "$DownloadBaseUrl/cuse/releases"
@@ -128,7 +130,7 @@ $ArchiveName = "cuse-${Version}-windows-x64.zip"
 $ArchiveUrl  = "$ReleasesBaseUrl/$Version/$ArchiveName"
 $ShaUrl      = "$ArchiveUrl.sha256"
 
-$TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "myagents-cuse-$(Get-Random)"
+$TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "blexagent-cuse-$(Get-Random)"
 New-Item -ItemType Directory -Path $TmpDir -Force | Out-Null
 
 try {
